@@ -94,7 +94,7 @@ You can use the filter text box at the bottom of MO2 to find it, and then click 
 
 ![image](https://user-images.githubusercontent.com/110171124/181570341-34ec4a80-94c3-4b8f-b639-4e010a2366ad.png)
 
-With that mod unclicked, click the Play button and wait. This took quite a bit of time on my laptop. So much so that I thought it had crashed and started killing processes etc. But just wait. It took my system a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds before the main menu choices to appear. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen.
+With that mod unclicked, click the Play button and wait. This took quite a bit of time on my laptop. So much so that I thought it had crashed and started killing processes etc. But just wait. It took my system a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds for the main menu choices to appear. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen.
 
 As I stated above in the disclaimer, I have no visibility of longer term stability, so, maybe save often, and make backups of your savegames, just in case ;)
 
