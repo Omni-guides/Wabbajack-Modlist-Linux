@@ -12,7 +12,7 @@ Once Wabbajack had successfully completed the download of the Septimus 3 modlist
 
 Copy the modlist directory from Windows into this new directory (/home/omni/Skyrim/Skyrim-Septimus3)
 
-ENB will not work under Linux, so I went into the Septimus 3 directory and renamed the d2d11.dll file to stop ENB loading when Skyrim is launched.
+ENB will not work under Linux, so I went into the Septimus 3 directory and renamed the d3d11.dll file to stop ENB loading when Skyrim is launched.
 
 Next we need a nifty little program called steam-redirect, which can be found on the same github page as the more general [Linux Mod Organizer 2 installation](https://github.com/rockerbacon/modorganizer2-linux-installer). I chose to build from source.
 
