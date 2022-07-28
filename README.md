@@ -4,7 +4,7 @@ A combination of posts from the Wabbjack Discord that I used to get WJ modlists 
 ## THIS IS A WORK IN PROGRESS
 
 After following [steps taken by Wabbajack discord user @Pine](https://discord.com/channels/605449136870916175/839082262552510484/1001667720267440148) I performed the following on my Linux laptop (Fedora) and also on my Linux Desktop (Garuda) to get this working via Steam. The process should be largely the same for most distros. 
-Until there is a method or version of Wabbajack that runs under Linux, for this you require a Windows system to run the Wabbajack application and perform the initial download of the Wabbajack modlist you want to use. For this example, I used the Septimus 3 modlist.
+Until there is a method or version of Wabbajack that runs under Linux, you will require a Windows system in order to run the Wabbajack application and perform the initial download of the Wabbajack modlist you want to use. For this example, I used the Septimus 3 modlist.
 
 DISCLAIMER - I haven't actually *played the game* with this set up yet, other than getting into the game world after character creation and running about a bit.
 
