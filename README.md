@@ -27,7 +27,7 @@ Arch (Deck?): sudo pacman -S gcc make mingw-w64-gcc mingw-w64-winpthreads
 Next, I made a directory to temporarily host the files, downloaded the source of the MO2 Linux installer, and extracted it:
 
 ```
-mkdir /home/omni.mo-source
+mkdir /home/omni/mo-source
 
 wget https://github.com/rockerbacon/modorganizer2-linux-installer/archive/refs/tags/4.3.0.tar.gz -P /home/omni/mo-source
 
