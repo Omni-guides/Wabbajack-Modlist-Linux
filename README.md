@@ -70,19 +70,21 @@ modorganizer2  mo-redirect.exe  Skyrim-Septimus3
 
 Next step was to add mo-redirect to Steam as a non-steam game, edit the properties of it once added, and in the Compatibility tab tick the box for 'Force the use of a specific Steam Play compatibility tool', and then select the Proton version - I chose Proton 7.0-3.
 
-*Image of Non-Steam Game*
+![image](https://user-images.githubusercontent.com/110171124/181563703-484cca11-4c48-438b-ad1c-c332779a242f.png)
 
 Click play on this new entry mo-redirect, and all being well, a little terminal window will appear - this is the steam-redirector doing it's job. The custom modlist splashscreen for MO2 appears and then MO2 itself. 
 
-*image of terminal window and splashscreen*
+![image](https://user-images.githubusercontent.com/110171124/181574124-776fde2f-35b4-4987-9fed-efc32eda7937.png)
+
+![image](https://user-images.githubusercontent.com/110171124/181574661-c58922a0-09be-4062-b76d-5c99d1394705.png)
 
 Getting close now, but a couple of extra things I had to do to get the game to start without crashing. First, I had to ensure that MO2 was pointing to the correct new location for things like skse_loader.exe, SkyrimSE.exe, SkyrimSELauncher.exe and so on. In MO2, click the little two-cog icon at the top, which will bring up the Modify Executables window. 
 
-*Imagine of MO2 cogs and Modify Executables*
+![image](https://user-images.githubusercontent.com/110171124/181569435-99b953ff-bb0a-4da7-aab8-4e76b5d0f3d6.png)
 
 I only updated 4 of these to point to the new location, though it may only actually require the first one (Septimus, in this example), though, unless you want to have the option to launch the others from MO2. Basically for each of Septimus, Skyrim Special Edition, Skyrim Special Edition Launcher and SKSE, I changed the "Binary" and "Start In" locations to point to the 'Stock Game' directory in my Septimus directory. Due to running this through proton, it will be referenced by being the Z: drive location. So for example, the Septimus entry should have a 'Binary' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game\skse64_loader.exe" and a 'Start In' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game".
 
-*image of Modify Executable*
+![image](https://user-images.githubusercontent.com/110171124/181573956-5424bb8c-7ea6-4267-9a69-e01cdcd8aa2d.png)
 
 I did this for the other entries I listed above - but even those other 3 it may not be needed unless you speficially want to run that executable from within MO2 (I was using the SkyrimSELauncher.exe for testing).
 
@@ -90,8 +92,10 @@ Lastly, there was one particular mod in Septimus 3 (and likely others) that was 
 
 You can use the filter text box at the bottom of MO2 to find it, and then click to untick:
 
-*image of MO2 filter and untick mod*
+![image](https://user-images.githubusercontent.com/110171124/181570341-34ec4a80-94c3-4b8f-b639-4e010a2366ad.png)
 
 With that mod unclicked, click the Play button and wait. This took quite a bit of time on my laptop. So much so that I thought it had crashed and started killing processes etc. But just wait. It took my system a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds before the main menu choices to appear. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen.
 
 As I stated above in the disclaimer, I have no visibility of longer term stability, so, maybe save often, and make backups of your savegames, just in case ;)
+
+![image](https://user-images.githubusercontent.com/110171124/181572624-22e6e74c-6117-4a90-88a7-fc6ed5683a06.png)
