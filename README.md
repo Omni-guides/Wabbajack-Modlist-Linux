@@ -91,20 +91,20 @@ Getting close now, but a couple of extra things I had to do to get the game to s
 
 ![image](https://user-images.githubusercontent.com/110171124/181569435-99b953ff-bb0a-4da7-aab8-4e76b5d0f3d6.png)
 
-I only updated 4 of these to point to the new location, though it may only actually require the first one (Septimus, in this example), though, unless you want to have the option to launch the others from MO2. Basically for each of Septimus, Skyrim Special Edition, Skyrim Special Edition Launcher and SKSE, I changed the "Binary" and "Start In" locations to point to the 'Stock Game' directory in my Septimus directory. Due to running this through proton, it will be referenced by being the Z: drive location. So for example, the Septimus entry should have a 'Binary' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game\skse64_loader.exe" and a 'Start In' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game".
+I only updated 4 of these to point to the new location, though it may only actually require the first one (Septimus, in this example. Basically for each of Septimus, Skyrim Special Edition, Skyrim Special Edition Launcher and SKSE, I changed the "Binary" and "Start In" locations to point to the 'Stock Game' directory in my Septimus directory. Due to running this through proton, it will be referenced by being the Z: drive location. So for example, the Septimus entry should have a 'Binary' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game\skse64_loader.exe" and a 'Start In' path of "Z:\home\omni\Skyrim\Skyrim-Septimus3\Stock Game".
 
 ![image](https://user-images.githubusercontent.com/110171124/181573956-5424bb8c-7ea6-4267-9a69-e01cdcd8aa2d.png)
 
-I did this for the other entries I listed above - but even those other 3 it may not be needed unless you speficially want to run that executable from within MO2 (I was using the SkyrimSELauncher.exe for testing).
+I did this for the other entries I listed above - but even those other 3 may not be needed unless you specifically want to run that executable from within MO2 (I was using the SkyrimSELauncher.exe for testing, for example).
 
-Lastly, there was one particular mod in Septimus 3 (and likely others) that was causing the game to crash while loading the main menu - Face Discoloration Fix. Thanks again to @Pine for pointing to this mod as a possible culprit, as it save a lot of troubleshooting! This particular mod will have to be unticked in MO2 - Doing this will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
+Lastly, there was one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. Thanks again to @Pine for pointing to this mod as a possible culprit, as it saved a whole lot of troubleshooting! This particular mod will have to be unticked in MO2 - Doing this will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
 
 You can use the filter text box at the bottom of MO2 to find it, and then click to untick:
 
 ![image](https://user-images.githubusercontent.com/110171124/181570341-34ec4a80-94c3-4b8f-b639-4e010a2366ad.png)
 
-With that mod unclicked, click the Play button and wait. This took quite a bit of time on my laptop. So much so that I thought it had crashed and started killing processes etc. But just wait. It took my system a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds for the main menu choices to appear. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen. Once the game has started, please follow any additional steps that the wiki for your chosen modlist asks you to carry out, in terms of mod configuration etc from inside the game.
+With that mod unticked, click the Play button and wait. This took quite a bit of time on my laptop. So long that I thought it had crashed and started killing processes etc. But just wait... It took my system a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds for the main menu choices to appear. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen. Once the game has started, please follow any additional steps that the wiki for your chosen modlist asks you to carry out, in terms of mod configuration etc from inside the game.
 
-As I stated above in the disclaimer, I have no visibility of longer term stability, so, maybe save often, and make backups of your savegames, just in case ;) Once the 
+As I stated above in the disclaimer, I have no visibility of longer term stability, so, maybe save often, and make backups of your savegames, just in case ;) 
 
 ![image](https://user-images.githubusercontent.com/110171124/181572624-22e6e74c-6117-4a90-88a7-fc6ed5683a06.png)
