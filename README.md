@@ -1,12 +1,20 @@
 # Skyrim + Wabbajack Modlist + Linux / SteamDeck
 
+#### Introduction
+
 The following guide is a work in progress, based on mutliple users posting in the #unofficial-linux-help channel of the main [Wabbajack Discord](https://discord.gg/wabbajack). With thanks to all involved.
 
 The steps below have been used to get a Wabbajack Skyrim Modlist running on Linux, but not the Wabbajack Appliction itself (yet). I have confirmed success with SteamDeck (Arch), Garuda (Arch) and Fedora, though the process should be largely the same for most distros. 
 
-Until there is a method or version of Wabbajack that runs under Linux, *you will require a Windows system in order to run the Wabbajack application and perform the initial download of the Wabbajack modlist you want to use*. For this example, I used the Septimus 3 modlist. The following steps will use /home/deck as a location to make the guide easier to follow for SteamDeck users, but you can replace that path with the correct path for your environment.
+Until there is a method or version of Wabbajack that runs under Linux, *you will require a Windows system in order to run the Wabbajack application and perform the initial download of the Wabbajack modlist you want to use*. For this example, I used the Septimus 3 modlist. The following steps will use /home/deck as a location to make the guide easier to follow for SteamDeck users, but you can replace that path with the correct path for your environment. You may also want to use a different naming convention if you are likely to have multiple modlists installed at the same time.
 
 DISCLAIMER - I haven't actually had a chance to *play the game at length* with this set up yet, other than getting into the game world after character creation and running about a bit. Too much tweaking and getting this running in the first placeso far.
+
+---
+
+### For All Modlists
+
+The following steps are required no matter which modlist you are going to run. There are sections near the end for modlist-specific fixes that I have found so far. Please do try your own, and report back any fixes/tweaks you find. I should be around in the Wabbajack Discord.
 
 Once Wabbajack has successfully completed the download and installation of the modlist on Windows, create a new directory on the Linux system/SteamDeck to house the required files - e.g. /home/deck/Skyrim. Currently I have not found a way to have this run from the SD Card, but I will continue to work on that and update accordingly.
 
@@ -99,19 +107,7 @@ With the example ModList of Septimus 3, the executable that needs edited is simp
 
 ![image](https://user-images.githubusercontent.com/110171124/183409643-c45c04e2-7b6c-46d9-bbac-8a7ea0cc4645.png)
 
-At this stage, the steps required may differ depending on the modlist you have chosen, and the mods that the modlist includes. For Septimus 3 specifically, there are a couple of extra things I had to do to get the game to start without crashing, and function correctly. There is an incompatiblity with one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. However, disabling this mod alone results in the faces of NPCs being discoloured, so afrer a bit of trial and error, I found that we also need to disable the mod: VHR - Vanilla Hair Replacer - Disabling these two mods will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) It's a shame to lose what these mods bring to the modlist, and perhaps there are ways to get them working in future.
-
-You can use the filter text box at the bottom of MO2 to find the mods in question, and then click to untick.
-
-Face Discoloration Fix:
-
-![image](https://user-images.githubusercontent.com/110171124/181570341-34ec4a80-94c3-4b8f-b639-4e010a2366ad.png)
-
-Repeat for Vanilla Hair Replacer:
-
-![image](https://user-images.githubusercontent.com/110171124/183409625-0f28331a-260d-4cc3-900a-10a342bbc873.png)
-
-Lastly, there is an issue with missing NPC Voices. Apparently this is an issue with Proton, so it may ultimately be resolved in time without needed these steps. We need to add xact and xact_x64 to the Wine/Proton environment Steam created for mo-redirect.exe. The easiest way to accomplish this is to use protontricks. This can be installed via the Discover store (or via command-line depending on which Linux Distro you run):
+There is an issue with missing NPC Voices. Apparently this is an issue with Proton, so it may ultimately be resolved in time without needing these steps. We need to add xact and xact_x64 to the Wine/Proton environment Steam created for mo-redirect.exe. The easiest way to accomplish this is to use protontricks. This can be installed via the Discover store (or via command-line depending on which Linux Distro you run):
 
 ![image](https://user-images.githubusercontent.com/110171124/183392721-f4ed554a-8bb7-4cc2-a4b9-29c56b8b5a39.png)
 
@@ -127,25 +123,56 @@ Adding the required packages can be done via the ProtonTricks gui, but perhaps t
 
 ```
 protontricks -l | grep mo-redirect
+```
+Replace mo-redirect if you have renamed the Non-Steam Game added earlier. The output should look something like below, though your AppID will differ from mine:
 
+```
 Non-Steam shortcut: mo-redirect.exe (3595949753)
 ```
 
-Your App ID will differ from the above.
-
-Install the required xact and xact_x64 packages into this Proton environment:
+With the AppID now known, install the required xact and xact_x64 packages into this Proton environment (use your own AppID from the command above):
 
 ```
 protontricks 3595949753 xact xact_x64
 ```
- 
+
 This may take a little time to complete, but just let it run the course.
+
+At this stage, the steps required may differ depending on the modlist you have chosen, and the mods that the modlist includes. 
+
+---
+
+### Modlist-specific Steps
+
+#### Septimus 3
+
+There are a couple of extra things I had to do to get Septimus 3 to start without crashing, and function correctly. There is an incompatiblity with one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. However, disabling this mod alone results in the faces of NPCs being discoloured, so after a bit of trial and error, I found that we also need to disable the mod: VHR - Vanilla Hair Replacer - Disabling these two mods will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
+
+It's a shame to lose what these mods bring to the modlist, and perhaps there are ways to get them working in future.
+
+You can use the filter text box at the bottom of MO2 to find the mods in question, and then click to untick.
+
+Face Discoloration Fix:
+
+![image](https://user-images.githubusercontent.com/110171124/181570341-34ec4a80-94c3-4b8f-b639-4e010a2366ad.png)
+
+Repeat for Vanilla Hair Replacer:
+
+![image](https://user-images.githubusercontent.com/110171124/183409625-0f28331a-260d-4cc3-900a-10a342bbc873.png)
+
+---
+
+#### Journey
+
+With the above NPC Voice fix in place, I didn't need to carry out any more steps. It 'just worked'.
+
+---
 
 At last!
 
-With the two mods unticked, and the NPC Voices fixed, we should now be ready! Click the Play button in Mod Organizer, and wait. This took quite a bit of time on my laptop. So long that I thought it had crashed and I started killing processes etc. But just wait... It took my laptop a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds for the main menu choices to appear. On SteamDeck, it took approximately 3 minutes and 45 seconds before I could interact with the in-game menu. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen. 
+With NPC Voices fixed, and any ModList-specific fixes from above applied, we should now be ready! Click the Play button in Mod Organizer, and wait. This took quite a bit of time on my laptop. So long that I thought it had crashed and I started killing processes etc. But just wait... It took my laptop a full 2 minutes for the Skyrim window to appear, and then another 30-40 seconds for the main menu choices to appear. On SteamDeck, it took approximately 3 minutes and 45 seconds before I could interact with the in-game menu. Once it had loaded though, performance was good in the menus, and in-game performance will depend on your system specs and modlist chosen. 
 
-For Septimus 3 on SteamDeck, I limit FPS and Refresh rate to 40, and it does a pretty good job at maintaining that. Once you have started a new game, please follow any additional steps that the wiki for your chosen modlist asks you to carry out, in terms of mod configuration etc from inside the game.
+On SteamDeck, I limit FPS and Refresh rate to 40, and it does a pretty good job at maintaining that in Septimus and Journey modlists. Other lists may vary, and I do plan to test more as my time allows. Once you have started a new game, please follow any additional steps that the wiki for your chosen modlist asks you to carry out, in terms of mod configuration from inside the game.
 
 As I stated above in the disclaimer, I have no visibility of longer term stability, so, maybe save often, and make backups of your savegames, just in case ;) 
 
