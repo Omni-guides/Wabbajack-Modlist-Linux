@@ -336,7 +336,7 @@ At this stage, the steps required may differ depending on the modlist you have c
 
 #### Septimus 3
 
-There are a couple of extra things I had to do to get Septimus 3 to start without crashing, and function correctly. There is an incompatiblity with one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. However, disabling this mod alone results in the faces of NPCs being discoloured, so after a bit of trial and error, I found that we also need to disable the mod: VHR - Vanilla Hair Replacer - Disabling these two mods will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
+There are a couple of extra things I had to do to get Septimus 3 to start without crashing, and function correctly. There is an incompatiblity with one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. However, disabling this mod alone results in the faces of NPCs being discoloured (funnily enough..), so after a bit of trial and error, I found that we also need to disable the mod: VHR - Vanilla Hair Replacer - Disabling these two mods will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
 
 It's a shame to lose what these mods bring to the modlist, and perhaps there are ways to get them working in future. Open to any help on narrowing down what would be required to allow those mods to function.
 
@@ -355,6 +355,8 @@ Repeat for Vanilla Hair Replacer:
 With the above NPC Voice fix in place, I didn't need to carry out any more steps. It 'just worked'.
 
 ---
+
+### Conclusion
 
 At last!
 
