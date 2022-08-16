@@ -58,16 +58,16 @@ Next we need a nifty little program called steam-redirector. Information about t
 
 To download the version I have pre-built, run **only one** of the following commands in Konsole, depending on your storage location.
 
-Download the pre-built SteamDeck mo-redirect.exe to Internal Storage:
+Download the pre-built mo-redirect.exe to Internal Storage:
 ```
 wget https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/raw/main/mo-redirect.exe -O /home/deck/Games/Skyrim/Septimus3/mo-redirect.exe
 ```
 
 **OR**
 
-Download the pre-built SteamDeck mo-redirect.exe to SDCard:
+Download the pre-built mo-redirect.exe to SDCard:
 ```
-wget https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/raw/main/SteamDeck-mo-redirect.exe -O /run/media/mmcblk0p1/Games/Skyrim/Septimus3/mo-redirect.exe
+wget https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/raw/main/mo-redirect.exe -O /run/media/mmcblk0p1/Games/Skyrim/Septimus3/mo-redirect.exe
 ```
 
 This mo-redirect.exe is a wrapper app that basically points to the real location of your modlist's ModOrganizer.exe and nxmhandler.exe. It does this based on the contents of two files that have to live inside a specific directory called modorganizer2. This directory has to exist in the same directory mo-redirect.exe lives. So we need to create a directory, and then create the two files mo-redirect.exe is expecting.
