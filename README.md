@@ -291,7 +291,7 @@ With the example ModList of Septimus 3, the executable that needs edited is simp
 
 **Step 6 - Required Fixes for all ModLists**
 
-Now on to required fixes. This has been required for each of the modlists I have manager to get running. There is an issue with missing NPC Voices -  Apparently this is an issue with Proton, so it may ultimately be resolved in time  with a newer version of Proton, without needing these steps, but for now, we need to add xact and xact_x64 to the Wine/Proton environment Steam created for mo-redirect.exe. The easiest way to accomplish this is to use protontricks. This can be installed via the Discover store, as a flatpak, or perhaps via your chosen distro's package manager:
+Now on to required fixes. This has been required for each of the modlists I have managed to get running. There is an issue with missing NPC Voices -  apparently this is an issue with Proton, so it may ultimately be resolved in time  with a newer version of Proton without needing these steps, but for now, we need to add xact and xact_x64 to the Wine/Proton environment Steam created for mo-redirect.exe. The easiest way to accomplish this is to use protontricks. This can be installed via the Discover store, as a flatpak, or perhaps via your chosen distro's package manager:
 
 ![image](https://user-images.githubusercontent.com/110171124/183392721-f4ed554a-8bb7-4cc2-a4b9-29c56b8b5a39.png)
 
