@@ -2,7 +2,7 @@
 
 DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gamer trying to help other gamers. You may be able to get assistance with this guide from the #unofficial-linux-help channel of the main [Wabbajack Discord](https://discord.gg/wabbajack), but it may be best to @ me (@omni). Due to this being an unofficial guide, assistance from the wabbajack support directly on this is unlikely.
 
-#### Introduction
+### Introduction
 
 The following guide is a work in progress, based on my own tests, and along with mutliple users posting in the #unofficial-linux-help channel. With thanks to all involved. Feedback is always welcome.
 
@@ -16,13 +16,17 @@ I've split the guide into a SteamDeck-specific guide, and below that a more gene
 
 ---
 
-### For All Modlists
+## For All Modlists
 
 The following steps are required no matter which modlist you are going to run. There are sections near the end of this guide for modlist-specific fixes that I have found so far. Please do try your own and report back any fixes/tweaks you find or additional steps you needed to do, so we can expand this guide to be as helpful as possible. I should be around in the Wabbajack Discord, even if you just fancy a chat.
 
 If you are installing on Linux, but **not** the SteamDeck, you can skip ahead to [Instructions for Linux](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/edit/main/README.md#general-linux-instructions).
 
-#### Instructions for SteamDeck
+---
+
+---
+
+### Instructions for SteamDeck
 
 These steps will need to be carried out in Desktop mode, but once complete, you can launch the modlist from Game Mode.
 
@@ -144,11 +148,43 @@ Like so:
 
 **Step 5 - Start and Configure ModOrganizer2**
 
-Click play on this new entry mo-redirect.exe (or whatever you renamed it to) in Steam, and all being well, a little terminal window will appear - this is the steam-redirector doing it's job. The custom modlist splashscreen for MO2 should appear, followed by ModOrganizer2 itself. If the terminal window just pops up for a second and vanishes, double check the contents of the instance_path.txt and instance_download_path.txt files as above, and that they are present in the correct directory - e.g. /home/deck/Games/Skyrim/Septimus3/modorganizer2/instances_path.txt
+Click play on this new entry mo-redirect.exe (or whatever you renamed it to) in Steam, and all being well, a little terminal window will appear - this is the steam-redirector doing it's job. If the terminal window just pops up for a second and vanishes, double check the contents of the instance_path.txt and instance_download_path.txt files as above, and that they are present in the correct directory - e.g. /home/deck/Games/Skyrim/Septimus3/modorganizer2/instances_path.txt
 
-![image](https://user-images.githubusercontent.com/110171124/181574124-776fde2f-35b4-4987-9fed-efc32eda7937.png)
+![image](https://user-images.githubusercontent.com/110171124/185081753-ecb508c6-1589-43f2-ab3c-22267dc8a8aa.png)
+
+Depending on the path on Windows that you copied the ModList files from, you may see an error pop-up about yout account lacking permission:
+
+![image](https://user-images.githubusercontent.com/110171124/185078795-e677fcee-e973-457e-9056-9ecbd9d77a83.png)
+
+To fix this, we just need to strip the now incorrect download directory from the ModOrganizer.ini file:
+
+```
+sed -i "s/download_directory=.*/download_directory=/" /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ/ModOrganizer.ini
+```
+
+If you had this error, fix as above and then re-run mo-redirect.exe from Steam.
+
+Another error box will appear, complaining that it "Cannot open instance 'Portable'. This is because we copied the ModList directory (inclusive of the built-in MO2) from Windows, so the path has changed:
+
+![image](https://user-images.githubusercontent.com/110171124/185069403-8553075e-9e9a-481b-b1e9-f3d8fb4d236a.png)
+
+To fix this, we need to point MO2 to our new location. Click OK, and then Browse:
+
+![image](https://user-images.githubusercontent.com/110171124/185071655-30f8fe66-d83d-48d0-acf5-398951d0001e.png)
+
+A GUI file browser will appear, and we need to expand the directories path to reveal the 'Stock Game' directory:
+
+![image](https://user-images.githubusercontent.com/110171124/185071871-7e07bd9f-5d45-49ad-92d1-41c2b1dc005d.png)
+
+With that done, the custom modlist splashscreen for MO2 should appear, followed by ModOrganizer2 itself. 
 
 ![image](https://user-images.githubusercontent.com/110171124/181574661-c58922a0-09be-4062-b76d-5c99d1394705.png)
+
+You may also get a pop-up asking if you want to Register for handling nxm links, like so:
+
+![image](https://user-images.githubusercontent.com/110171124/185072115-97215185-7237-4973-9674-5281a7daf305.png)
+
+I usually just hit "No, don't ask again" as I wont be downloading any new mods via this version of MO2.
 
 Getting close now. Next, we have to ensure that ModOrganizer2 is pointing to the correct **new** location for the required executables. In MO2, click the little two-cog icon at the top, which will bring up the Modify Executables window (please note that this icon may differ for some modlists that use custom icon sets):
 
@@ -156,7 +192,7 @@ Getting close now. Next, we have to ensure that ModOrganizer2 is pointing to the
 
 With the example ModList of Septimus 3, the executable that needs edited is simply called 'Septimus'. This will be different depending on the ModList you have chosen. Change the "Binary" and "Start In" locations to point to the 'Stock Game' directory inside our Septimus3-WJ directory. Due to running this through proton, it will be referenced by being the Z: drive location. So for example, the Septimus entry should have a 'Binary' path of "Z:\home\deck\Games\Skyrim\Septimus3\Septimus3-WJ\Stock Game\skse64_loader.exe" and a 'Start In' path of "Z:\home\deck\Games\Skyrim\Septimus3\Septimus3-WJ\Stock Game". You can use the three dots beside the "Binary" and "Start In" entries to manually locate via GUI.
 
-![image](https://user-images.githubusercontent.com/110171124/183409643-c45c04e2-7b6c-46d9-bbac-8a7ea0cc4645.png)
+![image](https://user-images.githubusercontent.com/110171124/185084549-a299a936-cf57-41df-9eaa-75ac82984d4b.png)
 
 **Step 6 - Required Fixes for all ModLists**
 
@@ -200,7 +236,9 @@ At this stage, the steps required may differ depending on the modlist you have c
 
 ---
 
-#### General Linux Instructions
+---
+
+### General Linux Instructions
 
 If you're looking to run a modlist on a general Linux system, and not a SteamDeck, these steps should hopefully get you up and running. 
 
@@ -275,11 +313,43 @@ The next step is to add mo-redirect.exe to Steam as a non-steam game. Once added
 
 **Step 5 - Start and Configure ModOrganizer2**
 
-Click play on this new entry mo-redirect.exe (or whatever you renamed it to) in Steam, and all being well, a little terminal window will appear - this is the steam-redirector doing it's job. The custom modlist splashscreen for MO2 should appear, followed by ModOrganizer2 itself. If the terminal window just pops up for a second and vanishes, double check the contents of your instance_path.txt and instance_download_path.txt files as above, and that they are present in the correct directory - e.g. /home/omni/Games/Skyrim/Septimus3/modorganizer2/instances_path.txt and instances_download_path.txt
+Click play on this new entry mo-redirect.exe (or whatever you renamed it to) in Steam, and all being well, a little terminal window will appear - this is the steam-redirector doing it's job. If the terminal window just pops up for a second and vanishes, double check the contents of the instance_path.txt and instance_download_path.txt files as above, and that they are present in the correct directory - e.g. /home/deck/Games/Skyrim/Septimus3/modorganizer2/instances_path.txt
 
 ![image](https://user-images.githubusercontent.com/110171124/181574124-776fde2f-35b4-4987-9fed-efc32eda7937.png)
 
+Depending on the path on Windows that you copied the ModList files from, you may see an error pop-up about yout account lacking permission:
+
+![image](https://user-images.githubusercontent.com/110171124/185078795-e677fcee-e973-457e-9056-9ecbd9d77a83.png)
+
+To fix this, we just need to strip the now incorrect download directory from the ModOrganizer.ini file:
+
+```
+sed -i "s/download_directory=.*/download_directory=/" /home/omni/Games/Skyrim/Septimus3/Septimus3-WJ/ModOrganizer.ini
+```
+
+If you had this error, fix as above and then re-run mo-redirect.exe from Steam.
+
+Another error box will appear, complaining that it "Cannot open instance 'Portable'. This is because we copied the ModList directory (inclusive of the built-in MO2) from Windows, so the path has changed:
+
+![image](https://user-images.githubusercontent.com/110171124/185069403-8553075e-9e9a-481b-b1e9-f3d8fb4d236a.png)
+
+To fix this, we need to point MO2 to our new location. Click OK, and then Browse:
+
+![image](https://user-images.githubusercontent.com/110171124/185071655-30f8fe66-d83d-48d0-acf5-398951d0001e.png)
+
+A GUI file browser will appear, and we need to expand the directories path to reveal the 'Stock Game' directory:
+
+![image](https://user-images.githubusercontent.com/110171124/185074254-479476f8-26db-4828-a39b-de7786efe4b3.png)
+
+With that done, the custom modlist splashscreen for MO2 should appear, followed by ModOrganizer2 itself. 
+
 ![image](https://user-images.githubusercontent.com/110171124/181574661-c58922a0-09be-4062-b76d-5c99d1394705.png)
+
+You may also get a pop-up asking if you want to Register for handling nxm links, like so:
+
+![image](https://user-images.githubusercontent.com/110171124/185072115-97215185-7237-4973-9674-5281a7daf305.png)
+
+I usually just hit "No, don't ask again" as I wont be downloading any new mods via this version of MO2.
 
 Getting close now. Next, we have to ensure that ModOrganizer2 is pointing to the correct **new** location for the required executables. In MO2, click the little two-cog icon at the top, which will bring up the Modify Executables window (please note that this icon may differ for some modlists that use custom icon sets):
 
@@ -287,7 +357,7 @@ Getting close now. Next, we have to ensure that ModOrganizer2 is pointing to the
 
 With the example ModList of Septimus 3, the executable that needs edited is simply called 'Septimus'. This will be different depending on the ModList you have chosen. Change the "Binary" and "Start In" locations to point to the 'Stock Game' directory inside our Septimus3-WJ directory. Due to running this through proton, it will be referenced by being the Z: drive location. So for example, the Septimus entry should have a 'Binary' path of "Z:\home\omni\Games\Skyrim\Septimus3\Septimus3-WJ\Stock Game\skse64_loader.exe" and a 'Start In' path of "Z:\home\omni\Games\Skyrim\Septimus3\Septimus3-WJ\Stock Game". You can use the three dots beside the "Binary" and "Start In" entries to manually locate via GUI.
 
-![image](https://user-images.githubusercontent.com/110171124/183409643-c45c04e2-7b6c-46d9-bbac-8a7ea0cc4645.png)
+![image](https://user-images.githubusercontent.com/110171124/185082360-0d9046c2-1413-48f5-8f0a-b510569fa639.png)
 
 **Step 6 - Required Fixes for all ModLists**
 
@@ -331,10 +401,13 @@ At this stage, the steps required may differ depending on the modlist you have c
 
 ---
 
+---
 
-### Modlist-specific Steps
+## Modlist-specific Steps
 
-#### Septimus 3
+This section deals with tweaks and fixes for specific ModLists that have been found so far. They are likely required regardless of whether you are running on the SteamDeck, or a general Linux system.
+
+### Septimus 3
 
 There are a couple of extra things I had to do to get Septimus 3 to start without crashing, and function correctly. There is an incompatiblity with one particular mod in Septimus 3 (and likely other Modlists) that was causing the game to crash while loading the main menu - Face Discoloration Fix. However, disabling this mod alone results in the faces of NPCs being discoloured (funnily enough..), so after a bit of trial and error, I found that we also need to disable the mod: VHR - Vanilla Hair Replacer - Disabling these two mods will render you out of support for the modlist because you have modified the modlist, but we're likely way out of support from the author by running under Linux in the first place :) 
 
@@ -348,15 +421,19 @@ Face Discoloration Fix:
 
 Repeat for Vanilla Hair Replacer:
 
-![image](https://user-images.githubusercontent.com/110171124/183409625-0f28331a-260d-4cc3-900a-10a342bbc873.png)
+![image](https://user-images.githubusercontent.com/110171124/185082764-99e8a072-732f-4610-ae82-33dc68fd0bda.png)
 
-#### Journey
+---
+
+### Journey
 
 With the above NPC Voice fix in place, I didn't need to carry out any more steps. It 'just worked'.
 
 ---
 
-### Conclusion
+---
+
+## Conclusion
 
 At last!
 
