@@ -43,7 +43,7 @@ mkdir -p /home/deck/Games/Skyrim/Septimus3
 
 Create Directory on SDCard:
 ```
-mkdir /run/media/mmcblk0p1/Games/Skyrim/Septimus3
+mkdir -p /run/media/mmcblk0p1/Games/Skyrim/Septimus3
 ```
 
 Copy the modlist directory from Windows into this newly created directory. There are many ways to do this. I chose to enable ssh on my Deck, and then use rsync to transfer. There are too many options to discuss here, but it should be relatively easy to search for methods. I copied the modlist directory to /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ - the reason for this structure should hopefully become clear as we go through the steps.
