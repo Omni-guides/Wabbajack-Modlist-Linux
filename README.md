@@ -43,7 +43,7 @@ mkdir -p /home/deck/Games/Skyrim/Septimus3
 
 Create Directory on SDCard:
 ```
-sudo mkdir /run/media/mmcblk0p1/Games/Skyrim/Septimus3
+mkdir /run/media/mmcblk0p1/Games/Skyrim/Septimus3
 ```
 
 Copy the modlist directory from Windows into this newly created directory. There are many ways to do this. I chose to enable ssh on my Deck, and then use rsync to transfer. There are too many options to discuss here, but it should be relatively easy to search for methods. I copied the modlist directory to /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ - the reason for this structure should hopefully become clear as we go through the steps.
@@ -428,6 +428,16 @@ Repeat for Vanilla Hair Replacer:
 ### Journey
 
 With the above NPC Voice fix in place, I didn't need to carry out any more steps. It 'just worked'.
+
+---
+
+### Wildlander
+
+I wouldn't recommend this one for the Deck. Performance even on the low or potato presets, FPS is low and fluctuates quite a bit, and graphicall it does not look good at all.
+
+For general Linux though, you might have better luck.
+
+Along with the NPC Voice fix above, I also had to disable SSE Parallax Shader Fix (BETA). It was a hit or miss for stability with the Face Discoloration Fix enabled, so if you still have crashes getting into the game, you can try disabling that too, though it will likely result in the Face Discoloration 'bug' appearing, which that mod was put in place to fix... I'm still tracking down the culprit for that one and will update when I find it.
 
 ---
 
