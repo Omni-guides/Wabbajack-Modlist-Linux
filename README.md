@@ -423,6 +423,8 @@ Repeat for Vanilla Hair Replacer:
 
 ![image](https://user-images.githubusercontent.com/110171124/185082764-99e8a072-732f-4610-ae82-33dc68fd0bda.png)
 
+There are reports of instability surrounding the Dragonborn Gallery from the Legacy of the Dragonborn mod. A full CTD is experienced, but only some of the time. I am still investigating if there is any way to make this more stable.
+
 ---
 
 ### Journey
