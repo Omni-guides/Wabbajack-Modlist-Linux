@@ -50,11 +50,13 @@ Copy the modlist directory from Windows into this newly created directory. There
 
 **Step 2 - Disable ENB**
 
-While ENB can work under Linux, it is likely going to badly impact performance on the Deck, so I would advise you to disable it. To do that, simply rename the d3d11.dll file in the ModList directory to stop ENB loading when Skyrim is launched. If you really want to do so anyway, you can follow the ENB link down in the general Linux steps below. For the deck, I run the following in Konsole:
+While ENB can work under Linux, it is likely going to badly impact performance on the Deck, so I would advise you to disable it. To do that, simply rename the d3d11.dll file in the ModList directory to stop ENB loading when Skyrim is launched. For the deck, I run the following in Konsole:
 
 ```
 mv /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll.orig
 ```
+
+If you really want to run the Linux ENB on the deck, you can follow the ENB link down in the [general Linux steps](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/edit/main/README.md#general-linux-instructions) below.
 
 **Step 3 - Steam Redirector**
 
@@ -256,7 +258,7 @@ I copied the modlist directory to /home/omni/Games/Skyrim/Septimus3/Septimus3-WJ
 
 **Step 2 - Disable ENB**
 
-While ENB will work under Linux, it is outside the scope of this guide. You can visit [the ENB Website](http://enbdev.com/download_mod_tesskyrimse.htm) to download the latest version of ENB, which will include a 'LinuxVersion' folderinside the zip file you download. It contains a replacement d3d11.dll file to use under Linux. However, for the purposes of this guide, I still suggest you disable ENB until you are happy with the stability of the modlist under Linux. To do so, simply rename the d3d11.dll file in the ModList directory to stop ENB loading when Skyrim is launched.
+While ENB will work under Linux, it is outside the scope of this guide. You can visit [the ENB Website](http://enbdev.com/download_mod_tesskyrimse.htm) to download the latest version of ENB, which will include a 'LinuxVersion' folder inside the zip file you download. It contains a replacement d3d11.dll file to use under Linux. However, for the purposes of this guide, I still suggest you disable ENB until you are happy with the stability of the modlist under Linux. To do so, simply rename the d3d11.dll file in the ModList directory to stop ENB loading when Skyrim is launched.
 
 ```
 mv /home/omni/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll /home/omni/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll.orig
