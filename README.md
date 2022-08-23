@@ -56,7 +56,7 @@ While ENB can work under Linux, it is likely going to badly impact performance o
 mv /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll /home/deck/Games/Skyrim/Septimus3/Septimus3-WJ/Stock\ Game/d3d11.dll.orig
 ```
 
-If you really want to run the Linux ENB on the deck, you can follow the ENB link down in the [general Linux steps](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/edit/main/README.md#general-linux-instructions) below.
+If you really want to run the Linux ENB on the deck, you can follow the ENB link down in the [General Linux Steps](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/blob/main/README.md#general-linux-instructions) below.
 
 **Step 3 - Steam Redirector**
 
