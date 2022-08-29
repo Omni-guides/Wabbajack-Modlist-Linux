@@ -20,7 +20,7 @@ I've split the guide into a SteamDeck-specific guide, and below that a more gene
 
 The following steps are required no matter which modlist you are going to run. There are sections near the end of this guide for modlist-specific fixes that I have found so far. Please do try your own and report back any fixes/tweaks you find or additional steps you needed to do, so we can expand this guide to be as helpful as possible. I should be around in the Wabbajack Discord, even if you just fancy a chat.
 
-If you are installing on Linux, but **not** the SteamDeck, you can skip ahead to [Instructions for Linux](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/edit/main/README.md#general-linux-instructions).
+If you are installing on Linux, but **not** the SteamDeck, you can skip ahead to [Instructions for Linux](https://github.com/Omni-guides/Skyrim-Wabbajack_Modlist-Linux/blob/main/README.md#general-linux-instructions).
 
 ---
 
