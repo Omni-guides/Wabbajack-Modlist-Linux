@@ -447,7 +447,7 @@ Along with the NPC Voice fix above, I also had to disable SSE Parallax Shader Fi
 
 ---
 
-## Conclusion
+### Conclusion
 
 At last!
 
@@ -466,3 +466,66 @@ If you've read this far, then well done! I'd appreciate a Star for this guide, j
 Enjoy!
 
 ![image](https://user-images.githubusercontent.com/110171124/181572624-22e6e74c-6117-4a90-88a7-fc6ed5683a06.png)
+
+---
+---
+
+# Troubleshooting
+
+## Skyrim crashes on startup after a short black flicker on the screen
+
+Make sure you did not miss any ENB. On Septimus4, disabling the mods under "ENB Options" does not disable the ENB. 
+You need to disable the "ENBSeries - Binaries" module, which is located in the "ROOT FOLDER" category. 
+
+You can easily unpack the categories while filtering by chosing "Categories" in the dropdown menu left of the filter text box.
+
+![image](https://user-images.githubusercontent.com/4218386/199115156-ae6b01fe-af6c-43d2-bb02-8e2c70a3e024.png)
+
+Other ModLists using RootBuilder may also have a clean game folder since it allows for loading ENBs as a mod. 
+
+Check thoroughly.
+If the ModLists does not use RootBuilder but the "Stock Game" folder structure, doublecheck that you did not miss any ENB files in the "Stock Game" folder. Renaming the main ENB dll is enough. i/e : d3d11.dll -> d3d11.dll.bak
+
+---
+
+## My shell is messed up after using protontricks and I cant see anything I type
+
+This is a known issue with protontricks. You can fix it by running `reset` in your terminal.
+
+---
+
+## My ModList requires a vc_redist dependency
+
+Get the latest version of the vc_redist from Microsoft and install it.
+
+You can find it here for a manual download : https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads
+
+Steamdeck requires the x64 version.
+
+At the time of writing this, the latest redistributable bundles all versions from 2015 up to 2022.
+To install it, copy the vc_redist.x64.exe file to your Steamdeck, then jump into a protontricks shell and run `wine vc_redist.x64.exe` at the file's location to install it.
+
+You can also use the following commands :
+```bash
+## Get your AppID. Replace mo-redirect.exe with the name of your Non-Steam Game.
+protontricks -s "mo-redirect.exe"
+
+# Set your AppID
+app-id="replace with your AppID"
+
+# Download vc_redist in your prefix. You may need to change the url below according to the latest version.
+wget https://aka.ms/vs/17/release/vc_redist.x64.exe -O '/home/deck/.local/share/Steam/steamapps/compatdata/'"$appid"'/pfx/dosdevices/c:/VC_redist.x64.exe'
+
+# Run it on a desktop environement. This is the prefered method as you will be able to doublecheck the version you are installing.
+protontricks -c 'wine /home/deck/.local/share/Steam/steamapps/compatdata/'"$appid"'/pfx/dosdevices/c:/VC_redist.x64.exe' $appid
+
+## Optional : run it headless (i/e : ssh)
+protontricks -c 'wine /home/deck/.local/share/Steam/steamapps/compatdata/'"$appid"'/pfx/dosdevices/c:/VC_redist.x64.exe -q -norestart' $appid
+```
+VC_redist should now be installed. Run the installer again in desktop mode if you want to be sure. It will have Repair/Uninstall options instead of Install.
+
+---
+
+## PermissionError: [Errno 13] on various rootbuilder python scripts
+
+This is a known issue on wine. It can safely be ignored.
