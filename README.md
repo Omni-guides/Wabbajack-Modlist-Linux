@@ -4,6 +4,8 @@ DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gam
 
 ### Introduction
 
+**I will shorlty be reorganising this guide to make it easier to follow for the multiple lists that have now been tested. This should be available in the next couple of weeks and make things much easier to follow.**
+
 The following guide is a work in progress, based on my own tests, and along with mutliple users posting in the #unofficial-linux-help channel. With thanks to all involved. Feedback is always welcome.
 
 The steps below have been used to get Wabbajack Modlists running on Linux, but **not** the Wabbajack Appliction itself. While I do have a method for running Wabbajack on bottles on Linux, I *do not* recommend it. I have confirmed success with Modlists for Skyrim, Fallout 4, Oblivion and more, on platforms such as SteamDeck (SteamOS/Arch), Garuda Linux (Arch) and Fedora, though the process should be largely the same for most distros. 
@@ -202,6 +204,8 @@ Another error box will appear, complaining that it "Cannot open instance 'Portab
 ![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/Septimus4PortableError.png)
 
 To fix this, we need to point MO2 to our new location. Click OK, and then Browse:
+
+** If you are installing Dragonborn, then please check the [modlist-specific steps for Dragonbornas](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/edit/main/README.md#dragonborn) it differs from all other modlists currecntly! This will be cleared up in the upcoming guide re-write. ** 
 
 ![image](https://user-images.githubusercontent.com/110171124/185071655-30f8fe66-d83d-48d0-acf5-398951d0001e.png)
 
@@ -470,7 +474,7 @@ This section deals with tweaks and fixes for specific ModLists that have been fo
 
 ### Septimus 4
 
-Thankfully, Septimus 4 has fewer tweaks to get running than Septimus 3 did. No mods need disabled now (unless you count ENB!) however two of the mods included in Septimus 4 rely on the latest 2022 version of Microsoft Visual C++ Redistributable - it has to be 2022, 2019 will not suffice. Sadly, 2022 isn't listed in the installable items via protontricks as yet, so we need to install it ourselves. We need to get this installed into the Proton prefix Steam created for our mo-redirect.exe application. The following one-liner should do everything you need (just replace the text "mo-redirect.exe" with whatever your Non-Steam Game entry is called and is listed via protontricks -l.
+Thankfully, Septimus 4 has fewer tweaks to get running than Septimus 3 did. No mods need disabled now (unless you count ENB!) however two of the mods included in Septimus 4 rely on the latest 2022 version of Microsoft Visual C++ Redistributable - it has to be 2022, 2019 will not suffice. Sadly, 2022 isn't listed in the installable items via protontricks as yet so we need to install it ourselves. We need to get this installed into the Proton prefix Steam created for our mo-redirect.exe application. The following one-liner should do everything you need (just replace the text "mo-redirect.exe" with whatever your Non-Steam Game entry is called and is listed via protontricks -l.
 
 ```
 APPID=`protontricks -l | grep "mo-redirect.exe" | awk {'print $7'} | sed 's:^.\(.*\).$:\1:' | tail -1` ; wget https://aka.ms/vs/17/release/vc_redist.x64.exe -O '/home/deck/.local/share/Steam/steamapps/compatdata/'"$APPID"'/pfx/dosdevices/c:/vc_redist.x64.exe' ; protontricks -c 'wine /home/deck/.local/share/Steam/steamapps/compatdata/'"$APPID"'/pfx/dosdevices/c:/vc_redist.x64.exe' $APPID
@@ -511,6 +515,56 @@ That should be everything you need to get Septimus 4 running on SteamDeck / Linu
 
 Move on the the Conclusion!
 
+---
+
+### Dragonborn
+
+A new list by GuitarNinja, that is designed with the Steam Deck in mind!
+
+This one should be relatively easy to get up and running, with only a few minor additional steps. Firstl, as with Septimus 4, we need to install vcredist2022. The following one-liner should do everything you need (just replace the text "mo-redirect.exe" with whatever your Non-Steam Game entry is called and is listed via protontricks -l.
+
+```
+APPID=`protontricks -l | grep "mo-redirect.exe" | awk {'print $7'} | sed 's:^.\(.*\).$:\1:' | tail -1` ; wget https://aka.ms/vs/17/release/vc_redist.x64.exe -O '/home/deck/.local/share/Steam/steamapps/compatdata/'"$APPID"'/pfx/dosdevices/c:/vc_redist.x64.exe' ; protontricks -c 'wine /home/deck/.local/share/Steam/steamapps/compatdata/'"$APPID"'/pfx/dosdevices/c:/vc_redist.x64.exe' $APPID
+```
+
+The next slight change from other modlists is that Dragonborn doesn't provide it's own GameRoot or StockGame folder in order to point MO2 at on first launch. For this we need to point at the Vanilla Skyrim location on the deck/Linux, which will probably exist in the equivalent of the /home/deck/.local directory. By default, Wine/Proton applications do not have visibility of .(dot) files and folders, so we need to tweak it via Protontricks. Firstly, close down MO2 and mo-redirect.exe if it doesn't close automatically. Next, open up the Protontricks gui for our Dragonborn instance (replace mo-redirect.exe with the name of your Non-steam game entry, if you changed it):
+
+```
+APPID=`protontricks -l | grep "mo-redirect.exe" | awk {'print $6'} | sed 's:^.\(.*\).$:\1:' | tail -1` ; protontricks $APPID --gui
+
+```
+
+Keep the 'default' selection highlighted, and click Next:
+
+![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/ProtonTricks_GUI_winecfg.png)
+ 
+Select the 'winecfg' entry, and click Next. 
+ 
+![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/ProtonTricks_GUI_winecfg2.png)
+       
+This should open up a little windows style Properties box. From there, click the Drvies tab at the top, and then check the box for showing 'dot files':
+ 
+![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/Protontricks_GUI-dotfiles.png)
+ 
+With that setting in place, MO2 will have visibility of the required .local directory in order to point MO2 at when you first launch it:
+
+![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/Dragonborn_Executables_skse.png)
+ 
+This leads us to the final alteration from other lists - Dragonborn still uses the GameRoot mechanism, it just uses the vanilla Skyrim directory to do so. So for the Dragonborn exectuable, we actually need to point MO2 at a file that doesn't exist (but will exist, once GameRoot runs when you click launch - and is then removed again when the game closes).
+ 
+The path you need for the Dragonborn application will be:
+
+```
+Z:\home\deck\.local\share\Steam\steamapps\common\Skyrim Special Edition\skse64_loader.exe
+```
+ 
+with a 'start in' path of:
+
+```
+Z:\home\deck\.local\share\Steam\steamapps\common\Skyrim Special Edition
+```
+With these in place, Dragonborn should now start successfully. 
+ 
 ---
 
 ### Journey
