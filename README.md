@@ -549,7 +549,15 @@ This should open up a little windows style Properties box. From there, click the
 With that setting in place, MO2 will have visibility of the required .local directory in order to point MO2 at when you first launch it:
 
 ![image](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/Dragonborn_Executables_skse.png)
- 
+
+You can now follow the rest of the For All Modlists steps to point MO2 at the Game Directory. You will need to browse to the path:
+
+```
+/home/deck/.local/share/Steam/steamapps/common/Skyrim\ Special\ Edition
+```
+
+I'll clean all this up in the upcoming guide re-write to make it clearer.
+
 This leads us to the final alteration from other lists - Dragonborn still uses the GameRoot mechanism, it just uses the vanilla Skyrim directory to do so. So for the Dragonborn exectuable, we actually need to point MO2 at a file that doesn't exist (but will exist, once GameRoot runs when you click launch - and is then removed again when the game closes).
  
 The path you need for the Dragonborn application will be:
