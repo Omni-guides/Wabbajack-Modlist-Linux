@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki">Home</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn">Dragonborn</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus-4">Septimus 4</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey">Journey</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
@@ -17,7 +17,7 @@ DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gam
 
 ## Introduction
 
-The contained guides are based mostly on my own tests and collaboration with multiple users posting in the #unofficial-linux-help channel of the [Official Wabbajack Discord](https://discord.gg/wabbajack). With thanks to all involved. Feedback is always welcome.
+The contained guides are a work in progress, based mostly on my own tests and collaboration with multiple users posting in the #unofficial-linux-help channel of the [Official Wabbajack Discord](https://discord.gg/wabbajack). With thanks to all involved. Feedback is always welcome.
 
 The steps included have been used to get Wabbajack Modlists running on Linux, but not the Wabbajack application itself. While I do have a method for running Wabbajack via bottles on Linux, I do not recommend it. With the steps in this guide, I have confirmed success with Modlists for Skyrim, Fallout 4, Oblivion and more, and on platforms such as SteamDeck (SteamOS/Arch), Garuda Linux (Arch) and Fedora, though the process should be largely the same for most Linux distros.
 
@@ -25,18 +25,16 @@ Until there is an officially supported version of Wabbajack for Linux, my recomm
 
 SteamDeck users can follow the Modlist-specific guide below to get step-by-step instructions to get you up and running for your chosen Modlist.
 
-For general Linux systems (i.e. not the SteamDeck), you can follow the steps in the [General Linux](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) guide. This guide uses Journey as an example list, but you can replace it with your Modlist of choice, the steps should be largely the same. If you have some issues, you could check the Modlist specific guide in case there are additional steps specific to that Modlist.
+For general Linux systems (i.e. not the SteamDeck), you can follow the steps in the [General Linux](#general-linux) guide. This guide uses Journey as an example list, but you can replace it with your Modlist of choice, the steps should be largely the same. If you have some issues, you could check the Modlist specific guide in case there are additional steps specific to that Modlist.
 
-Finally, if you're a Modlist developer and you want me to test your Modlist, let me know! 
-
-Happy gaming!
+Finally, if you're a Modlist developer and you want me to test your Modlist, let me know! Happy gaming!
 
 ***
 
 #### Navigation
 * [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
 > * [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)  
-> * [Septimus 4](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus-4)  
+> * [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus)  
 > * [Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey)  
 > * [Wildlander (Coming Soon)](#wildlander)  
 > * [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide)  
