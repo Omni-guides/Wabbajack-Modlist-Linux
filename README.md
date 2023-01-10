@@ -6,7 +6,7 @@
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey">Journey</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a>
 </p>
 
 DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gamer trying to help other gamers. You may be able to get assistance with this guide from the #unofficial-linux-help channel of the main [Official Wabbajack Discord](https://discord.gg/wabbajack), but it may be best to @ me on Discord (@omni). Due to this being an unofficial guide, assistance on this from Wabbajack support directly, or the Modlist developers, is highly unlikely.
