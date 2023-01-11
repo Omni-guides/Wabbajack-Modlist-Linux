@@ -5,6 +5,7 @@
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn">Dragonborn</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey">Journey</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a>
 </p>
@@ -33,10 +34,12 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 
 #### Navigation
 * [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
-> * [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)  
-> * [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus)  
-> * [Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey)  
-> * [Wildlander (Coming Soon)](#wildlander)  
+> * [Skyrim - Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)  
+> * [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus)  
+> * [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey)
+> * [Skyrim - Wildlander (Coming Soon)](#wildlander)  
+> * [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
+> * [ENB & Reshade](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
 > * [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide)  
 
 ***
