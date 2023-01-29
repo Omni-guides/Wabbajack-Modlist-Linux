@@ -1,14 +1,29 @@
 [![Banner](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/WabbajackModlistsBanner2.png)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux)
 
-<p align="center">
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki">Home</a> ·
+<p align="center"><b>Skyrim -</b> 
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn">Dragonborn</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus">Septimus</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey">Journey</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran">Redoran</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO">Animonculory Visual Overhaul</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-LegendsoftheFrost">Legends of the Frost (Soon)</a>
 </p>
+
+<p align="center"><b>Fallout 4 -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-MagnusOpus">Magnum Opus (Soon)</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-LifeintheRuins">Life in the Ruins (Soon)</a>
+</p>
+
+<p align="center"><b>Other -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki">Home</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...)">ENB & Reshade (WIP)</a>
+  &emsp; &emsp; <b>Discontinued Lists -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus">Septimus</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey">Journey</a>
+</p>
+
+---
 
 DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gamer trying to help other gamers. You may be able to get assistance with this guide from the #unofficial-linux-help channel of the main [Official Wabbajack Discord](https://discord.gg/wabbajack), but it may be best to @ me on Discord (@omni). Due to this being an unofficial guide, assistance on this from Wabbajack support directly, or the Modlist developers, is highly unlikely.
 
@@ -33,13 +48,23 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 ***
 
 #### Navigation
-* [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
-> * [Skyrim - Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)  
-> * [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus)  
-> * [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey)
-> * [Skyrim - Wildlander (Coming Soon)](#wildlander)  
-> * [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
-> * [ENB & Reshade](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
-> * [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide)  
+- [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
+  - **Skyrim**
+    - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)
+    - [Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
+    - [Animonculory Visual Overhaul](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO)
+    - [Legends of the Frost (Soon)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-LegendsoftheFrost)
+  - **Fallout**
+    - [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
+    - [Fallout 4 - Magnum Opus (Soon)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Magnus-Opus)
+    - [Fallout 4 - Life in the Ruins (Soon)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
+  - **Other**
+    - [ENB & Reshade (WIP)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
+    - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
+    - [Troubleshooting](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting)
+  - **Discontinued Lists**
+    - [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Septimus)  
+    - [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Journey)
+ 
 
 ***
