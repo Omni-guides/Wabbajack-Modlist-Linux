@@ -1,8 +1,9 @@
 [![Banner](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/WabbajackModlistsBanner2.png)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux)
 
 <p align="center"><b>Skyrim -</b> 
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn">Dragonborn</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran">Redoran</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn">Dragonborn</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO">Animonculory Visual Overhaul</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a>
 </p>
@@ -19,7 +20,6 @@
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...)">ENB & Reshade (WIP)</a>
   &emsp; &emsp; <b>Discontinued Lists -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey">Journey</a>
 </p>
 
@@ -50,8 +50,9 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 #### Navigation
 - [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
   - **Skyrim**
-    - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)
+    - [Septimus](href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
     - [Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
+    - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Dragonborn)
     - [Animonculory Visual Overhaul](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
   - **Fallout**
@@ -62,8 +63,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
     - [ENB & Reshade (WIP)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
     - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
     - [Troubleshooting](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting)
-  - **Discontinued Lists**
-    - [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Septimus)  
+  - **Discontinued Lists**  
     - [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey)
  
 
