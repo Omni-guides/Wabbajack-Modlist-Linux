@@ -50,7 +50,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 #### Navigation
 - [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
   - **Skyrim**
-    - [Septimus](href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
+    - [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
     - [Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
     - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
     - [Animonculory Visual Overhaul](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO)
