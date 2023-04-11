@@ -41,7 +41,7 @@ Until there is an officially supported version of Wabbajack for Linux, my recomm
 
 SteamDeck users can follow the Modlist-specific guide below to get step-by-step instructions to get you up and running for your chosen Modlist.
 
-For general Linux systems (i.e. not the SteamDeck), you can follow the steps in the [General Linux](#general-linux) guide. This guide uses Journey as an example list, but you can replace it with your Modlist of choice, the steps should be largely the same. If you have some issues, you could check the Modlist specific guide in case there are additional steps specific to that Modlist.
+For general Linux systems (i.e. not the SteamDeck), you can follow the steps in the [General Linux](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) guide. This guide uses Journey as an example list, but you can replace it with your Modlist of choice, the steps should be largely the same. If you have some issues, you could check the Modlist specific guide in case there are additional steps specific to that Modlist.
 
 Finally, if you're a Modlist developer and you want me to test your Modlist, let me know! Happy gaming!
 
