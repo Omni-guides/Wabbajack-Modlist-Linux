@@ -3,13 +3,13 @@
 <p align="center"><b>Skyrim -</b> 
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn">Dragonborn</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO">AVO NG</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO-NG">AVO NG</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a>
 </p>
 
 <p align="center"><b>Fallout 4 -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-LifeintheRuins">Life in the Ruins (Soon)</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-LifeintheRuins">Life in the Ruins</a>
 </p>
 
 <p align="center"><b>Other -</b>
@@ -51,11 +51,11 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
   - **Skyrim**
     - [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
     - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
-    - [AVO NG](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO)
+    - [AVO NG](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO-NG)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
   - **Fallout**
     - [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
-    - [Fallout 4 - Life in the Ruins (Soon)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
+    - [Fallout 4 - Life in the Ruins](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
   - **Other**
     - [ENB & Reshade (WIP)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
     - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
