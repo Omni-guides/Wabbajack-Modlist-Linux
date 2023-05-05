@@ -3,7 +3,7 @@
 <p align="center"><b>Skyrim -</b> 
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn">Dragonborn</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO-NG">AVO NG</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO-NG">AVO NG</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a>
 </p>
 
@@ -51,7 +51,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
   - **Skyrim**
     - [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
     - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
-    - [AVO NG](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-AVO-NG)
+    - [AVO NG](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO-NG)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
   - **Fallout**
     - [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
