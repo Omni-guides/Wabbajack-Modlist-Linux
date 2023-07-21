@@ -10,6 +10,8 @@
 <p align="center"><b>Fallout 4 -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-LifeintheRuins">Life in the Ruins</a>
+  &emsp; &emsp; <b>Fallout New Vegas -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment</a>
 </p>
 
 <p align="center"><b>Other -</b>
@@ -17,7 +19,9 @@
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...)">ENB & Reshade (WIP)</a>
-  &emsp; &emsp; <b>Discontinued Lists -</b>
+</p>
+
+<p align="center"><b>Discontinued Lists -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran">Redoran</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey">Journey</a>
 </p>
@@ -56,6 +60,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
   - **Fallout**
     - [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
     - [Fallout 4 - Life in the Ruins](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
+    - [Fallout New Vegas - Capital Punishment](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment)
   - **Other**
     - [ENB & Reshade (WIP)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
     - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
