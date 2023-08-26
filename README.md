@@ -1,8 +1,7 @@
 [![Banner](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/WabbajackModlistsBanner2.png)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux)
 
 <p align="center"><b>Skyrim -</b> 
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn">Dragonborn</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Sovngarde">Sovngarde</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO-NG">AVO NG</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a>
 </p>
@@ -22,6 +21,8 @@
 </p>
 
 <p align="center"><b>Discontinued Lists -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn">Dragonborn</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran">Redoran</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey">Journey</a>
 </p>
@@ -53,8 +54,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 #### Navigation
 - [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
   - **Skyrim**
-    - [Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
-    - [Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
+    - [Sovngarde](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Sovngarde)
     - [AVO NG](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO-NG)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
   - **Fallout**
@@ -66,7 +66,9 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
     - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
     - [Troubleshooting](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting)
   - **Discontinued Lists**
-    - [Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
+    - [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
+    - [Skyrim - Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
+    - [Skyrim - Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
     - [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey)
  
 
