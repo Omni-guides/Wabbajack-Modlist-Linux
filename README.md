@@ -2,7 +2,7 @@
 
 <p align="center"><b>Skyrim -</b> 
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Licentia-DECK">Licentia DECK</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO">AVO</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(AVO)">AVO (Not for Deck)</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal">Keizaal</a>
 </p>
@@ -16,9 +16,9 @@
 
 <p align="center"><b>Other -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki">Home</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide">General Linux</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(AVO)">General Linux</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting">Troubleshooting</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...)">ENB & Reshade (WIP)</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/ENB,-Reshade-and-Community-Shaders">ENB, Reshade & Community Shaders</a>
 </p>
 
 <p align="center"><b>Discontinued Lists -</b>
@@ -58,7 +58,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 - [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
   - **Skyrim**
     - [Licentia DECK](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Licentia-DECK)
-    - [AVO](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-AVO)
+    - [AVO (Not for Deck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
     - [Keizaal](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal)
   - **Fallout**
@@ -66,8 +66,8 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
     - [Fallout 4 - Life in the Ruins](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
     - [Fallout New Vegas - Capital Punishment](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment)
   - **Other**
-    - [ENB & Reshade (WIP)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/WIP---ENB-&-Reshade-(In-Progress...))
-    - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide) 
+    - [ENB, Reshade & Community Shaders](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/ENB,-Reshade-and-Community-Shaders)
+    - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(AVO)) 
     - [Troubleshooting](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting)
   - **Discontinued Lists**
     - [Skyrim - Sovngarde](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Sovngarde)
