@@ -22,10 +22,10 @@
 </p>
 
 <p align="center"><b>Discontinued Lists -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Sovngarde">Sovngarde</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn">Dragonborn</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus">Septimus</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran">Redoran</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Sovngarde">Sovngarde</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Dragonborn">Dragonborn</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Septimus">Septimus</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Redoran">Redoran</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey">Journey</a>
 </p>
 
@@ -69,10 +69,10 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
     - [General Linux (Non-SteamDeck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(AVO)) 
     - [Troubleshooting](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Troubleshooting)
   - **Discontinued Lists**
-    - [Skyrim - Sovngarde](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Sovngarde)
-    - [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Septimus)
-    - [Skyrim - Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Dragonborn)
-    - [Skyrim - Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim-Redoran)
+    - [Skyrim - Sovngarde](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Sovngarde)
+    - [Skyrim - Septimus](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Septimus)
+    - [Skyrim - Dragonborn](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Dragonborn)
+    - [Skyrim - Redoran](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:-Skyrim-Redoran)
     - [Skyrim - Journey](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Withdrawn:--Skyrim-Journey)
  
 ***
