@@ -8,8 +8,7 @@
 </p>
 
 <p align="center"><b>Fallout 4 -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-LifeintheRuins">Life in the Ruins</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a>
   &emsp; &emsp; <b>Fallout New Vegas -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment</a>
 </p>
@@ -62,7 +61,6 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
     - [Keizaal](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal)
   - **Fallout**
     - [Fallout 4 - Welcome to Paradise](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise)
-    - [Fallout 4 - Life in the Ruins](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Life-in-the-Ruins)
     - [Fallout New Vegas - Capital Punishment](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment)
   - **Other**
     - [ENB, Reshade & Community Shaders](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/ENB,-Reshade-and-Community-Shaders)
