@@ -10,7 +10,7 @@
 <p align="center"><b>Fallout 4 -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a>
   &emsp; &emsp; <b>Fallout New Vegas -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment(Refresh Required)</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment (Refresh Required)</a>
 </p>
 
 <p align="center"><b>Other -</b>
