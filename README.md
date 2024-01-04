@@ -2,7 +2,7 @@
 
 <p align="center"><b>Skyrim -</b> 
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Licentia-DECK">Licentia DECK</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil">Anvil</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil">Anvil (Coming Soon)</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(AVO)">AVO (Not for Deck)</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal">Keizaal (Refresh Required)</a>
@@ -49,7 +49,7 @@ Finally, if you're a Modlist developer and you want me to test your Modlist, let
 - [Introduction](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki)  
   - **Skyrim**
     - [Licentia DECK](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Licentia-DECK)
-    - [Anvil](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil)
+    - [Anvil (Coming Soon)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil)
     - [AVO (Not for Deck)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide)
     - [Legends of the Frost](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost)
     - [Keizaal](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal)
