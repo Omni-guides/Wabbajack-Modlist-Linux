@@ -18,8 +18,8 @@
 
 <p align="center"><b>Experimental -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Tuxborn">Tuxborn (Deck)</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Eldryn">Eldryn (Deck)</a>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil">Anvil (PC)</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Eldryn">Eldryn (Deck)</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil">Anvil (PC)</a>
 
 </p>
 
