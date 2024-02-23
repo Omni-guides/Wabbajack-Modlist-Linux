@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.16 - Omni 20/02/2024                        #
+#                       Alpha v0.17 - Omni 20/02/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -31,9 +31,10 @@
 # - DONE - Edit Managed Game path and Custom Executables for Vanilla Game Directory
 # - DONE - Detect if game is Skyrim or Fallout or ask
 # - DONE - Detect Steam Library Path or ask
-# - DONE - Set Resolution
+# - DONE - Set Resolution (skyrimprefs.ini, Fallout4Prefs.ini and SSEDisplayTweaks.ini)
 
 # ~-= Still to try =-~
+# - Convert remaining stetps to functions - Detect Deck, Protontricks, modlist path (SDCard)
 # - Automate nxmhandler popup
 # - Modlist-specific fixes (e.g. Custom Skills Framework for > 1.5.97)
 # - Create a "have I run before" check
@@ -52,23 +53,31 @@ alias protontricks='flatpak run com.github.Matoking.protontricks'
 
 if [ -f "/usr/bin/toilet" ]; then
     toilet -t -f smmono12 -F border:metal "Omni-Guides (alpha)"
+else
+    echo "=================================================================================================="
+    echo "|  #######  ##     ## ##    ## ####          ######   ##     ## #### ########   ########  ###### |"
+    echo "| ##     ## ###   ### ###   ##  ##          ##    ##  ##     ##  ##  ##     ## ##       ##    ## |"
+    echo "| ##     ## #### #### ####  ##  ##          ##        ##     ##  ##  ##     ## ##       ##       |"
+    echo "| ##     ## ## ### ## ## ## ##  ##  ####### ##   #### ##     ##  ##  ##     ## ######    ######  |"
+    echo "| ##     ## ##     ## ##  ####  ##          ##    ##  ##     ##  ##  ##     ## ##             ## |"
+    echo "| ##     ## ##     ## ##   ###  ##          ##    ##  ##     ##  ##  ##     ## ##       ##    ## |"
+    echo "|  #######  ##     ## ##    ## ####          ######    #######  #### ########   ########  ###### |"
+    echo "============================================================================~~--(alpha)--~~======="
 fi
 
 #########
 # Intro #
 #########
+echo ""
+echo -e "This is an experimental script - an attempt to automate as much as possible of the process of getting"
+echo -e "Wabbajack Modlists running on Linux/Steam Deck. Please use at your own risk and accept that in the"
+echo -e "worst case (though very unlikely), you may have to reinstall the vanilla Skyrim or Fallout game, or"
+echo -e "re-copy the Modlist Install Directory from Windows. You can report back to me via GitHub or the Official"
+echo -e "Wabbajack Discord if you discover an issue with this automation script. Any other feedback, positive"
+echo -e "or negative, is also most welcome."
 
-echo -e "This is an extremely experimental script, attempting to automate as much as possible of the\
- process of getting Wabbajack Modlists running on Linux/Steam Deck.\
- Please use at your own risk and accept that in the worst case, you may have to reinstall\
- The vanilla Skyrim/Fallout game, or re-copy the Modlist from Windows.\
- You can report back to me via GitHub or the Wabbajack Discord if you discover an issue\
- with this automation script. Any other feedback is also welcome.\
-Phase 1 of the script deals with the Proton Prefix (e.g. $HOME/.local/share/Steam/steamapps/compatdata)\
- while Phase 2 will be handling the few changes needed in the Modlist Directory." | tee -a $LOGFILE
-
-echo -e "Worst case if something doesn't go smoothly, you may need to recreate the Proton Prefix,\
-or re-copy your Modlist Directory from Windows" | tee -a $LOGFILE
+ echo -e "\nPress any key to continue..."
+read -n 1 -s -r -p ""
 
 #############
 # Functions #
@@ -295,21 +304,25 @@ elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder)" <<< "$orig
 
     # Get the end of our path
     if [[ $orig_line_path =~ Stock\ Game ]]; then
+    dir_type="stockgame"
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Stock Game/\/Stock Game/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/Stock Game/\/Stock Game/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ Game\ Root ]]; then
+    dir_type="gameroot"
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Game Root/\/Game Root/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/Game Root/\/Game Root/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ STOCK\ GAME ]]; then
+    dir_type="STOCKGAME"
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/STOCK GAME/\/STOCK GAME/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/STOCK GAME/\/STOCK GAME/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
+    dir_type="stockgamefolder"
     path_end=`echo "$skse_loc" | sed 's/.*\/Stock Game Folder/\/Stock Game Folder/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     fi
@@ -363,7 +376,7 @@ select_resolution() {
         set_res="1280x800"
     else
         while true; do
-            read -p "Enter your desired resolution in the format ####x####: " user_res
+            read -p "Enter your desired resolution in the format 1920x1200: " user_res
 
             # Validate the input format
             if [[ "$user_res" =~ ^[0-9]+x[0-9]+$ ]]; then
@@ -373,36 +386,69 @@ select_resolution() {
                     set_res="$user_res"
                     break
                 else
-                    echo "Please enter the resolution again."
+                    echo "Please enter the resolution again." | tee -a $LOGFILE
                 fi
             else
-                echo "Invalid input format. Please enter the resolution in the format ####x####."
+                echo "Invalid input format. Please enter the resolution in the format 1920x1200."  | tee -a $LOGFILE
             fi
         done
     fi
 
-    echo "Resolution set to: $set_res" >>$LOGFILE 2>&1
+    echo "Resolution set to: $set_res" | tee -a $LOGFILE
 }
 
-update_ini_files() {
+update_ini_resolution() {
 
-    # Find all SSEDisplayTweaks.ini files in the specified directory and its subdirectories
-    ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
+echo -ne "\nEditing Resolution in prefs files... " | tee -a $LOGFILE
 
-    if [ -n "$ini_files" ]; then
-        while IFS= read -r ini_file; do
-            # Use awk to replace the lines with the new values, handling spaces in paths
-            awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next } \
-                                   /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
-                                   /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
-                                   /^(#?)Borderless=/ { print "Borderless=true"; next } \
-                                   /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > temp_file && mv temp_file "$ini_file"
+# Find all SSEDisplayTweaks.ini files in the specified directory and its subdirectories
+ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
 
-            echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
-        done <<< "$ini_files"
-    else
-        echo "No SSEDisplayTweaks.ini files found in $modlist_dir. Please set manually in skyrimprefs.ini using the INI Editor in MO2."
-    fi
+if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
+    while IFS= read -r ini_file; do
+        # Use awk to replace the lines with the new values, handling spaces in paths
+        awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next } \
+                               /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
+                               /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
+                               /^(#?)Borderless=/ { print "Borderless=true"; next } \
+                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > temp_file && mv temp_file "$ini_file"
+
+        echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true"
+    done <<< "$ini_files"
+elif [[ $gamevar == "Fallout 4" ]]; then
+    echo "Not Skyrim, skipping SSEDisplayTweaks" >>$LOGFILE 2>&1
+else
+    echo "No SSEDisplayTweaks.ini files found in $modlist_dir. Please set manually in skyrimprefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
+fi
+
+##########
+
+# Split $set_res into two variables
+isize_w=$(echo "$set_res" | cut -d'x' -f1)
+isize_h=$(echo "$set_res" | cut -d'x' -f2)
+
+# Find all instances of skyrimprefs.ini or Fallout4Prefs.ini in specified directories
+
+if [[ $gamevar == "Skyrim Special Edition" ]]; then
+    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" -iname "skyrimprefs.ini" 2>/dev/null)
+elif [[ $gamevar == "Fallout 4" ]]; then
+    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
+fi
+
+if [ -n "$ini_files" ]; then
+    while IFS= read -r ini_file; do
+        # Use awk to replace the lines with the new values in skyrimprefs.ini
+        awk -v isize_w="$isize_w" -v isize_h="$isize_h" '/^iSize W/ { print "iSize W = " isize_w; next } \
+                                                           /^iSize H/ { print "iSize H = " isize_h; next }1' "$ini_file" > temp_file && mv temp_file "$ini_file"
+
+        echo "Updated $ini_file with iSize W=$isize_w, iSize H=$isize_h" >>$LOGFILE 2>&1
+    done <<< "$ini_files"
+else
+    echo "No suitable prefs.ini files found in specified directories. Please set manually in skyrimprefs.ini or Fallout4Prefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
+fi
+
+echo -e "Done." | tee -a $LOGFILE
+
 }
 
 
@@ -457,7 +503,7 @@ IFS=$'\n' readarray -t output_array < <(protontricks -l | grep -i 'Non-Steam sho
 
 echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 
-PS3="Please select an option: "  # Set prompt for select
+PS3="Please select the modlist you wish to configure: "  # Set prompt for select
 select choice in "${output_array[@]}"; do
   MODLIST=`echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev`
   echo $choice | tee -a $LOGFILE
@@ -758,7 +804,8 @@ read -n 1 -sp "Select and set Resolution? (y/N): " response
     if [[ "$response" =~ ^[Yy]$ ]]; then
     echo ""
         select_resolution
-        update_ini_files
+        update_ini_resolution
+
     else
         echo "Resolution update cancelled."
     fi
