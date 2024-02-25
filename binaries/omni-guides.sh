@@ -144,7 +144,7 @@ if [[ $steamdeck = 1 ]]; then
     # Set protontricks SDCard permissions early to suppress warning
     sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
     echo $sdcard_path >>$LOGFILE 2>&1
-    sudo flatpak override --filesystem=$sdcard_path com.github.Matoking.protontricks
+    flatpak override --user --filesystem=$sdcard_path com.github.Matoking.protontricks
     echo -e " Done."  | tee -a $LOGFILE
 fi
 
