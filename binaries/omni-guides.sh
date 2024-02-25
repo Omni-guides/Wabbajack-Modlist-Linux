@@ -991,13 +991,14 @@ fi
 # Check Swap Space (Deck) #
 ###########################
 
-check_swap_space() {
+heck_swap_space() {
 
 if [ $steamdeck = 1 ]; then
 
 swapspace=`swapon -s | grep swapfil | awk {'print $3'}`
+echo "Swap Space: $swapspace" >>$LOGFILE 2>&1
 
-    if [ $swapspace -lt 16777212 ]; then
+    if [[ $swapspace -gt 16000000 ]]; then
     echo "Swap Space is good... continuing."
     else
     echo "Swap space too low - I *STRONGLY RECOMMEND* you run CryoUtilities and accept the recommended settings."
@@ -1005,6 +1006,7 @@ swapspace=`swapon -s | grep swapfil | awk {'print $3'}`
 fi
 
 }
+
 
 
 
@@ -1141,7 +1143,7 @@ edit_resolution
 # Small additional tasks #
 ##########################
 
-small_additional_tsaks
+small_additional_tasks
 
 ###########################
 # Check Swap Space (Deck) #
