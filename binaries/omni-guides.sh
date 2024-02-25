@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.19 - Omni 24/02/2024                        #
+#                       Alpha v0.21 - Omni 25/02/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -35,10 +35,15 @@
 # - v0.18 DONE - Handle & test SDCard location (Deck Only)
 # - v0.19 DONE - Add Check for Proton 9 to skip MO2 2.5 replacement
 # - v0.20 DONE - Convert remaining steps to functions - Detect Deck, Protontricks
+# - v0.21 DONE - Check Swap Space (Deck)
+# - v0.21 DONE - Add colouring to each user-interactive step
+# - v0.21 DONE - Require 'Enter' to be pressed after 'Y'
+# - v0.21 DONE - Fix Protontricks Install on deck
 
-# ~-= Still to try =-~
+# ~-= Still to do =-~
 # - Automate nxmhandler popup
 # - Modlist-specific fixes (e.g. Custom Skills Framework for > 1.5.97 - fixed with Proton 9?)
+# - - LOTF copy in my .ini files (deck)
 # - Create a "have I run before" check
 
 # Set up and blank logs
@@ -114,16 +119,17 @@ if [[ $(flatpak list | grep -i protontricks) || -f /usr/bin/protontricks ]]; the
     # Protontricks is already installed or available
     echo -e " Already Istalled." | tee -a $LOGFILE
 else
-    read -p "Protontricks not found. Do you wish to install it? (y/n): " answer
+    echo -e "\e[31m \n** Protontricks not found. Do you wish to install it? (y/n): ** \e[0m"
+    read -p " " answer
     if [[ $answer =~ ^[Yy]$ ]]; then
         if [[ $steamdeck -eq 1 ]]; then
             # Install Protontricks specifically for Deck
-            flatpak install flathub com.github.Matoking.protontricks
+            flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
         else
             read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
             if [[ $choice =~ 1 ]]; then
                 # Install protontricks
-                flatpak install flathub com.github.Matoking.protontricks
+                flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
             else
                 # Print message and exit
                 echo -e "\nSorry, there are way too many distro's to be able to automate this!" | tee -a $LOGFILE
@@ -133,7 +139,7 @@ else
     fi
 fi
 
-if [ $steamdeck = 1 ]; then
+if [[ $steamdeck = 1 ]]; then
     echo -e "\nChecking for SDCard and setting permissions appropriately (may need sudo password).."  | tee -a $LOGFILE
     # Set protontricks SDCard permissions early to suppress warning
     sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
@@ -143,6 +149,7 @@ if [ $steamdeck = 1 ]; then
 fi
 
 }
+
 
 #######################################
 # Detect Skyrim or Fallout 4 Function #
@@ -177,7 +184,7 @@ detect_game() {
         done
     fi
 
-    echo "Game variable: $gamevar"
+    echo "Game variable: $gamevar" >>$LOGFILE 2>&1
 }
 
 ###################################
@@ -223,7 +230,7 @@ detect_steam_library() {
 
     # If not found there if the user wants to attempt to detect Steam Library location automatically
     echo -e "\e[31m \n** Do you wish to attempt to locate? This can take a little time.. (y/N)** \e[0m"
-    read -n 1 -sp " " response
+    read -p " " response
 
     if [[ $response =~ ^[Yy]$ ]]; then
      exit
@@ -288,7 +295,7 @@ else
     matching_dirs=( $(find "$HOME/Games" -maxdepth 3 -type d -iname "*$expected*") )
 fi
 
-echo "Matching Dirs: $matching_dirs"
+echo "Matching Dirs: $matching_dirs" >>$LOGFILE 2>&1
 modlist_sdcard=0  # Initialize the variable to 0
 
 # Check if "/run/media/mmcblk0p1" is in the matching_dirs array
@@ -456,7 +463,9 @@ elif [[ $mo2ver = *2.5* ]]; then
     echo "" | tee -a $LOGFILE
     # Ask the user for input
     echo "WARNING: EXPERIMENTAL FEATURE - THIS WILL OVERWRITE THE MO2 FILES IN THE MODLIST DIRECTORY" | tee -a $LOGFILE
-    read -p "Would like to attempt to replace with 2.4? (y/N) " response
+
+    echo -e "\e[31m \n** Would like to attempt to replace with 2.4? (y/N) ** \e[0m"
+    read -p " " response
 
     # Check the user's response
     if [[ $response =~ ^[Yy]$ ]]; then
@@ -853,12 +862,14 @@ select_resolution() {
         set_res="1280x800"
     else
         while true; do
-            read -p "Enter your desired resolution in the format 1920x1200: " user_res
+            echo -e "\e[31m \n** Enter your desired resolution in the format 1920x1200: ** \e[0m"
+            read -p " " user_res
 
             # Validate the input format
             if [[ "$user_res" =~ ^[0-9]+x[0-9]+$ ]]; then
                 # Ask for confirmation
-                read -p "Is $user_res your desired resolution? (y/N): " confirm
+                echo -e "\e[31m \n** Is $user_res your desired resolution? (y/N): ** \e[0m"
+                read -p " " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]; then
                     set_res="$user_res"
                     break
@@ -943,8 +954,8 @@ edit_resolution() {
 #
 echo -e "\nDo you wish to attempt to set the resolution? This can be changed manually later."
 echo "(Please note that if running this script on a Steam Deck, a resolution of 1280x800 will be applied)"
-echo ""
-read -n 1 -sp "Select and set Resolution? (y/N): " response
+echo -e "\e[31m \n** Select and set Resolution? (y/N): ** \e[0m"
+read -p " " response
 
     if [[ "$response" =~ ^[Yy]$ ]]; then
     echo ""
@@ -975,6 +986,27 @@ else
 fi
 
 }
+
+###########################
+# Check Swap Space (Deck) #
+###########################
+
+check_swap_space() {
+
+if [ $steamdeck = 1 ]; then
+
+swapspace=`swapon -s | grep swapfil | awk {'print $3'}`
+
+    if [ $swapspace -gt 16777212 ]; then
+    echo "Swap Space is good... continuing."
+    else
+    echo "Swap space too low - I *STRONGLY RECOMMEND* you run CryoUtilities and accept the recommended settings."
+    fi
+fi
+
+}
+
+
 
 ####################
 # END OF FUNCTIONS #
@@ -1008,7 +1040,7 @@ echo "" | tee -a $LOGFILE
 
 echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 
-PS3="Please select the modlist you wish to configure: "  # Set prompt for select
+PS3=$'\e[31mPlease Select: \e[0m'  # Set prompt for select
 select choice in "${output_array[@]}"; do
   MODLIST=`echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev`
   echo $choice | tee -a $LOGFILE
@@ -1018,7 +1050,7 @@ done
 
 echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
 
-read -n 1 -sp " " response
+read -p " " response
 if [[ $response =~ ^[Yy]$ ]]; then
 
 ################################
@@ -1110,6 +1142,12 @@ edit_resolution
 ##########################
 
 small_additional_tsaks
+
+###########################
+# Check Swap Space (Deck) #
+###########################
+
+check_swap_space
 
 ############
 # Finished #
