@@ -152,10 +152,10 @@ detect_game() {
     # Try to decide if Skyrim or Fallout
     if [[ $choice == *"Skyrim"* ]]; then
         gamevar="Skyrim Special Edition"
-        echo "Game variable set to Skyrim."| tee -a $LOGFILE
+        echo "Game variable set to Skyrim." >>$LOGFILE 2>&1
     elif [[ $choice == *"Fallout"* ]]; then
         gamevar="Fallout 4"
-        echo "Game variable set to Fallout."| tee -a $LOGFILE
+        echo "Game variable set to Fallout." >>$LOGFILE 2>&1
     else
         PS3="Please select a game (enter the number): "
         options=("Skyrim" "Fallout")
@@ -164,12 +164,12 @@ detect_game() {
             case $opt in
                 "Skyrim")
                     gamevar="Skyrim Special Edition"
-                    echo "Game variable set to Skyrim."| tee -a $LOGFILE
+                    echo "Game variable set to Skyrim." >>$LOGFILE 2>&1
                     break
                     ;;
                 "Fallout")
                     gamevar="Fallout 4"
-                    echo "Game variable set to Fallout."| tee -a $LOGFILE
+                    echo "Game variable set to Fallout." >>$LOGFILE 2>&1
                     break
                     ;;
                 *) echo "Invalid option";;
@@ -1117,7 +1117,7 @@ small_additional_tsaks
 
 # Parting message
 echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
-echo -e "\n\e[4mPlease follow any additional steps in the guide on github for setting resolution, disabling mods, etc\e[0m]" | tee -a $LOGFILE
+echo -e "\n\e[4mPlease follow any additional steps in the guide on github for disabling mods etc\e[0m]" | tee -a $LOGFILE
 echo -e "\nOnce you've done that, click Play for the modlist in Steam and get playing!" | tee -a $LOGFILE
 else
         echo "" | tee -a $LOGFILE
