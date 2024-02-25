@@ -44,7 +44,6 @@
 # - Automate nxmhandler popup
 # - Modlist-specific fixes (e.g. Custom Skills Framework for > 1.5.97 - fixed with Proton 9?)
 # - - LOTF copy in my .ini files (deck)
-# - Create a "have I run before" check
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -583,36 +582,6 @@ grep gamePath $modlist_ini | sed '/^backupPath/! s/gamePath/backupPath/' >> $mod
 # Create checkmark file
 touch $modlist_dir/.tmp_omniguides_run1
 
-
-####################
-# Checkmark Exists #
-####################
-
-# Check if the temporary file exists
-#if [ -f "$modlist_dir/.tmp_omniguides_run1" ]; then
-#  # Prompt the user for confirmation
-#  read -r -p "A previous run exists. Re-run (y/N)? " response
-#  case "$response" in
-#    [Yy])
-#      # User wants to re-run, clear the temporary file and proceed
-#      rm -f "$modlist_dir/.tmp_omniguides_run1"
-#      echo "Re-running..."
-#      # Replace this placeholder with your actual script logic
-#      your_script_logic
-#      ;;
-#    *)
-#      # User doesn't want to re-run, exit gracefully
-#      echo "Exiting..."
-#      exit 0
-#      ;;
-#  esac
-#else
-#  # No previous run, proceed normally
-#  echo "No previous run detected. Starting fresh..."
-#  # Replace this placeholder with your actual script logic
-#  your_script_logic
-#fi
-
 }
 
 ########################################
@@ -991,7 +960,7 @@ fi
 # Check Swap Space (Deck) #
 ###########################
 
-heck_swap_space() {
+check_swap_space() {
 
 if [ $steamdeck = 1 ]; then
 
