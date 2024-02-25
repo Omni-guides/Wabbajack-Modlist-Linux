@@ -903,7 +903,7 @@ if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
                                /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
                                /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
                                /^(#?)Borderless=/ { print "Borderless=true"; next } \
-                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > temp_file && mv temp_file "$ini_file"
+                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
 
         echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
         echo -e " Done." >>$LOGFILE 2>&1
@@ -932,7 +932,7 @@ if [ -n "$ini_files" ]; then
     while IFS= read -r ini_file; do
         # Use awk to replace the lines with the new values in skyrimprefs.ini
         awk -v isize_w="$isize_w" -v isize_h="$isize_h" '/^iSize W/ { print "iSize W = " isize_w; next } \
-                                                           /^iSize H/ { print "iSize H = " isize_h; next }1' "$ini_file" > temp_file && mv temp_file "$ini_file"
+                                                           /^iSize H/ { print "iSize H = " isize_h; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
 
         echo "Updated $ini_file with iSize W=$isize_w, iSize H=$isize_h" >>$LOGFILE 2>&1
     done <<< "$ini_files"
@@ -972,7 +972,7 @@ read -p " " response
 # Small additional tasks #
 ##########################
 
-small_additional_tsaks() {
+small_additional_tasks() {
 
 # Delete MO2 plugins that don't work via Proton
 
@@ -997,7 +997,7 @@ if [ $steamdeck = 1 ]; then
 
 swapspace=`swapon -s | grep swapfil | awk {'print $3'}`
 
-    if [ $swapspace -gt 16777212 ]; then
+    if [ $swapspace -lt 16777212 ]; then
     echo "Swap Space is good... continuing."
     else
     echo "Swap space too low - I *STRONGLY RECOMMEND* you run CryoUtilities and accept the recommended settings."
