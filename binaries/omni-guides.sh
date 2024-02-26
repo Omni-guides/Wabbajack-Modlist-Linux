@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.21 - Omni 25/02/2024                        #
+#                       Alpha v0.22 - Omni 25/02/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -39,6 +39,7 @@
 # - v0.21 DONE - Add colouring to each user-interactive step
 # - v0.21 DONE - Require 'Enter' to be pressed after 'Y'
 # - v0.21 DONE - Fix Protontricks Install on deck
+# - v0.22 DONE - Additional colouring for clarity of user-actions.
 
 # ~-= Still to do =-~
 # - Automate nxmhandler popup
@@ -139,7 +140,7 @@ else
 fi
 
 if [[ $steamdeck = 1 ]]; then
-    echo -e "\nChecking for SDCard and setting permissions appropriately (may need sudo password).."  | tee -a $LOGFILE
+    echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo password)..\e[0m"  | tee -a $LOGFILE
     # Set protontricks SDCard permissions early to suppress warning
     sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
     echo $sdcard_path >>$LOGFILE 2>&1
@@ -232,7 +233,6 @@ detect_steam_library() {
     read -p " " response
 
     if [[ $response =~ ^[Yy]$ ]]; then
-     exit
 
         echo -ne "\n Searching..." | tee -a $LOGFILE
         library_list=( $(find / -name libraryfolder.vdf 2>/dev/null | rev | cut -d '/' -f 2- | rev) )
@@ -346,7 +346,7 @@ modlist_ini=$modlist_dir/ModOrganizer.ini
 
 set_protontricks_perms() {
 
-echo -e "\nSetting Protontricks permissions (requires sudo)... " | tee -a $LOGFILE
+echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
 sudo flatpak override com.github.Matoking.protontricks --filesystem=$modlist_dir
 
 }
@@ -561,7 +561,7 @@ echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 
 chown_chmod_modlist_dir() {
 
-echo -e "\nChanging Ownership and Permissions of modlist directory (requires sudo password)" | tee -a $LOGFILE
+echo -e "\e[31m \nChanging Ownership and Permissions of modlist directory (may require sudo password) \e[0m" | tee -a $LOGFILE
 
 sudo chown -R deck:deck $modlist_dir ; sudo chmod -R 755 $modlist_dir
 
