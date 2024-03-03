@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.22 - Omni 25/02/2024                        #
+#                       Alpha v0.23 - Omni 03/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -40,6 +40,7 @@
 # - v0.21 DONE - Require 'Enter' to be pressed after 'Y'
 # - v0.21 DONE - Fix Protontricks Install on deck
 # - v0.22 DONE - Additional colouring for clarity of user-actions.
+# - v0.23 DONE - Added steps to ensure Prefix is set to Windows 10 level, and install dotnet6 and dotnet7
 
 # ~-= Still to do =-~
 # - Automate nxmhandler popup
@@ -375,6 +376,16 @@ printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
 
 }
 
+###############################################
+# Set Windows 10 version in the proton prefix #
+###############################################
+
+set_win10_prefix() {
+
+protontricks --no-bwrap  $APPID win10 >>$LOGFILE 2>&1
+
+}
+
 ######################################
 # Install Wine Components & VCRedist #
 ######################################
@@ -384,7 +395,7 @@ install_wine_components() {
 echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
-protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022  >/dev/null 2>&1 &
+protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7  >/dev/null 2>&1 &
 
 
 pid=$!  # Store the PID of the background process
@@ -417,6 +428,8 @@ components=(
     "d3dx11_43"
     "d3dcompiler_43"
     "vcrun2022"
+    "dotnet6"
+    "dotnet7"
 )
 
 # Get the output of the protontricks command
@@ -740,7 +753,7 @@ elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder)" <<< "$orig
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Stock Game/\/Stock Game/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/Stock Game/\/Stock Game/'`
-    echo "Bin Path End: $bin_path_end"
+    echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ Game\ Root ]]; then
     dir_type="gameroot"
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Game Root/\/Game Root/'`
@@ -1053,6 +1066,12 @@ set_protontricks_perms
 #####################################
 
 enable_dotfiles
+
+###############################################
+# Set Windows 10 version in the proton prefix #
+###############################################
+
+set_win10_prefix
 
 ######################################
 # Install Wine Components & VCRedist #
