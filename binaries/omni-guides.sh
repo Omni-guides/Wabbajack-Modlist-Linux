@@ -4,48 +4,48 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.23 - Omni 03/03/2024                        #
+#                       Alpha v0.25 - Omni 03/03/2024                        #
 #                                                                            #
 ##############################################################################
 
 # ~-= Proton Prefix Automated Tasks =-~
 # =====================================
 # - v0->0.04 Initial testing and theory
-# - v0.05 DONE - Detect Modlists and present a choice
-# - v0.06 DONE - Detect if running on deck
-# - v0.06 DONE - Check if Protontricks is installed (flatpak or 'which')
-# - v0.07 DONE - Set protontricks permissions on $modlist_dir
-# - v0.08 DONE - Enable Visibility of (.)dot files
-# - v0.09 DONE - Install Wine Components
-# - v0.09 DONE - Install VCRedist 2022
+# - v0.05 - Detect Modlists and present a choice
+# - v0.06 - Detect if running on deck
+# - v0.06 - Check if Protontricks is installed (flatpak or 'which')
+# - v0.07 - Set protontricks permissions on $modlist_dir
+# - v0.08 - Enable Visibility of (.)dot files
+# - v0.09 - Install Wine Components
+# - v0.09 - Install VCRedist 2022
 
 # ~-= Modlist Directory Automated Tasks =-~
 # =========================================
-# - v0.10 DONE - Detect Modlist Directory
-# - v0.11 DONE - Detect MO2 version
-# - v0.11 DONE - Blank or set MO2 Downloads Directory
-# - v0.13 DONE - Chown/Chmod Modlist Directory
-# - v0.13 DONE - Overwrite MO2 2.5 with MO2 2.4.4
-# - v0.14 DONE - replace path to Managed Game in MO2 (Game Root/Stock Game)
-# - v0.15 DONE - Edit custom Executables if possible (Game Root/Stock Game)
-# - v0.16 DONE - Edit Managed Game path and Custom Executables for Vanilla Game Directory
-# - v0.17 DONE - Detect if game is Skyrim or Fallout or ask
-# - v0.17 DONE - Detect Steam Library Path or ask
-# - v0.17 DONE - Set Resolution (skyrimprefs.ini, Fallout4Prefs.ini and SSEDisplayTweaks.ini)
-# - v0.18 DONE - Handle & test SDCard location (Deck Only)
-# - v0.19 DONE - Add Check for Proton 9 to skip MO2 2.5 replacement
-# - v0.20 DONE - Convert remaining steps to functions - Detect Deck, Protontricks
-# - v0.21 DONE - Check Swap Space (Deck)
-# - v0.21 DONE - Add colouring to each user-interactive step
-# - v0.21 DONE - Require 'Enter' to be pressed after 'Y'
-# - v0.21 DONE - Fix Protontricks Install on deck
-# - v0.22 DONE - Additional colouring for clarity of user-actions.
-# - v0.23 DONE - Added steps to ensure Prefix is set to Windows 10 level, and install dotnet6 and dotnet7
-
-# ~-= Still to do =-~
-# - Automate nxmhandler popup
-# - Modlist-specific fixes (e.g. Custom Skills Framework for > 1.5.97 - fixed with Proton 9?)
-# - - LOTF copy in my .ini files (deck)
+# - v0.10 - Detect Modlist Directory
+# - v0.11 - Detect MO2 version
+# - v0.11 - Blank or set MO2 Downloads Directory
+# - v0.13 - Chown/Chmod Modlist Directory
+# - v0.13 - Overwrite MO2 2.5 with MO2 2.4.4
+# - v0.14 - replace path to Managed Game in MO2 (Game Root/Stock Game)
+# - v0.15 - Edit custom Executables if possible (Game Root/Stock Game)
+# - v0.16 - Edit Managed Game path and Custom Executables for Vanilla Game Directory
+# - v0.17 - Detect if game is Skyrim or Fallout or ask
+# - v0.17 - Detect Steam Library Path or ask
+# - v0.17 - Set Resolution (skyrimprefs.ini, Fallout4Prefs.ini and SSEDisplayTweaks.ini)
+# - v0.18 - Handle & test SDCard location (Deck Only)
+# - v0.19 - Add Check for Proton 9 to skip MO2 2.5 replacement
+# - v0.20 - Convert remaining steps to functions - Detect Deck, Protontricks
+# - v0.21 - Check Swap Space (Deck)
+# - v0.21 - Add colouring to each user-interactive step
+# - v0.21 - Require 'Enter' to be pressed after 'Y'
+# - v0.21 - Fix Protontricks Install on deck
+# - v0.22 - Additional colouring for clarity of user-actions.
+# - v0.23 - Added steps to ensure Prefix is set to Windows 10 level, and install dotnet6 and dotnet7
+# - v0.24 - Merged Log Files
+# - v0.24 - Added match for Proton GE 9
+# - v0.24 - Remove setting of Fullscreen and Borderless options due to some odd scaling issues with some lists.
+# - v0.25 - Added handling of "Stock Folder" to enable compatibility with Modlist Fallout Anomaly
+# - v0.26 - Added creation of dxvk.conf file to handle rare instances of an Assertion Failed error when running ENB.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -465,7 +465,7 @@ detect_mo2_version
 
 detect_proton_version
 
-if [[ "$proton_ver" == *"9."* ]]; then
+if [[ "$proton_ver" == *"9."* ]] || [[ "$proton_ver" == "GE-Proton9"* ]]; then
 
 echo "Proton 9 detected... should be fine.." >>$LOGFILE 2>&1
 
@@ -587,7 +587,7 @@ sudo chown -R deck:deck $modlist_dir ; sudo chmod -R 755 $modlist_dir
 backup_and_checkmark() {
 
 # Backup ModOrganizer.ini
-cp $modlist_ini $modlist_ini.bak
+cp $modlist_ini $modlist_ini.$(date +"%Y%m%d_%H%M%S").bak
 
 # Backup gamePath line
 grep gamePath $modlist_ini | sed '/^backupPath/! s/gamePath/backupPath/' >> $modlist_ini
@@ -621,7 +621,7 @@ echo -e "\nChecking if Modlist uses Game Root, Stock Game or Vanilla Game Direct
 game_path_line=$(grep '^gamePath' "$modlist_ini")
 echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
-if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Game\ Root* ]]; then
+if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Game\ Root* ]]; then
 
     # Stock Game, Game Root or equivalent directory found
     echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " | tee -a $LOGFILE
@@ -629,6 +629,9 @@ if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* |
       # Get the end of our path
     if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
     modlist_gamedir="$modlist_dir/Stock Game Folder"
+    echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+    elif [[ $game_path_line =~ Stock\ Folder ]]; then
+    modlist_gamedir="$modlist_dir/Stock Folder"
     echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
     elif [[ $game_path_line =~ Game\ Root ]]; then
     modlist_gamedir="$modlist_dir/Game Root"
@@ -733,7 +736,7 @@ if [[ "$orig_line_path" == *"mods"* ]]; then
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/mods/\/mods/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
-elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder)" <<< "$orig_line_path"; then
+elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder)" <<< "$orig_line_path"; then
     # STOCK GAME ROOT FOUND
     echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
@@ -765,6 +768,12 @@ elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder)" <<< "$orig
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/STOCK GAME/\/STOCK GAME/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/STOCK GAME/\/STOCK GAME/'`
+    echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+    elif [[ $orig_line_path =~ Stock\ Folder ]]; then
+    dir_type="stockfolder"
+    path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Stock Folder/\/Stock Folder/'`
+    echo "Path End: $path_end" >>$LOGFILE 2>&1
+    bin_path_end=`echo "$skse_loc" | sed 's/.*\/Stock Folder/\/Stock Folder/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
     dir_type="stockgamefolder"
@@ -881,19 +890,20 @@ ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
 if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
     while IFS= read -r ini_file; do
         # Use awk to replace the lines with the new values, handling spaces in paths
-        awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next } \
-                               /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
-                               /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
-                               /^(#?)Borderless=/ { print "Borderless=true"; next } \
-                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
+        awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next }' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
+                               #/^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
+                               #/^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
+                               #/^(#?)Borderless=/ { print "Borderless=true"; next } \
+                               #/^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
 
-        echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
+        #echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
+        echo "Updated $ini_file with Resolution=$set_res" >>$LOGFILE 2>&1
         echo -e " Done." >>$LOGFILE 2>&1
     done <<< "$ini_files"
 elif [[ $gamevar == "Fallout 4" ]]; then
     echo "Not Skyrim, skipping SSEDisplayTweaks" >>$LOGFILE 2>&1
-else
-    echo "No SSEDisplayTweaks.ini files found in $modlist_dir. Please set manually in skyrimprefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
+#else
+#    echo "No SSEDisplayTweaks.ini files found in $modlist_dir. Please set manually in skyrimprefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
 fi
 
 ##########
@@ -905,9 +915,9 @@ isize_h=$(echo "$set_res" | cut -d'x' -f2)
 # Find all instances of skyrimprefs.ini or Fallout4Prefs.ini in specified directories
 
 if [[ $gamevar == "Skyrim Special Edition" ]]; then
-    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" -iname "skyrimprefs.ini" 2>/dev/null)
+    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "skyrimprefs.ini" 2>/dev/null)
 elif [[ $gamevar == "Fallout 4" ]]; then
-    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
+    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
 fi
 
 if [ -n "$ini_files" ]; then
@@ -989,8 +999,93 @@ fi
 
 }
 
+##########################
+# Modlist Specific Steps #
+##########################
 
+modlist_specific_steps() {
 
+if [[ $MODLIST == *"Wildlander"* ]]; then
+    echo ""
+    echo -e "Running steps specific to \e[32m $MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+    # Install dotnet72
+    spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
+    protontricks --no-bwrap $APPID -q dotnet472  >/dev/null 2>&1 &
+
+    pid=$!  # Store the PID of the background process
+
+    while kill -0 $pid > /dev/null 2>&1; do
+        for i in "${spinner[@]}"; do
+        echo -en "\r${i}\c"
+        sleep 0.1
+        done
+    done
+
+    wait $pid  # Wait for the process to finish
+
+    # Clear the spinner and move to the next line
+    echo -en "\r\033[K"     # Clear the spinner line
+
+    if [[ $? -ne 0 ]]; then  # Check for non-zero exit code (error)
+        echo -e "\nError: Component install failed with exit code $?" | tee -a $LOGFILE
+    else
+        echo -e "\nWine Component install completed successfully." | tee -a $LOGFILE
+    fi
+
+    # Set Resolution in the odd place Wildlander uses:
+
+fi
+
+}
+
+######################################
+# Create DXVK Graphics Pipeline file #
+######################################
+
+create_dxvk_file() {
+
+echo "Use SDCard for DXVK File?: $basegame_sdcard" >>$LOGFILE 2>&1
+echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." | tee -a $LOGFILE
+
+game_path_line=$(grep '^gamePath' "$modlist_ini")
+echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
+
+if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Game\ Root* ]]; then
+
+    # Stock Game, Game Root or equivalent directory found
+    echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " | tee -a $LOGFILE
+
+      # Get the end of our path
+    if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
+    elif [[ $game_path_line =~ Stock\ Folder ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
+    elif [[ $game_path_line =~ Game\ Root ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
+    elif [[ $game_path_line =~ STOCK\ GAME ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/STOCK GAME/dxvk.conf"
+    elif [[ $game_path_line =~ Stock\ Game ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game/dxvk.conf"
+    fi
+
+    if [[ "$modlist_sdcard" -eq "1" ]]; then
+    echo "Using SDCard" >>$LOGFILE 2>&1
+    modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir_sdcard/dxvk.conf"
+    fi
+
+elif [[ "$game_path_line" == *steamapps* ]]; then
+        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
+        modlist_gamedir=$steam_library
+        echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
+        if [[ "$basegame_sdcard" -eq "1" ]]; then
+        echo "Using SDCard" >>$LOGFILE 2>&1
+        modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+        echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/$gamevar/dxvk.conf"
+        fi
+fi
+
+}
 
 ####################
 # END OF FUNCTIONS #
@@ -1127,6 +1222,12 @@ edit_binary_working_paths
 
 edit_resolution
 
+######################################
+# Create DXVK Graphics Pipeline file #
+######################################
+
+create_dxvk_file
+
 ##########################
 # Small additional tasks #
 ##########################
@@ -1139,9 +1240,19 @@ small_additional_tasks
 
 check_swap_space
 
+##########################
+# Modlist Specific Steps #
+##########################
+
+modlist_specific_steps
+
 ############
 # Finished #
 ############
+
+# Merge Log files
+cat $LOGFILE2 >> $LOGFILE
+rm $LOGFILE2
 
 # Parting message
 echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
