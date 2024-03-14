@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.25 - Omni 03/03/2024                        #
+#                       Alpha v0.27 - Omni 03/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -46,6 +46,7 @@
 # - v0.24 - Remove setting of Fullscreen and Borderless options due to some odd scaling issues with some lists.
 # - v0.25 - Added handling of "Stock Folder" to enable compatibility with Modlist Fallout Anomaly
 # - v0.26 - Added creation of dxvk.conf file to handle rare instances of an Assertion Failed error when running ENB.
+# - v0.27 - Added handling of "Skyrim Stock" to enable compatibility with OCM
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -522,11 +523,12 @@ echo "$vernum" >>$LOGFILE 2>&1
 
 detect_proton_version() {
 
-echo -ne "Detecting Proton Version:... " | tee -a $LOGFILE
+echo -e "Detecting Proton Version:... " | tee -a $LOGFILE
 
 proton_ver=`head -n 1 /home/deck/.local/share/Steam/steamapps/compatdata/$APPID/config_info`
 
 echo -e "$proton_ver" >>$LOGFILE 2>&1
+
 
 }
 
@@ -621,10 +623,10 @@ echo -e "\nChecking if Modlist uses Game Root, Stock Game or Vanilla Game Direct
 game_path_line=$(grep '^gamePath' "$modlist_ini")
 echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
-if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Game\ Root* ]]; then
+if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
 
     # Stock Game, Game Root or equivalent directory found
-    echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " | tee -a $LOGFILE
+    echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
 
       # Get the end of our path
     if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
@@ -632,6 +634,8 @@ if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* |
     echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
     elif [[ $game_path_line =~ Stock\ Folder ]]; then
     modlist_gamedir="$modlist_dir/Stock Folder"
+    elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
+    modlist_gamedir="$modlist_dir/Skyrim Stock"
     echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
     elif [[ $game_path_line =~ Game\ Root ]]; then
     modlist_gamedir="$modlist_dir/Game Root"
@@ -736,7 +740,7 @@ if [[ "$orig_line_path" == *"mods"* ]]; then
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/mods/\/mods/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
-elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder)" <<< "$orig_line_path"; then
+elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock)" <<< "$orig_line_path"; then
     # STOCK GAME ROOT FOUND
     echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
@@ -774,6 +778,12 @@ elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Stock Folder/\/Stock Folder/'`
     echo "Path End: $path_end" >>$LOGFILE 2>&1
     bin_path_end=`echo "$skse_loc" | sed 's/.*\/Stock Folder/\/Stock Folder/'`
+    echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+    elif [[ $orig_line_path =~ Skyrim\ Stock ]]; then
+    dir_type="skyrimstock"
+    path_end=`echo "${skse_loc%/*}" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/'`
+    echo "Path End: $path_end" >>$LOGFILE 2>&1
+    bin_path_end=`echo "$skse_loc" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/'`
     echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
     elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
     dir_type="stockgamefolder"
@@ -915,7 +925,7 @@ isize_h=$(echo "$set_res" | cut -d'x' -f2)
 # Find all instances of skyrimprefs.ini or Fallout4Prefs.ini in specified directories
 
 if [[ $gamevar == "Skyrim Special Edition" ]]; then
-    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "skyrimprefs.ini" 2>/dev/null)
+    ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" "$modlist_dir/Skyrim Stock" -iname "skyrimprefs.ini" 2>/dev/null)
 elif [[ $gamevar == "Fallout 4" ]]; then
     ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
 fi
@@ -1045,21 +1055,20 @@ fi
 create_dxvk_file() {
 
 echo "Use SDCard for DXVK File?: $basegame_sdcard" >>$LOGFILE 2>&1
-echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." | tee -a $LOGFILE
+echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.."  >>$LOGFILE 2>&1
 
 game_path_line=$(grep '^gamePath' "$modlist_ini")
 echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
-if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Game\ Root* ]]; then
-
-    # Stock Game, Game Root or equivalent directory found
-    echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " | tee -a $LOGFILE
+if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
 
       # Get the end of our path
     if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
     echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
     elif [[ $game_path_line =~ Stock\ Folder ]]; then
     echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
+    elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Skyrim Stock/dxvk.conf"
     elif [[ $game_path_line =~ Game\ Root ]]; then
     echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
     elif [[ $game_path_line =~ STOCK\ GAME ]]; then
