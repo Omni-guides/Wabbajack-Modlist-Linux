@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.27 - Omni 03/03/2024                        #
+#                       Alpha v0.28 - Omni 03/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -47,6 +47,7 @@
 # - v0.25 - Added handling of "Stock Folder" to enable compatibility with Modlist Fallout Anomaly
 # - v0.26 - Added creation of dxvk.conf file to handle rare instances of an Assertion Failed error when running ENB.
 # - v0.27 - Added handling of "Skyrim Stock" to enable compatibility with OCM
+# - v0.28 - Fixed a bug with forming the required binary and workingDirectory paths when the modlist uses steamapps location
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -801,7 +802,7 @@ elif [[ "$orig_line_path" == *"steamapps"* ]]; then
         path_middle="${steam_library#*mmcblk0p1}"
         drive_letter=" = D:"
     else
-        path_middle=$steam_library
+        path_middle=${steam_library%%steamapps*}
     fi
     echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
     path_end=`echo "${skse_loc%/*}" | sed 's/.*\/steamapps/\/steamapps/'`
@@ -900,14 +901,14 @@ ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
 if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
     while IFS= read -r ini_file; do
         # Use awk to replace the lines with the new values, handling spaces in paths
-        awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next }' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
-                               #/^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
-                               #/^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
-                               #/^(#?)Borderless=/ { print "Borderless=true"; next } \
-                               #/^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
+        awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next } \
+                               /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
+                               /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
+                               /^(#?)Borderless=/ { print "Borderless=true"; next } \
+                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" > $HOME/temp_file && mv $HOME/temp_file "$ini_file"
 
-        #echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
-        echo "Updated $ini_file with Resolution=$set_res" >>$LOGFILE 2>&1
+        echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
+        #echo "Updated $ini_file with Resolution=$set_res" >>$LOGFILE 2>&1
         echo -e " Done." >>$LOGFILE 2>&1
     done <<< "$ini_files"
 elif [[ $gamevar == "Fallout 4" ]]; then
