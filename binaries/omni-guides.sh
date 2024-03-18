@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.28 - Omni 03/03/2024                        #
+#                       Alpha v0.29 - Omni 03/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -48,6 +48,7 @@
 # - v0.26 - Added creation of dxvk.conf file to handle rare instances of an Assertion Failed error when running ENB.
 # - v0.27 - Added handling of "Skyrim Stock" to enable compatibility with OCM
 # - v0.28 - Fixed a bug with forming the required binary and workingDirectory paths when the modlist uses steamapps location
+# - v0.29 - Fixed Default Library detection on Ubuntu/Debian and derivatives, at last.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -191,7 +192,7 @@ detect_game() {
 }
 
 ###################################
-# Try to detect the Stema Library #
+# Try to detect the Steam Library #
 ###################################
 
 detect_steam_library() {
@@ -199,6 +200,7 @@ detect_steam_library() {
     steam_library=
     library_default="$HOME/.local/share/Steam/steamapps/common/"
     sdcard_library_default="/run/media/mmcblk0p1/SteamLibrary/steamapps/common/"
+    ubuntu_library_default="$HOME/.steam/steam/steamapps/common/"
 
     if [ -d "$library_default" ]; then
         echo "Directory $library_default exists. Checking for Skyrim/Fallout." >>$LOGFILE 2>&1
@@ -209,7 +211,18 @@ detect_steam_library() {
             steam_library="$library_default/$gamevar"
             steam_library_default=1
         else
-            echo "Subdirectory '$gamevar' not found in default location." >>$LOGFILE 2>&1
+            echo "Subdirectory '$gamevar' not found in .local default location." >>$LOGFILE 2>&1
+        fi
+    elif [ -d "$ubuntu_library_default" ]; then
+        echo "Directory $ubuntu_library_default exists. Checking for Skyrim/Fallout." >>$LOGFILE 2>&1
+
+        # Check for subdirectories
+        if [ -d "$ubuntu_library_default/$gamevar" ]; then
+            echo "Subdirectory '$gamevar' found in Default Ubuntu Library." >>$LOGFILE 2>&1
+            steam_library="$ubuntu_library_default/$gamevar"
+            steam_library_default=1
+        else
+            echo "Subdirectory '$gamevar' not found in default Ubuntu location." >>$LOGFILE 2>&1
         fi
     fi
 
@@ -229,7 +242,7 @@ detect_steam_library() {
     fi
 
     if [[ "$steam_library_default" -ne 1 ]]; then
-    echo "Directory $library_default does not exist or game not found there." | tee -a $LOGFILE
+    echo "Game not found in normal default locations." | tee -a $LOGFILE
 
     # If not found there if the user wants to attempt to detect Steam Library location automatically
     echo -e "\e[31m \n** Do you wish to attempt to locate? This can take a little time.. (y/N)** \e[0m"
@@ -276,8 +289,8 @@ detect_steam_library() {
         done
     fi
     fi
-#fi
 }
+
 #################################
 # Detect Modlist Directory Path #
 #################################
