@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.30 - Omni 18/03/2024                        #
+#                       Alpha v0.31 - Omni 18/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -50,6 +50,7 @@
 # - v0.28 - Fixed a bug with forming the required binary and workingDirectory paths when the modlist uses steamapps location
 # - v0.29 - Fixed Default Library detection on Ubuntu/Debian and derivatives, at last.
 # - v0.30 - Fixed a bug with the detection and listing of possible Modlist Install Directories if multiple possibilities are found.
+# - v0.31 - Fixed a bug with detecting the proton version set for a modlist Steam entry. Also general tidy up of command outputs.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -199,9 +200,9 @@ detect_game() {
 detect_steam_library() {
     # Check the default location
     steam_library=
-    library_default="$HOME/.local/share/Steam/steamapps/common/"
-    sdcard_library_default="/run/media/mmcblk0p1/SteamLibrary/steamapps/common/"
-    ubuntu_library_default="$HOME/.steam/steam/steamapps/common/"
+    library_default="$HOME/.local/share/Steam/steamapps/common"
+    sdcard_library_default="/run/media/mmcblk0p1/SteamLibrary/steamapps/common"
+    ubuntu_library_default="$HOME/.steam/steam/steamapps/common"
 
     if [ -d "$library_default" ]; then
         echo "Directory $library_default exists. Checking for Skyrim/Fallout." >>$LOGFILE 2>&1
@@ -322,7 +323,7 @@ for dir in "${matching_dirs[@]}"; do
 done
 
 # Print clean_matching_dirs array for testing
-printf '%s\n' "${clean_matching_dirs[@]}"
+printf '%s\n' "${clean_matching_dirs[@]}" >>$LOGFILE 2>&1
 
 echo "Matching Dirs: " "${clean_matching_dirs[@]}" >>$LOGFILE 2>&1
 modlist_sdcard=0  # Initialize the variable to 0
@@ -542,7 +543,7 @@ echo -ne "\nDetecting MO2 Version... " | tee -a $LOGFILE
 mo2ver=`grep version $modlist_ini`
 vernum=`echo  $mo2ver | awk {'print $NF'}`
 
-echo "$vernum" >>$LOGFILE 2>&1
+echo -e "$vernum" | tee -a $LOGFILE
 }
 
 #########################
@@ -551,11 +552,16 @@ echo "$vernum" >>$LOGFILE 2>&1
 
 detect_proton_version() {
 
-echo -e "Detecting Proton Version:... " | tee -a $LOGFILE
+# Get compatdata location
+compatdata_dir="${steam_library%/*common*}"
 
-proton_ver=`head -n 1 /home/deck/.local/share/Steam/steamapps/compatdata/$APPID/config_info`
+echo "Compatdata directory: $compatdata_dir/compatdata" >>$LOGFILE 2>&1
 
-echo -e "$proton_ver" >>$LOGFILE 2>&1
+echo -ne "Detecting Proton Version:... " | tee -a $LOGFILE
+
+proton_ver=`head -n 1 $compatdata_dir/compatdata/$APPID/config_info`
+
+echo -e "$proton_ver" | tee -a $LOGFILE
 
 
 }
@@ -590,7 +596,7 @@ rm -rf $modlist_dir/plugins/LOOT-Warning-Checker
 confirmation_before_running() {
 
 echo "" | tee -a $LOGFILE
-echo -e "\nFinal Checklist:" | tee -a $LOGFILE
+echo -e "Final Checklist:" | tee -a $LOGFILE
 echo -e "================" | tee -a $LOGFILE
 echo -e "Modlist: $MODLIST .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
@@ -646,7 +652,7 @@ echo  "Done." | tee -a $LOGFILE
 replace_gamepath() {
 
 echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
-echo -e "\nChecking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." | tee -a $LOGFILE
+echo -ne "\nChecking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." | tee -a $LOGFILE
 
 game_path_line=$(grep '^gamePath' "$modlist_ini")
 echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
@@ -891,7 +897,7 @@ select_resolution() {
         set_res="1280x800"
     else
         while true; do
-            echo -e "\e[31m \n** Enter your desired resolution in the format 1920x1200: ** \e[0m"
+            echo -e "\e[31m ** Enter your desired resolution in the format 1920x1200: ** \e[0m"
             read -p " " user_res
 
             # Validate the input format
@@ -1159,7 +1165,7 @@ echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 PS3=$'\e[31mPlease Select: \e[0m'  # Set prompt for select
 select choice in "${output_array[@]}"; do
   MODLIST=`echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev`
-  echo $choice | tee -a $LOGFILE
+  echo -e "\n$choice" | tee -a $LOGFILE
   echo -e "\nYou are about to run the automated steps on the Proton Prefix for:\e[32m $MODLIST\e[0m" | tee -a $LOGFILE
   break
 done
