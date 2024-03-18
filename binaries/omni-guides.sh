@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.29 - Omni 03/03/2024                        #
+#                       Alpha v0.30 - Omni 18/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -49,6 +49,7 @@
 # - v0.27 - Added handling of "Skyrim Stock" to enable compatibility with OCM
 # - v0.28 - Fixed a bug with forming the required binary and workingDirectory paths when the modlist uses steamapps location
 # - v0.29 - Fixed Default Library detection on Ubuntu/Debian and derivatives, at last.
+# - v0.30 - Fixed a bug with the detection and listing of possible Modlist Install Directories if multiple possibilities are found.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -255,7 +256,7 @@ detect_steam_library() {
 
         echo "Done." | tee -a $LOGFILE
 
-        for library_entry in "$library_list/common"; do
+        for library_entry in $library_list/common; do
         echo "Check for the game directory in $library_entry" >>$LOGFILE 2>&1
         if [ -d "$library_entry/$gamevar" ]; then
             echo "Found $gamevar in $library_entry." >>$LOGFILE 2>&1
@@ -305,16 +306,29 @@ echo "Expected: $expected" >>$LOGFILE 2>&1
 
 # Find all matching directories, store paths in an array
 if [[ $steamdeck == 1 ]]; then
-    matching_dirs=( $(find "$HOME/Games" /run/media/mmcblk0p1/ -maxdepth 3 -type d -iname "*$expected*") )
+    readarray -d '' matching_dirs < <(find "$HOME/Games" /run/media/mmcblk0p1/ -maxdepth 3 -type d -iname "*$expected*" -print0)
 else
-    matching_dirs=( $(find "$HOME/Games" -maxdepth 3 -type d -iname "*$expected*") )
+    readarray -d '' matching_dirs < <(find "$HOME/Games" -maxdepth 3 -type d -iname "*$expected*" -print0)
 fi
 
-echo "Matching Dirs: $matching_dirs" >>$LOGFILE 2>&1
+# Initialize clean_matching_dirs array
+declare -a clean_matching_dirs=()
+
+# Iterate over matching_dirs and filter out entries containing "mods" or "profiles"
+for dir in "${matching_dirs[@]}"; do
+    if [[ "$dir" != *"mods"* && "$dir" != *"profiles"* ]]; then
+        clean_matching_dirs+=("$dir")
+    fi
+done
+
+# Print clean_matching_dirs array for testing
+printf '%s\n' "${clean_matching_dirs[@]}"
+
+echo "Matching Dirs: " "${clean_matching_dirs[@]}" >>$LOGFILE 2>&1
 modlist_sdcard=0  # Initialize the variable to 0
 
 # Check if "/run/media/mmcblk0p1" is in the matching_dirs array
-for dir in "${matching_dirs[@]}"; do
+for dir in "${clean_matching_dirs[@]}"; do
     if [[ "$dir" == *"/run/media/mmcblk0p1"* ]]; then
         modlist_sdcard=1
         echo $modlist_sdcard >>$LOGFILE 2>&1
@@ -323,11 +337,11 @@ for dir in "${matching_dirs[@]}"; do
 done
 
 # Check if multiple directories were found
-if [[ ${#matching_dirs[@]} -gt 1 ]]; then
+if [[ ${#clean_matching_dirs[@]} -gt 1 ]]; then
     # Display numbered options for the user to choose
     echo "Multiple possible directories detected, please select the correct one:" | tee -a $LOGFILE
-    select modlist_dir in "${matching_dirs[@]}"; do
-        if [[ $REPLY =~ ^[0-9]+$ && $REPLY -le ${#matching_dirs[@]} ]]; then
+    select modlist_dir in "${clean_matching_dirs[@]}"; do
+        if [[ $REPLY =~ ^[0-9]+$ && $REPLY -le ${#clean_matching_dirs[@]} ]]; then
             echo -e "\nYou selected directory $modlist_dir" | tee -a $LOGFILE
             break
         else
@@ -336,8 +350,8 @@ if [[ ${#matching_dirs[@]} -gt 1 ]]; then
     done
 else
     # Check if any directory was found
-    if [[ ${#matching_dirs[@]} -eq 1 ]]; then
-        modlist_dir=${matching_dirs[0]}
+    if [[ ${#clean_matching_dirs[@]} -eq 1 ]]; then
+        modlist_dir=${clean_matching_dirs[0]}
         echo -e "\nFound directory: $modlist_dir" | tee -a $LOGFILE
     else
         while true; do  # Loop until a valid directory is provided
