@@ -329,6 +329,7 @@ detect_modlist_dir_path() {
   for location in "${locations[@]}"; do
     if [[ -d "$location" ]]; then
       echo -e "\nDirectory found: $location" | tee -a $LOGFILE
+      modlist_dir=$location
       return 0
     fi
   done
@@ -384,6 +385,8 @@ modlist_ini=$modlist_dir/ModOrganizer.ini
 #####################################################
 
 set_protontricks_perms() {
+
+echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
 
 echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
 sudo flatpak override com.github.Matoking.protontricks --filesystem=$modlist_dir
