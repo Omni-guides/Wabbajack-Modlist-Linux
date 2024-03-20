@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.32 - Omni 20/03/2024                        #
+#                       Alpha v0.33 - Omni 20/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -52,6 +52,7 @@
 # - v0.30 - Fixed a bug with the detection and listing of possible Modlist Install Directories if multiple possibilities are found.
 # - v0.31 - Fixed a bug with detecting the proton version set for a modlist Steam entry. Also general tidy up of command outputs.
 # - v0.32 - Complete rewrite of the detect_modlist function to better support unexpected directory paths.
+# - v0.33 - Fixed bug introduced by 0.32 when detecting Modlist Directory on Steam Deck
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -330,6 +331,7 @@ detect_modlist_dir_path() {
     if [[ -d "$location" ]]; then
       echo -e "\nDirectory found: $location" | tee -a $LOGFILE
       modlist_dir=$location
+      modlist_ini=$modlist_dir/ModOrganizer.ini
       return 0
     fi
   done
@@ -368,6 +370,7 @@ detect_modlist_dir_path() {
                 continue
             else
                 modlist_dir=$user_path
+                modlist_ini=$modlist_dir/ModOrganizer.ini
                 echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
             fi
         fi
@@ -377,6 +380,8 @@ detect_modlist_dir_path() {
   done
 
 modlist_ini=$modlist_dir/ModOrganizer.ini
+
+echo -e "Modlist INI: $modlist_ini"
 
 }
 
@@ -389,7 +394,7 @@ set_protontricks_perms() {
 echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
 
 echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
-sudo flatpak override com.github.Matoking.protontricks --filesystem=$modlist_dir
+sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_dir"
 
 }
 
@@ -663,7 +668,7 @@ echo  "Done." | tee -a $LOGFILE
 replace_gamepath() {
 
 echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
-echo -ne "\nChecking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." | tee -a $LOGFILE
+echo -ne "\nChecking if Modlist uses Game Root, Stock Game, etc, etc.." | tee -a $LOGFILE
 
 game_path_line=$(grep '^gamePath' "$modlist_ini")
 echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
