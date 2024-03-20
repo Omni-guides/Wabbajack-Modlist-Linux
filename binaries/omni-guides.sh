@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.31 - Omni 18/03/2024                        #
+#                       Alpha v0.32 - Omni 20/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -51,6 +51,7 @@
 # - v0.29 - Fixed Default Library detection on Ubuntu/Debian and derivatives, at last.
 # - v0.30 - Fixed a bug with the detection and listing of possible Modlist Install Directories if multiple possibilities are found.
 # - v0.31 - Fixed a bug with detecting the proton version set for a modlist Steam entry. Also general tidy up of command outputs.
+# - v0.32 - Complete rewrite of the detect_modlist function to better support unexpected directory paths.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -165,10 +166,12 @@ detect_game() {
     # Try to decide if Skyrim or Fallout
     if [[ $choice == *"Skyrim"* ]]; then
         gamevar="Skyrim Special Edition"
-        echo "Game variable set to Skyrim." >>$LOGFILE 2>&1
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>$LOGFILE 2>&1
     elif [[ $choice == *"Fallout"* ]]; then
         gamevar="Fallout 4"
-        echo "Game variable set to Fallout." >>$LOGFILE 2>&1
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>$LOGFILE 2>&1
     else
         PS3="Please select a game (enter the number): "
         options=("Skyrim" "Fallout")
@@ -177,12 +180,14 @@ detect_game() {
             case $opt in
                 "Skyrim")
                     gamevar="Skyrim Special Edition"
-                    echo "Game variable set to Skyrim." >>$LOGFILE 2>&1
+                    which_game="${gamevar%% *}"
+                    echo "Game variable set to $which_game." >>$LOGFILE 2>&1
                     break
                     ;;
                 "Fallout")
                     gamevar="Fallout 4"
-                    echo "Game variable set to Fallout." >>$LOGFILE 2>&1
+                    which_game="${gamevar%% *}"
+                    echo "Game variable set to $which_game." >>$LOGFILE 2>&1
                     break
                     ;;
                 *) echo "Invalid option";;
@@ -299,73 +304,76 @@ detect_steam_library() {
 
 detect_modlist_dir_path() {
 
-echo "DEBUG: Detect Modlist Directory Path" >>$LOGFILE 2>&1
 
-expected=$(echo "$choice" | awk '{print $3}')
+  echo -e "Detecting Modlist Install Directory.." | tee -a $LOGFILE
 
-echo "Expected: $expected" >>$LOGFILE 2>&1
+  echo -e "DEBUG: Detect Modlist Directory Path" >>$LOGFILE 2>&1
 
-# Find all matching directories, store paths in an array
-if [[ $steamdeck == 1 ]]; then
-    readarray -d '' matching_dirs < <(find "$HOME/Games" /run/media/mmcblk0p1/ -maxdepth 3 -type d -iname "*$expected*" -print0)
-else
-    readarray -d '' matching_dirs < <(find "$HOME/Games" -maxdepth 3 -type d -iname "*$expected*" -print0)
-fi
+  expected=$(echo "$choice" | awk '{print $3}')
 
-# Initialize clean_matching_dirs array
-declare -a clean_matching_dirs=()
 
-# Iterate over matching_dirs and filter out entries containing "mods" or "profiles"
-for dir in "${matching_dirs[@]}"; do
-    if [[ "$dir" != *"mods"* && "$dir" != *"profiles"* ]]; then
-        clean_matching_dirs+=("$dir")
+  # Check if Steam Deck mode is enabled
+  if [[ $steamdeck == 1 ]]; then
+    local locations=(
+      "$HOME/Games/$which_game/$expected"
+      "/run/media/mmcblk0p1/Games/$which_game/$expected"
+    )
+  else
+    local locations=(
+      "$HOME/Games/$which_game/$expected"
+      "$HOME/$expected"
+    )
+  fi
+
+  # Loop through locations and check for directory
+  for location in "${locations[@]}"; do
+    if [[ -d "$location" ]]; then
+      echo -e "\nDirectory found: $location" | tee -a $LOGFILE
+      return 0
     fi
-done
+  done
 
-# Print clean_matching_dirs array for testing
-printf '%s\n' "${clean_matching_dirs[@]}" >>$LOGFILE 2>&1
+  # Not found in any location, loop for valid user input
+  while true; do
+    echo -e "\e[31m\nModlist directory not found in expected location. Please enter the path manually.\e[0m" | tee -a $LOGFILE
+    read -e -p "Path: " user_path
 
-echo "Matching Dirs: " "${clean_matching_dirs[@]}" >>$LOGFILE 2>&1
-modlist_sdcard=0  # Initialize the variable to 0
-
-# Check if "/run/media/mmcblk0p1" is in the matching_dirs array
-for dir in "${clean_matching_dirs[@]}"; do
-    if [[ "$dir" == *"/run/media/mmcblk0p1"* ]]; then
-        modlist_sdcard=1
-        echo $modlist_sdcard >>$LOGFILE 2>&1
-        break  # No need to continue checking once found
+    # Check if user entered something (not just pressed Enter)
+    if [[ -z "$user_path" ]]; then
+      echo -e "\e[32mPlease enter a path.\e[0m" | tee -a $LOGFILE
+      continue
     fi
-done
 
-# Check if multiple directories were found
-if [[ ${#clean_matching_dirs[@]} -gt 1 ]]; then
-    # Display numbered options for the user to choose
-    echo "Multiple possible directories detected, please select the correct one:" | tee -a $LOGFILE
-    select modlist_dir in "${clean_matching_dirs[@]}"; do
-        if [[ $REPLY =~ ^[0-9]+$ && $REPLY -le ${#clean_matching_dirs[@]} ]]; then
-            echo -e "\nYou selected directory $modlist_dir" | tee -a $LOGFILE
-            break
-        else
-            echo "Invalid option. Please enter a valid number from the list." | tee -a $LOGFILE
-        fi
-    done
-else
-    # Check if any directory was found
-    if [[ ${#clean_matching_dirs[@]} -eq 1 ]]; then
-        modlist_dir=${clean_matching_dirs[0]}
-        echo -e "\nFound directory: $modlist_dir" | tee -a $LOGFILE
+    # Check if user entered a valid path (file or directory)
+    if [[ ! -e "$user_path" ]]; then
+      echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m does not exist." | tee -a $LOGFILE
+      path_to_confirm=1
     else
-        while true; do  # Loop until a valid directory is provided
-            echo "Directory '$epected' not found. Please enter the full path manually." | tee -a $LOGFILE
-            read -rp "Directory: " modlist_dir
-            if [[ -d "$modlist_dir" ]]; then  # Check if the entered path exists
-                break  # Exit the loop if a valid directory is found
+      # Check if it's a directory (prevents using a file as directory)
+      if [[ ! -d "$user_path" ]]; then
+        echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m is not a directory." | tee -a $LOGFILE
+        path_to_confirm=1
+      else
+        echo -e "\nUsing user-provided path: \e[32m$user_path\e[0m" | tee -a $LOGFILE
+        path_to_confirm=1
+        if [[ $path_to_confirm -eq 1 ]]; then
+          # Confirmation section
+          echo -e "\n\e[31mAre you sure \e[32m'$user_path'\e[31m is the correct path? (y/n):\e[0m" | tee -a $LOGFILE
+          read -p " " confirm
+
+            if [[ $confirm == "n" ]]; then
+                echo -e "\nOkay, please try again." | tee -a $LOGFILE
+                path_to_confirm=1
+                continue
             else
-                echo "Directory not found, please check and try again.." | tee -a $LOGFILE
+                modlist_dir=$user_path
+                echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
             fi
-    done
+        fi
+         break
+      fi
     fi
-fi
+  done
 
 modlist_ini=$modlist_dir/ModOrganizer.ini
 
