@@ -333,7 +333,7 @@ detect_modlist_dir_path() {
     if [[ -d "$location" ]]; then
       echo -e "\nDirectory found: $location" | tee -a $LOGFILE
       modlist_dir=$location
-      #modlist_ini=$modlist_dir/ModOrganizer.ini
+      modlist_ini=$modlist_dir/ModOrganizer.ini
       return 0
     fi
   done
@@ -372,7 +372,7 @@ detect_modlist_dir_path() {
                 continue
             else
                 modlist_dir=$user_path
-                #modlist_ini=$modlist_dir/ModOrganizer.ini
+                modlist_ini=$modlist_dir/ModOrganizer.ini
                 echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
             fi
         fi
