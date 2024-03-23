@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.33 - Omni 20/03/2024                        #
+#                       Alpha v0.34 - Omni 23/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -53,6 +53,7 @@
 # - v0.31 - Fixed a bug with detecting the proton version set for a modlist Steam entry. Also general tidy up of command outputs.
 # - v0.32 - Complete rewrite of the detect_modlist function to better support unexpected directory paths.
 # - v0.33 - Fixed bug introduced by 0.32 when detecting Modlist Directory on Steam Deck
+# - v0.34 - Fixed issue where protontricks could be installed in user space or system space, now handle both possibilities.
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guide_autofix.log
@@ -62,6 +63,7 @@ echo "" > $HOME/omni-guide_autofix2.log
 exec &> >(tee $LOGFILE2) 2>&1
 shopt -s expand_aliases
 alias protontricks='flatpak run com.github.Matoking.protontricks'
+#set -x
 
 # Fancy banner thing
 
@@ -331,7 +333,7 @@ detect_modlist_dir_path() {
     if [[ -d "$location" ]]; then
       echo -e "\nDirectory found: $location" | tee -a $LOGFILE
       modlist_dir=$location
-      modlist_ini=$modlist_dir/ModOrganizer.ini
+      #modlist_ini=$modlist_dir/ModOrganizer.ini
       return 0
     fi
   done
@@ -370,7 +372,7 @@ detect_modlist_dir_path() {
                 continue
             else
                 modlist_dir=$user_path
-                modlist_ini=$modlist_dir/ModOrganizer.ini
+                #modlist_ini=$modlist_dir/ModOrganizer.ini
                 echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
             fi
         fi
@@ -379,9 +381,9 @@ detect_modlist_dir_path() {
     fi
   done
 
-modlist_ini=$modlist_dir/ModOrganizer.ini
-
-echo -e "Modlist INI: $modlist_ini"
+modlist_ini="$modlist_dir/ModOrganizer.ini"
+    echo "Modlist Dir $modlist_dir"
+    echo "Modlist INI $modlist_ini"
 
 }
 
@@ -391,10 +393,13 @@ echo -e "Modlist INI: $modlist_ini"
 
 set_protontricks_perms() {
 
-echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
+echo "Setting Protontricks Permissions" | tee -a $LOGFILE
 
 echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
+#Catch System flatpak install
 sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_dir"
+#Catch User flatpak install
+flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
 
 }
 
@@ -416,7 +421,7 @@ printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
     if [[ "$dotfiles_check" = "Y" ]]; then
         printf '%s\n' "DotFiles already enabled... skipping" | tee -a $LOGFILE
     else
-    protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y' $APPID &
+    protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID &
     echo "Done!" | tee -a $LOGFILE
     fi
 
@@ -544,6 +549,8 @@ fi
 ######################
 
 detect_mo2_version() {
+
+echo "Modlist INI: $modlist_ini"
 
 if [[ -f "$modlist_ini" ]]; then
     echo -e "\nModOrganizer.ini found, proceeding.." >>$LOGFILE 2>&1
@@ -1208,6 +1215,7 @@ detect_steam_library
 #################################
 
 detect_modlist_dir_path
+
 
 #####################################################
 # Set protontricks permissions on Modlist Directory #
