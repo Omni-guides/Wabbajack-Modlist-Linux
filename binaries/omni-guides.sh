@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.34 - Omni 23/03/2024                        #
+#                       Alpha v0.36 - Omni 24/03/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -54,15 +54,20 @@
 # - v0.32 - Complete rewrite of the detect_modlist function to better support unexpected directory paths.
 # - v0.33 - Fixed bug introduced by 0.32 when detecting Modlist Directory on Steam Deck
 # - v0.34 - Fixed issue where protontricks could be installed in user space or system space, now handle both possibilities.
+# - v0.35 - More accurately detect compatdata path, the use to correctly identify Proton Version set for Modlist
+# - v0.35 - Some small tweaks to record the Script Version, Date and Time, setting $APPID in a more suitable place.
+# - v0.36 - Add detection for Natively installed protontricks as well as flatpak. Alter protontricks alias generation to only be created if using flatpak protontricks.
+# - v0.36 - Complete rewrite of protontricks alias and commands into a function, to handle both flatpak and native protontricks, without the need of an alias.
+
+# Current Script Version (alpha)
+script_ver=0.36
 
 # Set up and blank logs
-LOGFILE=$HOME/omni-guide_autofix.log
-LOGFILE2=$HOME/omni-guide_autofix2.log
-echo "" > $HOME/omni-guide_autofix.log
-echo "" > $HOME/omni-guide_autofix2.log
+LOGFILE=$HOME/omni-guides-sh.log
+LOGFILE2=$HOME/omni-guides-sh2.log
+echo "" > $HOME/omni-guides-sh.log
+echo "" > $HOME/omni-guides-sh2.log
 exec &> >(tee $LOGFILE2) 2>&1
-shopt -s expand_aliases
-alias protontricks='flatpak run com.github.Matoking.protontricks'
 #set -x
 
 # Fancy banner thing
@@ -99,6 +104,15 @@ read -n 1 -s -r -p ""
 # Functions #
 #############
 
+#############
+# Set APPID #
+#############
+
+set_appid() {
+
+APPID=`echo $choice | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:'`
+
+}
 
 #############################
 # Detect if running on deck #
@@ -117,6 +131,7 @@ fi
 
 }
 
+
 ###########################################
 # Detect Protontricks (flatpak or native) #
 ###########################################
@@ -125,41 +140,59 @@ detect_protontricks() {
 
 echo -ne "\nDetecting if protontricks is installed..." | tee -a $LOGFILE
 
-if [[ $(flatpak list | grep -i protontricks) || -f /usr/bin/protontricks ]]; then
-    # Protontricks is already installed or available
-    echo -e " Already Istalled." | tee -a $LOGFILE
-else
-    echo -e "\e[31m \n** Protontricks not found. Do you wish to install it? (y/n): ** \e[0m"
-    read -p " " answer
-    if [[ $answer =~ ^[Yy]$ ]]; then
-        if [[ $steamdeck -eq 1 ]]; then
-            # Install Protontricks specifically for Deck
-            flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
-        else
-            read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
-            if [[ $choice =~ 1 ]]; then
-                # Install protontricks
+# Check if "which protontricks" outputs "no protontricks"
+if ! which protontricks 2>/dev/null; then
+    echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
+    if [[ $(flatpak list | grep -i protontricks) ]]; then
+        # Protontricks is already installed or available
+        echo -e " Flatpak protontricks already installed." | tee -a $LOGFILE
+        which_protontricks=flatpak
+    else
+        echo -e "\e[31m \n** Protontricks not found. Do you wish to install it? (y/n): ** \e[0m"
+        read -p " " answer
+        if [[ $answer =~ ^[Yy]$ ]]; then
+            if [[ $steamdeck -eq 1 ]]; then
+                # Install Protontricks specifically for Deck
                 flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
+                which_protontricks=flatpak
             else
-                # Print message and exit
-                echo -e "\nSorry, there are way too many distro's to be able to automate this!" | tee -a $LOGFILE
-                echo -e "\nPlease check how to install protontricks using your OS package system (yum, dnf, apt, pacman etc)" | tee -a $LOGFILE
+                read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
+                if [[ $choice =~ 1 ]]; then
+                    # Install protontricks
+                    flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
+                    which_protontricks=flatpak
+                else
+                    # Print message and exit
+                    echo -e "\nSorry, there are way too many distro's to be able to automate this!" | tee -a $LOGFILE
+                    echo -e "\nPlease check how to install protontricks using your OS package system (yum, dnf, apt, pacman etc)" | tee -a $LOGFILE
+                fi
             fi
         fi
     fi
-fi
-
-if [[ $steamdeck = 1 ]]; then
-    echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo password)..\e[0m"  | tee -a $LOGFILE
-    # Set protontricks SDCard permissions early to suppress warning
-    sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
-    echo $sdcard_path >>$LOGFILE 2>&1
-    flatpak override --user --filesystem=$sdcard_path com.github.Matoking.protontricks
-    echo -e " Done."  | tee -a $LOGFILE
+else
+    echo -e " Native Protontricks already found at $(which protontricks)." | tee -a $LOGFILE
+    which_protontricks=native
+    # Exit function if protontricks is found
+    return 0
 fi
 
 }
 
+#############################
+# Run protontricks commands #
+#############################
+
+run_protontricks() {
+    # Determine the protontricks binary path
+    if [ "$which_protontricks" = "flatpak" ]; then
+        protontricks_bin="flatpak run com.github.Matoking.protontricks"
+    else
+        protontricks_bin="protontricks"
+    fi
+
+    # Construct and execute the command using eval to preserve quotes
+    $protontricks_bin "$@"
+}
 
 #######################################
 # Detect Skyrim or Fallout 4 Function #
@@ -307,7 +340,6 @@ detect_steam_library() {
 
 detect_modlist_dir_path() {
 
-
   echo -e "Detecting Modlist Install Directory.." | tee -a $LOGFILE
 
   echo -e "DEBUG: Detect Modlist Directory Path" >>$LOGFILE 2>&1
@@ -393,13 +425,23 @@ modlist_ini="$modlist_dir/ModOrganizer.ini"
 
 set_protontricks_perms() {
 
-echo "Setting Protontricks Permissions" | tee -a $LOGFILE
+echo "Setting Protontricks Permissions" >>$LOGFILE 2>&1
 
 echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
 #Catch System flatpak install
 sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_dir"
 #Catch User flatpak install
 flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
+
+if [[ $steamdeck = 1 ]]; then
+    echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo #password)..\e[0m"  | tee -a $LOGFILE
+    # Set protontricks SDCard permissions early to suppress warning
+    sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
+    echo $sdcard_path >>$LOGFILE 2>&1
+    sudo flatpak override --filesystem=$sdcard_path com.github.Matoking.protontricks
+    flatpak override --user --filesystem=$sdcard_path com.github.Matoking.protontricks
+    echo -e " Done."  | tee -a $LOGFILE
+fi
 
 }
 
@@ -409,19 +451,18 @@ flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_
 
 enable_dotfiles() {
 
-APPID=`echo $choice | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:'`
 echo $APPID >>$LOGFILE 2>&1
 echo -ne "\nEnabling visibility of (.)dot files... " | tee -a $LOGFILE
 
 # Check if already settings
-dotfiles_check=$(protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
+dotfiles_check=$(run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
 
 printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
 
     if [[ "$dotfiles_check" = "Y" ]]; then
         printf '%s\n' "DotFiles already enabled... skipping" | tee -a $LOGFILE
     else
-    protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID &
+    run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID 2>/dev/null &
     echo "Done!" | tee -a $LOGFILE
     fi
 
@@ -433,7 +474,7 @@ printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
 
 set_win10_prefix() {
 
-protontricks --no-bwrap  $APPID win10 >>$LOGFILE 2>&1
+run_protontricks --no-bwrap  $APPID win10 >>$LOGFILE 2>&1
 
 }
 
@@ -446,7 +487,7 @@ install_wine_components() {
 echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
-protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7  >/dev/null 2>&1 &
+run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7  >/dev/null 2>&1 &
 
 
 pid=$!  # Store the PID of the background process
@@ -484,7 +525,7 @@ components=(
 )
 
 # Get the output of the protontricks command
-output="$(protontricks --no-bwrap $APPID list-installed)"
+output="$(run_protontricks --no-bwrap $APPID list-installed)"
 
 # Check if each component is present in the output
 all_found=true
@@ -500,7 +541,7 @@ if [[ $all_found == true ]]; then
     echo "All required components found." >>$LOGFILE 2>&1
 else
     echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
-    protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022  >/dev/null 2>&1 &
+    run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022  >/dev/null 2>&1 &
     echo "Done." | tee -a $LOGFILE
 fi
 
@@ -535,7 +576,7 @@ elif [[ $mo2ver = *2.5* ]]; then
         replace_mo2_function
         echo "Function called successfully!" >>$LOGFILE 2>&1
     else
-        echo "Sadly, Mod Organizer 2.5 doesn't work via Proton 8. Exiting..." | tee -a $LOGFILE
+        echo "Either the Modlist Steam entry is configured with Proton 8 (which doesn't work with MO2 2.5), or I can't detect the Proton version correctly. Please report this to omni..." | tee -a $LOGFILE
         exit 1  # Exit with an error code
     fi
 else
@@ -550,7 +591,7 @@ fi
 
 detect_mo2_version() {
 
-echo "Modlist INI: $modlist_ini"
+echo "Modlist INI: $modlist_ini" >>$LOGFILE 2>&1
 
 if [[ -f "$modlist_ini" ]]; then
     echo -e "\nModOrganizer.ini found, proceeding.." >>$LOGFILE 2>&1
@@ -559,7 +600,6 @@ else
     exit 1
 fi
 
-# Ensure ModOrganizer.ini can be found
 echo -ne "\nDetecting MO2 Version... " | tee -a $LOGFILE
 
 # Build regular expression for matching 2.5.[0-9]+
@@ -569,23 +609,53 @@ vernum=`echo  $mo2ver | awk {'print $NF'}`
 echo -e "$vernum" | tee -a $LOGFILE
 }
 
+####################################
+# Detect compatdata Directory Path #
+####################################
+
+detect_compatdata_path() {
+
+  # Check common Steam library locations first
+  for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
+    if [[ -d "$path/$APPID" ]]; then
+      compat_data_path="$path/$APPID"
+      echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
+      break
+    fi
+  done
+
+  # If not found in common locations, use find command
+  if [[ -z "$compat_data_path" ]]; then
+    find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
+      if [[ -d "$compatdata_dir/$APPID" ]]; then
+      compat_data_path="$compatdata_dir/$appid"
+      echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$compat_data_path" ]]; then
+    echo "Directory named '$APPID' not found in any compatdata directories."
+    echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
+  else
+    echo "Found compatdata directory with '$APPID': $compat_data_path" >>$LOGFILE 2>&1
+  fi
+}
+
 #########################
 # Detect Proton Version #
 #########################
 
 detect_proton_version() {
 
-# Get compatdata location
-compatdata_dir="${steam_library%/*common*}"
-
-echo "Compatdata directory: $compatdata_dir/compatdata" >>$LOGFILE 2>&1
+echo -e "Compatdata: $compat_data_path"
 
 echo -ne "Detecting Proton Version:... " | tee -a $LOGFILE
 
-proton_ver=`head -n 1 $compatdata_dir/compatdata/$APPID/config_info`
+proton_ver=$(head -n 1 "$compat_data_path/config_info")
 
 echo -e "$proton_ver" | tee -a $LOGFILE
-
 
 }
 
@@ -623,6 +693,7 @@ echo -e "Final Checklist:" | tee -a $LOGFILE
 echo -e "================" | tee -a $LOGFILE
 echo -e "Modlist: $MODLIST .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
+echo -e "Proton Version: $proton_ver .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 
 }
@@ -1077,7 +1148,7 @@ if [[ $MODLIST == *"Wildlander"* ]]; then
     echo -e "Running steps specific to \e[32m $MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
     # Install dotnet72
     spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
-    protontricks --no-bwrap $APPID -q dotnet472  >/dev/null 2>&1 &
+    run_protontricks --no-bwrap $APPID -q dotnet472  >/dev/null 2>&1 &
 
     pid=$!  # Store the PID of the background process
 
@@ -1157,9 +1228,17 @@ fi
 # END OF FUNCTIONS #
 ####################
 
+#######################
+# Note Script Version #
+#######################
 
+echo -e "Script Version $script_ver" >>$LOGFILE 2>&1
 
+######################
+# Note Date and Time #
+######################
 
+echo -e "Script started at: $(date +'%Y-%m-%d %H:%M:%S')" >>$LOGFILE 2>&1
 
 #############################
 # Detect if running on deck #
@@ -1179,7 +1258,7 @@ detect_protontricks
 
 #list_modlists
 
-IFS=$'\n' readarray -t output_array < <(protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout' | cut -d ' ' -f 3- )
+IFS=$'\n' readarray -t output_array < <(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout' | cut -d ' ' -f 3- )
 
 echo "" | tee -a $LOGFILE
 
@@ -1198,6 +1277,12 @@ echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
 read -p " " response
 if [[ $response =~ ^[Yy]$ ]]; then
 
+#############
+# Set APPID #
+#############
+
+set_appid
+
 ################################
 # Detect Game - Skyrim/Fallout #
 ################################
@@ -1215,7 +1300,6 @@ detect_steam_library
 #################################
 
 detect_modlist_dir_path
-
 
 #####################################################
 # Set protontricks permissions on Modlist Directory #
@@ -1240,6 +1324,12 @@ set_win10_prefix
 ######################################
 
 install_wine_components
+
+####################################
+# Detect compatdata Directory Path #
+####################################
+
+detect_compatdata_path
 
 ######################
 # MO2 Version Check  #
