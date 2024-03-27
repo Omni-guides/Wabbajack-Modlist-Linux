@@ -16,14 +16,13 @@
 
 <p align="center"><b>Fallout 4 -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a>
-  &emsp; &emsp; <b>Fallout New Vegas -</b>
-  
-</p>
-
-<p align="center"><b>Experimental -</b>
+  &emsp; &emsp; <b>Experimental -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Anvil">Anvil (PC)</a>
-
 </p>
+
+<p align="center"><b>Performance -</b>
+<a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Performance-Guide">Ouroboros' Excellent Performance Guide</a>
+
 
 <p align="center"><b>Other -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki">Home</a> ·
