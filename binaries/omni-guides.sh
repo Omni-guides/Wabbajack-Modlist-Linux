@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.36 - Omni 24/03/2024                        #
+#                       Alpha v0.37 - Omni 02/04/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -58,9 +58,10 @@
 # - v0.35 - Some small tweaks to record the Script Version, Date and Time, setting $APPID in a more suitable place.
 # - v0.36 - Add detection for Natively installed protontricks as well as flatpak. Alter protontricks alias generation to only be created if using flatpak protontricks.
 # - v0.36 - Complete rewrite of protontricks alias and commands into a function, to handle both flatpak and native protontricks, without the need of an alias.
+# - v0.37 - Fixed incorrect chown/chmod assuming user 'deck'. Now detects and sets as user who ran the script.
 
 # Current Script Version (alpha)
-script_ver=0.36
+script_ver=0.37
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -706,7 +707,12 @@ chown_chmod_modlist_dir() {
 
 echo -e "\e[31m \nChanging Ownership and Permissions of modlist directory (may require sudo password) \e[0m" | tee -a $LOGFILE
 
-sudo chown -R deck:deck $modlist_dir ; sudo chmod -R 755 $modlist_dir
+user=$(whoami)
+group=$(id -gn)
+
+echo -e "User is $user and Group is $group" >>$LOGFILE 2>&1
+
+sudo chown -R $user:$group $modlist_dir ; sudo chmod -R 755 $modlist_dir
 
 }
 
