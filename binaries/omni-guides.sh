@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.37 - Omni 02/04/2024                        #
+#                       Alpha v0.38 - Omni 04/04/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -59,9 +59,11 @@
 # - v0.36 - Add detection for Natively installed protontricks as well as flatpak. Alter protontricks alias generation to only be created if using flatpak protontricks.
 # - v0.36 - Complete rewrite of protontricks alias and commands into a function, to handle both flatpak and native protontricks, without the need of an alias.
 # - v0.37 - Fixed incorrect chown/chmod assuming user 'deck'. Now detects and sets as user who ran the script.
+# - v0.38 - Tweaked Modlist Directory detection to check for ModOrganizer.ini rather than trust the user input :)
+# - v0.38 - Added detection of a space in the modlist directory name, request user rename the directory and rerun the script.
 
 # Current Script Version (alpha)
-script_ver=0.37
+script_ver=0.38
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -334,7 +336,6 @@ detect_steam_library() {
     fi
     fi
 }
-
 #################################
 # Detect Modlist Directory Path #
 #################################
@@ -391,6 +392,10 @@ detect_modlist_dir_path() {
       if [[ ! -d "$user_path" ]]; then
         echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m is not a directory." | tee -a $LOGFILE
         path_to_confirm=1
+      elif [[ ! -f "$user_path/ModOrganizer.ini" ]]; then
+        echo -e "\nWarning: ModOrganizer.ini not found in \e[32m'$user_path'\e[0m. Please try again.." | tee -a $LOGFILE
+        path_to_confirm=1
+        continue
       else
         echo -e "\nUsing user-provided path: \e[32m$user_path\e[0m" | tee -a $LOGFILE
         path_to_confirm=1
@@ -398,25 +403,29 @@ detect_modlist_dir_path() {
           # Confirmation section
           echo -e "\n\e[31mAre you sure \e[32m'$user_path'\e[31m is the correct path? (y/n):\e[0m" | tee -a $LOGFILE
           read -p " " confirm
-
             if [[ $confirm == "n" ]]; then
-                echo -e "\nOkay, please try again." | tee -a $LOGFILE
-                path_to_confirm=1
-                continue
+              echo -e "\nOkay, please try again." | tee -a $LOGFILE
+              path_to_confirm=1
+              continue
             else
-                modlist_dir=$user_path
-                modlist_ini=$modlist_dir/ModOrganizer.ini
-                echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
-            fi
+              modlist_dir=$user_path
+              modlist_ini=$modlist_dir/ModOrganizer.ini
+              echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
+           fi
         fi
-         break
+        break
       fi
     fi
   done
 
-modlist_ini="$modlist_dir/ModOrganizer.ini"
-    echo "Modlist Dir $modlist_dir"
-    echo "Modlist INI $modlist_ini"
+  #Check for a space in the path
+  if [[ "$modlist_dir" = *" "* ]]; then
+    modlist_dir_nospace="${modlist_dir// /}"
+    echo -e "\n\e[31mError: \e[0mSpace detected in the path: \e[32m$modlist_dir.\e[0m"
+    echo -e "\nSpaces in the directory path name do not work well via Proton, \e[31mplease rename the directory to remove the space\e[0m and then re-run this script!"
+    echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
+    exit 1
+  fi
 
 }
 
@@ -1306,6 +1315,9 @@ detect_steam_library
 #################################
 
 detect_modlist_dir_path
+
+    echo "Modlist Dir $modlist_dir" >>$LOGFILE 2>&1
+    echo "Modlist INI $modlist_ini" >>$LOGFILE 2>&1
 
 #####################################################
 # Set protontricks permissions on Modlist Directory #
