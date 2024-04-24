@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.38 - Omni 04/04/2024                        #
+#                       Alpha v0.39 - Omni 24/04/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -61,9 +61,11 @@
 # - v0.37 - Fixed incorrect chown/chmod assuming user 'deck'. Now detects and sets as user who ran the script.
 # - v0.38 - Tweaked Modlist Directory detection to check for ModOrganizer.ini rather than trust the user input :)
 # - v0.38 - Added detection of a space in the modlist directory name, request user rename the directory and rerun the script.
+# - v0.39 - Added better exit handling for log merging.
+# - v0.39 - Added check and handling/message if no modlists are detected.
 
 # Current Script Version (alpha)
-script_ver=0.38
+script_ver=0.39
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -424,7 +426,7 @@ detect_modlist_dir_path() {
     echo -e "\n\e[31mError: \e[0mSpace detected in the path: \e[32m$modlist_dir.\e[0m"
     echo -e "\nSpaces in the directory path name do not work well via Proton, \e[31mplease rename the directory to remove the space\e[0m and then re-run this script!"
     echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
-    exit 1
+    cleaner_exit
   fi
 
 }
@@ -444,7 +446,7 @@ sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_di
 flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
 
 if [[ $steamdeck = 1 ]]; then
-    echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo #password)..\e[0m"  | tee -a $LOGFILE
+    echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo password)..\e[0m"  | tee -a $LOGFILE
     # Set protontricks SDCard permissions early to suppress warning
     sdcard_path=`df -h | grep "/run/media" | awk {'print $NF'}`
     echo $sdcard_path >>$LOGFILE 2>&1
@@ -497,8 +499,8 @@ install_wine_components() {
 echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
-run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7  >/dev/null 2>&1 &
-
+#run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
+run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
 
 pid=$!  # Store the PID of the background process
 
@@ -587,7 +589,7 @@ elif [[ $mo2ver = *2.5* ]]; then
         echo "Function called successfully!" >>$LOGFILE 2>&1
     else
         echo "Either the Modlist Steam entry is configured with Proton 8 (which doesn't work with MO2 2.5), or I can't detect the Proton version correctly. Please report this to omni..." | tee -a $LOGFILE
-        exit 1  # Exit with an error code
+        cleaner_exit  # Exit with an error code
     fi
 else
     echo -ne $vernum | tee -a $LOGFILE
@@ -607,7 +609,7 @@ if [[ -f "$modlist_ini" ]]; then
     echo -e "\nModOrganizer.ini found, proceeding.." >>$LOGFILE 2>&1
 else
     echo -e "\nModOrganizer.ini not found! Exiting.." | tee -a $LOGFILE
-    exit 1
+    cleaner_exit
 fi
 
 echo -ne "\nDetecting MO2 Version... " | tee -a $LOGFILE
@@ -1239,6 +1241,20 @@ fi
 
 }
 
+#####################
+# Exit more cleanly #
+#####################
+
+cleaner_exit() {
+
+# Merge Log files
+cat $LOGFILE2 >> $LOGFILE
+rm $LOGFILE2
+
+exit 1
+
+}
+
 ####################
 # END OF FUNCTIONS #
 ####################
@@ -1271,9 +1287,15 @@ detect_protontricks
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
 ##############################################################
 
-#list_modlists
-
 IFS=$'\n' readarray -t output_array < <(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout' | cut -d ' ' -f 3- )
+
+if [[ ${#output_array[@]} -eq 0 ]]; then
+  echo "" | tee -a $LOGFILE
+  echo -e "\e[31mError: No modlists detected for Skyrim or Fallout!\e[0m"
+  echo -e "\nPlease make sure your entry in Steam is something like 'Skyrim - ModlistName'"
+  echo -e "or 'Fallout - ModlistName' AND that you have pressed play in Steam at least once!" | tee -a $LOGFILE
+  cleaner_exit
+fi
 
 echo "" | tee -a $LOGFILE
 
@@ -1425,10 +1447,6 @@ modlist_specific_steps
 # Finished #
 ############
 
-# Merge Log files
-cat $LOGFILE2 >> $LOGFILE
-rm $LOGFILE2
-
 # Parting message
 echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
 echo -e "\n\e[4mPlease follow any additional steps in the guide on github for disabling mods etc\e[0m]" | tee -a $LOGFILE
@@ -1437,7 +1455,7 @@ else
         echo "" | tee -a $LOGFILE
 
         echo "Exiting..." | tee -a $LOGFILE
-exit 1
+cleaner_exit
 
 fi
 
