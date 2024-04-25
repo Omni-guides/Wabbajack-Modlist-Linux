@@ -14,9 +14,13 @@
 </p>
 
 <p align="center"><b>Fallout 4 -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a>
-  &emsp; &emsp; <b>Fallout New Vegas -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Begin-Again">Begin Again</a>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
+  Life in the Ruins (Coming Soon)
+</p>
+
+<p align="center"><b>Fallout New Vegas -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Begin-Again">Begin Again</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment</a>
 </p>
 
 <p align="center"><b>Performance -</b>
