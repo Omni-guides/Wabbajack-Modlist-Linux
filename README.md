@@ -48,6 +48,8 @@ DISCLAIMER - I am not affiliated with the Wabbajack group in any way, just a gam
 
 The contained guides are a work in progress, based mostly on my own tests and collaboration with multiple users posting in the #unofficial-linux-help channel of the [Official Wabbajack Discord](https://discord.gg/wabbajack). With thanks to all involved. Feedback is always welcome.
 
+Please note that Pull Requests to this github for small issues may have the suggested change applied without performing a merge. Please create an Issue describing the correction instead.
+
 ### Automated Configuration
 
 While the guides include the step by step process to get a Modlist up and running, I have created an Automated Modlist Install script, with the aim of drastically reducing the work needed to get up and running. Currently, the Automation script takes care of around 90% of the steps needed.
