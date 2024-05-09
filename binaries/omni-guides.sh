@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.39 - Omni 24/04/2024                        #
+#                       Alpha v0.40 - Omni 09/05/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -63,9 +63,10 @@
 # - v0.38 - Added detection of a space in the modlist directory name, request user rename the directory and rerun the script.
 # - v0.39 - Added better exit handling for log merging.
 # - v0.39 - Added check and handling/message if no modlists are detected.
+# - v0.40 - Fixed Modlist on SDCard detection and path generation
 
 # Current Script Version (alpha)
-script_ver=0.39
+script_ver=0.40
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -429,6 +430,11 @@ detect_modlist_dir_path() {
     cleaner_exit
   fi
 
+  # Set modlist_sdcard if required
+  if [[ $modlist_dir == "/run/media"* ]]; then
+  modlist_sdcard=1
+  fi
+
 }
 
 #####################################################
@@ -499,8 +505,8 @@ install_wine_components() {
 echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
-#run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
-run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
+run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
+#run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
 
 pid=$!  # Store the PID of the background process
 
@@ -616,7 +622,7 @@ echo -ne "\nDetecting MO2 Version... " | tee -a $LOGFILE
 
 # Build regular expression for matching 2.5.[0-9]+
 mo2ver=`grep version $modlist_ini`
-vernum=`echo  $mo2ver | awk {'print $NF'}`
+vernum=`echo  $mo2ver | awk -F "=" {'print $NF'}`
 
 echo -e "$vernum" | tee -a $LOGFILE
 }
@@ -661,7 +667,7 @@ detect_compatdata_path() {
 
 detect_proton_version() {
 
-echo -e "Compatdata: $compat_data_path"
+echo -e "Compatdata: $compat_data_path" >>$LOGFILE 2>&1
 
 echo -ne "Detecting Proton Version:... " | tee -a $LOGFILE
 
@@ -1225,7 +1231,7 @@ if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* |
     if [[ "$modlist_sdcard" -eq "1" ]]; then
     echo "Using SDCard" >>$LOGFILE 2>&1
     modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir_sdcard/dxvk.conf"
+    echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
     fi
 
 elif [[ "$game_path_line" == *steamapps* ]]; then
@@ -1337,6 +1343,24 @@ detect_steam_library
 #################################
 
 detect_modlist_dir_path
+
+  #Check for a space in the path
+  if [[ "$modlist_dir" = *" "* ]]; then
+    modlist_dir_nospace="${modlist_dir// /}"
+    echo -e "\n\e[31mError: Space detected in the path: $modlist_dir\e[0m"
+    echo -e "\n\e[32mSpaces in the directory name do not work well via Proton, please rename the directory to remove the space and then re-run this script!\e[0m"
+    echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
+    exit 1
+  fi
+
+  #modlist_dir="/run/media/blah"
+
+    # Set modlist_sdcard if required
+  if [[ $modlist_dir == "/run/media"* ]]; then
+  modlist_sdcard=1
+  else
+  modlist_sdcard=0
+  fi
 
     echo "Modlist Dir $modlist_dir" >>$LOGFILE 2>&1
     echo "Modlist INI $modlist_ini" >>$LOGFILE 2>&1
