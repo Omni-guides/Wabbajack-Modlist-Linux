@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.41 - Omni 12/05/2024                        #
+#                       Alpha v0.44 - Omni 12/05/2024                        #
 #                                                                            #
 ##############################################################################
 
@@ -65,9 +65,12 @@
 # - v0.39 - Added check and handling/message if no modlists are detected.
 # - v0.40 - Fixed Modlist on SDCard detection and path generation
 # - v0.41 - Skip setting flatpak permissions for protontricks if using native protontricks.
+# - v0.42 - Add custom steps for Librum: game path, executable paths, dotnet4.8 and dotnet8 installation.
+# - v0.43 - Better Handling of spaces in the Steam Entry Name for modlist filepath location detection
+# - v0.44 - Custom Steps for Nordic Souls and Living Skyrim 4 to work around hang-before-menu issue.
 
 # Current Script Version (alpha)
-script_ver=0.41
+script_ver=0.44
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -349,29 +352,33 @@ detect_modlist_dir_path() {
 
 	echo -e "DEBUG: Detect Modlist Directory Path" >>$LOGFILE 2>&1
 
-	expected=$(echo "$choice" | awk '{print $3}')
+	#expected=$(echo "$choice" | awk '{print $3}')
+	expected=${MODLIST// /}
+	echo -e "Expected Directory: $expected" >>$LOGFILE 2>&1
 
-	# Check if Steam Deck mode is enabled
 	if [[ $steamdeck == 1 ]]; then
 		local locations=(
-			"$HOME/Games/$which_game/$expected"
-			"/run/media/mmcblk0p1/Games/$which_game/$expected"
+		"$HOME/Games/$which_game"
+		"/run/media/mmcblk0p1/Games/$which_game"
 		)
 	else
 		local locations=(
-			"$HOME/Games/$which_game/$expected"
-			"$HOME/$expected"
+		"$HOME/Games/$which_game"
+		"$HOME"
 		)
 	fi
 
-	# Loop through locations and check for directory
-	for location in "${locations[@]}"; do
-		if [[ -d "$location" ]]; then
-			echo -e "\nDirectory found: $location" | tee -a $LOGFILE
-			modlist_dir=$location
-			modlist_ini=$modlist_dir/ModOrganizer.ini
-			return 0
-		fi
+	# Loop through locations and check for directory, ignoring case
+	for base_location in "${locations[@]}"; do
+	# Use find to locate the directory case-insensitively
+	found_location=$(find "$base_location" -maxdepth 1 -type d -iname "$expected" -print -quit)
+
+	if [[ -n "$found_location" ]]; then
+		echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
+		modlist_dir=$found_location
+		modlist_ini=$modlist_dir/ModOrganizer.ini
+		return 0
+	fi
 	done
 
 	# Not found in any location, loop for valid user input
@@ -778,7 +785,7 @@ replace_gamepath() {
 	game_path_line=$(grep '^gamePath' "$modlist_ini")
 	echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
-	if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
+	if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* || $game_path_line == *root\\\\Skyrim\ Special\ Edition* ]]; then
 
 		# Stock Game, Game Root or equivalent directory found
 		echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
@@ -800,6 +807,9 @@ replace_gamepath() {
 			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ Stock\ Game ]]; then
 			modlist_gamedir="$modlist_dir/Stock Game"
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+		elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
+			modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
 			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		fi
 
@@ -895,7 +905,7 @@ update_executables() {
 		bin_path_end=$(echo "$skse_loc" | sed 's/.*\/mods/\/mods/')
 		echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
-	elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock)" <<<"$orig_line_path"; then
+	elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock|root/Skyrim Special Edition)" <<<"$orig_line_path"; then
 		# STOCK GAME ROOT FOUND
 		echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
@@ -944,6 +954,12 @@ update_executables() {
 			dir_type="stockgamefolder"
 			path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game Folder/\/Stock Game Folder/')
 			echo "Path End: $path_end" >>$LOGFILE 2>&1
+		elif [[ $orig_line_path =~ root\/Skyrim\ Special\ Edition ]]; then
+			dir_type="rootskyrimse"
+			path_end="/${skse_loc# }"
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
+			bin_path_end="/${skse_loc# }"
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		fi
 
 	elif [[ "$orig_line_path" == *"steamapps"* ]]; then
@@ -1172,7 +1188,7 @@ modlist_specific_steps() {
 
 	if [[ $MODLIST == *"Wildlander"* ]]; then
 		echo ""
-		echo -e "Running steps specific to \e[32m $MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet72
 		spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 		run_protontricks --no-bwrap $APPID -q dotnet472 >/dev/null 2>&1 &
@@ -1201,6 +1217,39 @@ modlist_specific_steps() {
 
 	fi
 
+	if [[ $MODLIST == *"Librum"* ]]; then
+		echo ""
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		# Install dotnet 4.0
+		echo -ne "\nInstalling .NET 4..."
+		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		echo -e " Done."
+		# Download dotnet8
+		echo -e "\nDownloading .NET 8 Runtime" | tee -a $LOGFILE
+		wget https://download.visualstudio.microsoft.com/download/pr/77284554-b8df-4697-9a9e-4c70a8b35f29/6763c16069d1ab8fa2bc506ef0767366/dotnet-runtime-8.0.5-win-x64.exe -q -nc --show-progress --progress=bar:force:noscroll -O $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe
+		# Install it
+		echo -ne "\nInstalling .NET 8 Runtime...."
+		run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe /Q' $APPID 2>/dev/null
+		echo -e " Done."
+	fi
+
+	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
+		echo ""
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		# Install dotnet 4.0
+		echo -ne "\nInstalling .NET 4..."
+		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		echo -e " Done."
+	fi
+
+	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]]; then
+		echo ""
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		# Install dotnet 4.0
+		echo -ne "\nInstalling .NET 4..."
+		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		echo -e " Done."
+	fi
 }
 
 ######################################
@@ -1477,7 +1526,7 @@ if [[ $response =~ ^[Yy]$ ]]; then
 
 	# Parting message
 	echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
-	echo -e "\n\e[4mPlease follow any additional steps in the guide on github for disabling mods etc\e[0m]" | tee -a $LOGFILE
+	echo -e "\n\e[4mPlease follow any additional steps in the guide for this modlist on github (if there is one) for disabling mods etc\e[0m]" | tee -a $LOGFILE
 	echo -e "\nOnce you've done that, click Play for the modlist in Steam and get playing!" | tee -a $LOGFILE
 else
 	echo "" | tee -a $LOGFILE
