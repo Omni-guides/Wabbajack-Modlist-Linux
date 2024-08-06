@@ -79,6 +79,8 @@ echo "" >$HOME/omni-guides-sh.log
 echo "" >$HOME/omni-guides-sh2.log
 exec &> >(tee $LOGFILE2) 2>&1
 #set -x
+#Protontricks Bug
+export PROTON_VERSION="Proton Experimental"
 
 # Fancy banner thing
 
