@@ -1,26 +1,31 @@
 [![Banner](https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/images/WabbajackModlistsBanner2.png)](https://github.com/Omni-guides/Wabbajack-Modlist-Linux)
 
-<p align="center"><b>Skyrim Deck/PC -</b>
+<p align="center"><b>Wabbajack Application -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Wabbajack-on-Linux-via-Wine">Wabbajack on Linux via Wine</a> ·
+  Wabbajack on Deck via Bottles (Coming Soon!)
+</p>
+
+<p align="center"><b>Skyrim (Deck/PC) -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Tuxborn">Tuxborn</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Licentia-DECK">Licentia DECK</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Legends-of-the-Frost">Legends of the Frost</a>
 </p>
 
-<p align="center"><b>Skyrim PC Only -</b>
+<p align="center"><b>Skyrim (PC Only) -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/General-Linux-Guide-(Anvil)">Anvil</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Nordic-Souls">Nordic Souls</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Keizaal">Keizaal</a> ·
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Skyrim:-Living-Skyrim-4">Living Skyrim 4</a>
 </p>
 
-<p align="center"><b>Fallout 4 -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Welcome to Paradise</a> ·
-  Life in the Ruins (Coming Soon)
+<p align="center"><b>Enderal (Deck/PC) -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Enderal:-Emissaries-of-Tux">Emissaries of Tux</a>
 </p>
 
-<p align="center"><b>Fallout New Vegas -</b>
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Begin-Again">Begin Again</a> ·
-  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Capital Punishment</a>
+<p align="center"><b>Fallout (Deck/PC) -</b>
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-4:-Welcome-to-Paradise">Fallout 4: Welcome to Paradise</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Begin-Again">Fallout New Vegas: Begin Again</a> ·
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Fallout-NV:-Capital-Punishment">Fallout New Vegas: Capital Punishment</a>
 </p>
 
 <p align="center"><b>Performance -</b>
