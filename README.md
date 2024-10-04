@@ -2,7 +2,7 @@
 
 <p align="center"><b>Wabbajack Application -</b>
   <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Wabbajack-on-Linux-via-Wine">Wabbajack on Linux via Wine</a> ·
-  Wabbajack on Deck via Bottles (Coming Soon!)
+  <a href="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/wiki/Wabbajack-on-Steam-Deck-Linux-via-Bottles">Wabbajack on Deck via Bottles</a>
 </p>
 
 <p align="center"><b>Skyrim (Deck/PC) -</b>
