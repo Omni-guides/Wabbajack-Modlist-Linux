@@ -68,9 +68,14 @@
 # - v0.42 - Add custom steps for Librum: game path, executable paths, dotnet4.8 and dotnet8 installation.
 # - v0.43 - Better Handling of spaces in the Steam Entry Name for modlist filepath location detection
 # - v0.44 - Custom Steps for Nordic Souls and Living Skyrim 4 to work around hang-before-menu issue.
+# - v0.45 - Add dotnet40 install specifically for Nordic Souls
+# - v0.46 - Remove function replacing MO2 2.5 with 2.4, everything should have Proton 9 by now
+# - v0.47 - Add check for protontricks version, exit if older than 1.11
+# - v0.48 - Better handling of ModOrganizer.ini location for both autodetection and manual input of modlist directory.
+# - v0.49 - Tidied up logging. Not great, but better than it was.
 
 # Current Script Version (alpha)
-script_ver=0.44
+script_ver=0.49
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -80,7 +85,7 @@ echo "" >$HOME/omni-guides-sh2.log
 exec &> >(tee $LOGFILE2) 2>&1
 #set -x
 #Protontricks Bug
-export PROTON_VERSION="Proton Experimental"
+#export PROTON_VERSION="Proton Experimental"
 
 # Fancy banner thing
 
@@ -205,6 +210,27 @@ run_protontricks() {
 	$protontricks_bin "$@"
 }
 
+###############################
+# Detect Protontricks Version #
+###############################
+
+protontricks_version() {
+
+    # Get the current version of protontricks
+    protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
+
+    # Remove any non-numeric characters from the version number
+    protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
+
+    echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >>$LOGFILE 2>&1
+
+    # Compare version strings directly using simple string comparison
+    if [[ "$protontricks_version_cleaned" < "1.11" ]]; then
+        echo "Your protontricks version is too old! Update to version 1.11 or newer and rerun this script."  >>$LOGFILE 2>&1
+        cleaner_exit
+    fi
+}
+
 #######################################
 # Detect Skyrim or Fallout 4 Function #
 #######################################
@@ -296,7 +322,7 @@ detect_steam_library() {
 	fi
 
 	if [[ "$steam_library_default" -ne 1 ]]; then
-		echo "Game not found in normal default locations." | tee -a $LOGFILE
+		echo "Vanilla game not found in normal default locations." | tee -a $LOGFILE
 
 		# If not found there if the user wants to attempt to detect Steam Library location automatically
 		echo -e "\e[31m \n** Do you wish to attempt to locate? This can take a little time.. (y/N)** \e[0m"
@@ -324,7 +350,7 @@ detect_steam_library() {
 			# Loop until a valid Steam Library path is provided
 			while true; do
 				# Ask the user to manually input the Steam Library path
-				echo -e "\n** Enter the path to your $gamevar directory manually (e.g. /data/SteamLibrary/steamapps/common/$gamevar): **"
+				echo -e "\n** Enter the path to your Vanilla $gamevar directory manually (e.g. /data/SteamLibrary/steamapps/common/$gamevar): **"
 				read -e -r gamevar_input
 
 				echo "Game Path Entered:" "$gamevar_input"
@@ -338,7 +364,7 @@ detect_steam_library() {
 					echo "Steam Library set to: $steam_library" >>$LOGFILE 2>&1
 					break # Exit the loop since a valid path is provided
 				else
-					echo "Game not found in $steam_library_input. Please enter a valid path to $gamevar." | tee -a $LOGFILE
+					echo "Game not found in $steam_library_input. Please enter a valid path to Vanilla $gamevar." | tee -a $LOGFILE
 				fi
 			done
 		fi
@@ -379,13 +405,19 @@ detect_modlist_dir_path() {
 		echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
 		modlist_dir=$found_location
 		modlist_ini=$modlist_dir/ModOrganizer.ini
+		# Check if ModOrganizer.ini actually exists here
+		if [[ -f "$modlist_ini" ]]; then
+		echo -e "\nModOrganizer.ini found in expected path: $modlist_ini, proceeding.." >>$LOGFILE 2>&1
 		return 0
+		else
+		echo -e "\nModOrganizer.ini not found! Proceed to ask for path.." >>$LOGFILE 2>&1
+		fi
 	fi
 	done
 
 	# Not found in any location, loop for valid user input
 	while true; do
-		echo -e "\e[31m\nModlist directory not found in expected location. Please enter the path manually.\e[0m" | tee -a $LOGFILE
+		echo -e "\e[31m\nModOrganizer.ini not found in expected location. Please enter the path of your modlist directory that contains ModOrganizer.ini:\e[0m" | tee -a $LOGFILE
 		read -e -p "Path: " user_path
 
 		# Check if user entered something (not just pressed Enter)
@@ -398,35 +430,55 @@ detect_modlist_dir_path() {
 		if [[ ! -e "$user_path" ]]; then
 			echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m does not exist." | tee -a $LOGFILE
 			path_to_confirm=1
-		else
-			# Check if it's a directory (prevents using a file as directory)
-			if [[ ! -d "$user_path" ]]; then
-				echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m is not a directory." | tee -a $LOGFILE
-				path_to_confirm=1
-			elif [[ ! -f "$user_path/ModOrganizer.ini" ]]; then
+			continue
+		# Check if it's a directory (prevents using a file as directory)
+		elif [[ -d "$user_path" ]]; then
+			# Check if ModOrganizer.ini exists in the directory
+			if [[ ! -f "$user_path/ModOrganizer.ini" ]]; then
 				echo -e "\nWarning: ModOrganizer.ini not found in \e[32m'$user_path'\e[0m. Please try again.." | tee -a $LOGFILE
 				path_to_confirm=1
 				continue
-			else
-				echo -e "\nUsing user-provided path: \e[32m$user_path\e[0m" | tee -a $LOGFILE
+			fi
+		# If user_path is not a directory, check if it includes "ModOrganizer.ini"
+		elif [[ "$user_path" =~ "ModOrganizer.ini" ]]; then
+			# Check if the file exists
+			if [[ ! -f "$user_path" ]]; then
+				echo -e "\nWarning: Provided file \e[32m'$user_path'\e[0m does not exist. Please try again.." | tee -a $LOGFILE
 				path_to_confirm=1
-				if [[ $path_to_confirm -eq 1 ]]; then
-					# Confirmation section
-					echo -e "\n\e[31mAre you sure \e[32m'$user_path'\e[31m is the correct path? (y/n):\e[0m" | tee -a $LOGFILE
-					read -p " " confirm
+				continue
+			fi
+		else
+		# If user_path is not a directory and doesn't include "ModOrganizer.ini"
+			echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m is not a directory and does not include 'ModOrganizer.ini'. Please try again.." | tee -a $LOGFILE
+			path_to_confirm=1
+			continue
+		fi
+
+
+		echo -e "\nUsing user-provided path: \e[32m$user_path\e[0m" >>$LOGFILE 2>&1
+			path_to_confirm=1
+			if [[ $path_to_confirm -eq 1 ]]; then
+				# Confirmation section
+				echo -e "\n\e[31mModOrganizer.ini found in \e[32m'$user_path'\e[31m, continue? (y/n):\e[0m" | tee -a $LOGFILE
+				read -p " " confirm
 					if [[ $confirm == "n" ]]; then
 						echo -e "\nOkay, please try again." | tee -a $LOGFILE
 						path_to_confirm=1
 						continue
 					else
-						modlist_dir=$user_path
-						modlist_ini=$modlist_dir/ModOrganizer.ini
-						echo -e "\nModlist Install Directory set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
+						if [[ "$user_path" =~ "ModOrganizer.ini" ]]; then
+							modlist_dir=$(dirname $user_path)
+							modlist_ini=$modlist_dir/ModOrganizer.ini
+						else
+							modlist_dir=$user_path
+							modlist_ini=$modlist_dir/ModOrganizer.ini
+						fi
+						echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
+						echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
+						echo -e "\nModlist Install Path set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
 					fi
-				fi
-				break
 			fi
-		fi
+			break
 	done
 
 	#Check for a space in the path
@@ -596,19 +648,8 @@ mo2_version_check() {
 		echo -e "\nError: Unsupported MO2 version" | tee -a $LOGFILE
 		echo "" | tee -a $LOGFILE
 		# Ask the user for input
-		echo "WARNING: EXPERIMENTAL FEATURE - THIS WILL OVERWRITE THE MO2 FILES IN THE MODLIST DIRECTORY" | tee -a $LOGFILE
-
-		echo -e "\e[31m \n** Would like to attempt to replace with 2.4? (y/N) ** \e[0m"
-		read -p " " response
-
-		# Check the user's response
-		if [[ $response =~ ^[Yy]$ ]]; then
-			replace_mo2_function
-			echo "Function called successfully!" >>$LOGFILE 2>&1
-		else
-			echo "Either the Modlist Steam entry is configured with Proton 8 (which doesn't work with MO2 2.5), or I can't detect the Proton version correctly. Please report this to omni..." | tee -a $LOGFILE
-			cleaner_exit # Exit with an error code
-		fi
+		echo "WARNING: ModOrganizer 2.5 detected along with incompatible Proton version. Please change the Proton version to 9.* in the compatibility tab of the properties on Steam" | tee -a $LOGFILE
+		cleaner_exit # Exit with an error code
 	else
 		echo -ne $vernum | tee -a $LOGFILE
 	fi
@@ -689,28 +730,6 @@ detect_proton_version() {
 
 }
 
-################################################
-# Overwrite MO2 2.5 with MO2 2.4.4 if required #
-################################################
-
-replace_mo2_function() {
-
-	# Download MO2 2.4.4
-	echo "Downloading supported MO2" | tee -a $LOGFILE
-	wget https://github.com/ModOrganizer2/modorganizer/releases/download/v2.4.4/Mod.Organizer-2.4.4.7z -q -nc --show-progress --progress=bar:force:noscroll -O $HOME/Mod.Organizer-2.4.4.7z
-
-	# Extract over the top of MO2.5
-	echo "Extracting MO2 v2.4.4, overwriting MO2 v2.5.x" | tee -a $LOGFILE
-	7z x -y $HOME/Mod.Organizer-2.4.4.7z -o$modlist_dir
-
-	# Edit the Version listed in ModOrganizer.Invalid
-	sed -i "/version/c\version = 2.4.4" $modlist_dir/ModOrganizer.ini
-	echo "MO2 version updated in .ini"
-
-	# Delete the LOOT-Warning-Checker folder
-	rm -rf $modlist_dir/plugins/LOOT-Warning-Checker
-
-}
 
 ###############################
 # Confirmation before running #
@@ -1080,13 +1099,10 @@ update_ini_resolution() {
                                /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" >$HOME/temp_file && mv $HOME/temp_file "$ini_file"
 
 			echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
-			#echo "Updated $ini_file with Resolution=$set_res" >>$LOGFILE 2>&1
 			echo -e " Done." >>$LOGFILE 2>&1
 		done <<<"$ini_files"
 	elif [[ $gamevar == "Fallout 4" ]]; then
 		echo "Not Skyrim, skipping SSEDisplayTweaks" >>$LOGFILE 2>&1
-	#else
-	#    echo "No SSEDisplayTweaks.ini files found in $modlist_dir. Please set manually in skyrimprefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
 	fi
 
 	##########
@@ -1233,6 +1249,9 @@ modlist_specific_steps() {
 		echo -ne "\nInstalling .NET 8 Runtime...."
 		run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe /Q' $APPID 2>/dev/null
 		echo -e " Done."
+
+		# Re-set win10
+		set_win10_prefix
 	fi
 
 	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
@@ -1242,15 +1261,21 @@ modlist_specific_steps() {
 		echo -ne "\nInstalling .NET 4..."
 		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
 		echo -e " Done."
+
+		# Re-set win10
+		set_win10_prefix
 	fi
 
-	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]]; then
+	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lsiv"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"ls4"* ]]; then
 		echo ""
 		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet 4.0
 		echo -ne "\nInstalling .NET 4..."
 		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
 		echo -e " Done."
+
+		# Re-set win10
+		set_win10_prefix
 	fi
 }
 
@@ -1309,7 +1334,9 @@ create_dxvk_file() {
 cleaner_exit() {
 
 	# Merge Log files
-	cat $LOGFILE2 >>$LOGFILE
+	echo "Merging Log Files.." >>$LOGFILE 2>&1
+	cat $LOGFILE2 | grep -v -e "[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]" >>$LOGFILE
+	echo "Removing Logfile2.." >>$LOGFILE 2>&1
 	rm $LOGFILE2
 
 	exit 1
@@ -1343,6 +1370,12 @@ detect_steamdeck
 ###########################################
 
 detect_protontricks
+
+###############################
+# Detect Protontricks Version #
+###############################
+
+protontricks_version
 
 ##############################################################
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
@@ -1405,7 +1438,7 @@ if [[ $response =~ ^[Yy]$ ]]; then
 		echo -e "\n\e[31mError: Space detected in the path: $modlist_dir\e[0m"
 		echo -e "\n\e[32mSpaces in the directory name do not work well via Proton, please rename the directory to remove the space and then re-run this script!\e[0m"
 		echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
-		exit 1
+		cleaner_exit
 	fi
 
 	#modlist_dir="/run/media/blah"
@@ -1530,6 +1563,8 @@ if [[ $response =~ ^[Yy]$ ]]; then
 	echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
 	echo -e "\n\e[4mPlease follow any additional steps in the guide for this modlist on github (if there is one) for disabling mods etc\e[0m]" | tee -a $LOGFILE
 	echo -e "\nOnce you've done that, click Play for the modlist in Steam and get playing!" | tee -a $LOGFILE
+
+	cleaner_exit
 else
 	echo "" | tee -a $LOGFILE
 
