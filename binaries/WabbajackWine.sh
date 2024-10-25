@@ -4,7 +4,7 @@
 #                                                            #
 # Attempt to automate installing Wabbajack on Linux via Wine #
 #                                                            #
-#            Alpha v0.05 - Omni, from 12/05/2024             #
+#            Alpha v0.06 - Omni, from 12/05/2024             #
 #                                                            #
 ##############################################################
 
@@ -19,9 +19,10 @@
 # - v0.04 - Added function to create a Desktop item.
 # - v0.04 - Added function to ask if Wabbajack should be started now.
 # - v0.05 - Tweak to wine version comparison removing the requirement for 'bc'
+# - v0.06 - Remove references to $HOME for downloading and installing WebView
 
 # Current Script Version (alpha)
-script_ver=0.05
+script_ver=0.06
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -256,7 +257,7 @@ install_and_configure() {
 
 	# Install WebView
 	echo -e "\nInstalling Webview, this can take a while, please be patient" >>$LOGFILE 2>&1
-	WINEPREFIX=$wineprefix wine $HOME/Wabbajack/MicrosoftEdgeWebView2RuntimeInstallerX64.exe >>$LOGFILE 2>&1
+	WINEPREFIX=$wineprefix wine $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64.exe >>$LOGFILE 2>&1
 
 	# Change prefix version
 	echo -e "\nChange the default prefix version to win7.." >>$LOGFILE 2>&1
@@ -264,14 +265,14 @@ install_and_configure() {
 
 	# Add Wabbajack as an application
 	echo -e "\nAdding Wabbajack Application to customise settings.." >>$LOGFILE 2>&1
-	cat <<EOF >$HOME/Wabbajack/WJApplication.reg
+	cat <<EOF >$application_directory/WJApplication.reg
 Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Wine\AppDefaults\Wabbajack.exe]
 "Version"="win10"
 EOF
 
-	WINEPREFIX=$wineprefix wine regedit $HOME/Wabbajack/WJApplication.reg >>$LOGFILE 2>&1
+	WINEPREFIX=$wineprefix wine regedit $application_directory/WJApplication.reg >>$LOGFILE 2>&1
 
 	echo
 }
