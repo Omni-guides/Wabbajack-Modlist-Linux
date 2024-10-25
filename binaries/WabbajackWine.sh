@@ -4,7 +4,7 @@
 #                                                            #
 # Attempt to automate installing Wabbajack on Linux via Wine #
 #                                                            #
-#            Alpha v0.04 - Omni, from 12/05/2024             #
+#            Alpha v0.05 - Omni, from 12/05/2024             #
 #                                                            #
 ##############################################################
 
@@ -18,9 +18,10 @@
 # - v0.04 - Added function to try to detect the Steam library.
 # - v0.04 - Added function to create a Desktop item.
 # - v0.04 - Added function to ask if Wabbajack should be started now.
+# - v0.05 - Tweak to wine version comparison removing the requirement for 'bc'
 
 # Current Script Version (alpha)
-script_ver=0.04
+script_ver=0.05
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -80,7 +81,7 @@ detect_wine_version() {
 
 	echo -e "Wine Version: $wine_version" >>$LOGFILE 2>&1
 
-	if [[ $(bc <<<"$wine_version < 9.15") -eq 1 ]]; then
+	if [[ "$wine_version" < "9.15" ]]; then
 		echo -e "Wabbajack requires Wine newer than 9.15. Please arrange this on your system and rerun this script."
 		exit 0
 	else
