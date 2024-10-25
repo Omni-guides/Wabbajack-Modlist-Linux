@@ -375,7 +375,7 @@ create_desktop_shortcut() {
 	read -r create_shortcut
 
 	if [[ $create_shortcut == "y" || $create_shortcut == "Y" ]]; then
-		desktop_file="$HOME/Desktop/WabbajackTest.desktop"
+		desktop_file="$HOME/Desktop/Wabbajack.desktop"
 		cat >"$desktop_file" <<EOF
 [Desktop Entry]
 Name=Wabbajack
