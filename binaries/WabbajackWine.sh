@@ -363,7 +363,7 @@ detect_link_steam_library() {
 
 	# Link Steam Library
 	echo -e "\nLinking Steam library.."
-	ln -s $chosen_library $wineprefix/drive_c/Program\ Files\ \(x86\)/Steam
+	ln -s $chosen_library $wineprefix/drive_c/Program\ Files\ \(x86\)/Steam/steamapps
 
 }
 
