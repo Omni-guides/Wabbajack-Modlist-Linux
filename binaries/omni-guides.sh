@@ -73,9 +73,10 @@
 # - v0.47 - Add check for protontricks version, exit if older than 1.11
 # - v0.48 - Better handling of ModOrganizer.ini location for both autodetection and manual input of modlist directory.
 # - v0.49 - Tidied up logging. Not great, but better than it was.
+# - v0.50 - Re-enabled the protontricks workaround after discovering that SteamOS doesn't yet have access to v.1.22
 
 # Current Script Version (alpha)
-script_ver=0.49
+script_ver=0.50
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -85,7 +86,7 @@ echo "" >$HOME/omni-guides-sh2.log
 exec &> >(tee $LOGFILE2) 2>&1
 #set -x
 #Protontricks Bug
-#export PROTON_VERSION="Proton Experimental"
+export PROTON_VERSION="Proton Experimental"
 
 # Fancy banner thing
 
