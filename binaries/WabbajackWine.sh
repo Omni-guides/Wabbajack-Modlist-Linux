@@ -24,9 +24,11 @@
 # - v0.08 - Added colouring to the text output to better distinguish questions, warnings and informationals.
 # - v0.09 - Reworked the steam library detection to include confirmation if library detected, user defined path as desired.
 # - v0.10 - Completely replace Steam Library symlink with modified copy of libraryfolders.vdf - this should handle all Steam Libraries, and not just the default library
+# - v0.11 - create a dotnet_bundle_extract directory which seems required on some distros (harmless on others)
+# - v0.12 - Fixed incorrect path in Desktop Shortcut creation (thanks valkari)
 
 # Current Script Version (alpha)
-script_ver=0.10
+script_ver=0.12
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -396,6 +398,17 @@ rm "$steam_config_directory/libraryfolders2.vdf"
 
 }
 
+##########################################
+# Create dotnet_bundle_extract directory #
+##########################################
+
+create_dotnet_cache_dir() {
+  local user_name=$(whoami)
+  local cache_dir="$application_directory/home/$user_name/.cache/dotnet_bundle_extract"
+
+  mkdir -p "$cache_dir"
+}
+
 ############################
 # Create Desktop Shortcut? #
 ############################
@@ -412,7 +425,7 @@ Name=Wabbajack
 Exec=env HOME="$HOME" WINEPREFIX=$wineprefix wine $application_directory/Wabbajack.exe
 Type=Application
 StartupNotify=true
-Path=~/Wabbajack
+Path=$application_directory
 Icon=$application_directory/Wabbajack.ico
 EOF
 		chmod +x "$desktop_file"
@@ -461,6 +474,9 @@ install_and_configure
 
 # Detect and Link Steam Library
 detect_link_steam_library
+
+# Create dotnet_bundle_extract directory
+create_dotnet_cache_dir
 
 # Create Desktop Shortcut?
 create_desktop_shortcut
