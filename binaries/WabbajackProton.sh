@@ -4,15 +4,16 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.01 - Omni, from 12/05/2024               #
+#              Alpha v0.02 - Omni, from 23/12/24                 #
 #                                                                #
 ##################################################################
 
 # - v0.01 - Initial script structure.
+# - v0.02 - Added functions for most features
 
 
 # Current Script Version (alpha)
-script_ver=0.01
+script_ver=0.02
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -224,10 +225,10 @@ webview_installer() {
 
   # Check if MicrosoftEdgeWebView2RuntimeInstallerX64.exe exists and skip download if so
   if ! [ -f "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" ]; then
-    cp /home/deck/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
-    #wget https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/6d376ab4-4a07-4679-8918-e0dc3c0735c8/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+    #cp /home/deck/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
+    wget https://archive.org/download/microsoft-edge-web-view-2-runtime-installer-v109.0.1518.78/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
   else
-    echo "MicrosoftEdgeWebView2RuntimeInstallerX64.exe already exists, skipping download."
+    echo "WebView Installer already exists, skipping download."
   fi
 
 }
@@ -244,7 +245,7 @@ configure_prefix() {
 
 	# Install WebView
 	echo -e "\e[33m\nInstalling Webview, this can take a while, please be patient..\e[0m" | tee -a $LOGFILE
-	run_protontricks --no-bwrap -c 'wine /home/deck/ProtonWabbajack/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install' $APPID >>$LOGFILE 2>&1
+	run_protontricks --no-bwrap -c "wine $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install" $APPID >>$LOGFILE 2>&1
 
 	# Change prefix version
 	echo -e "\e[33m\nChange the default prefix version to win7..\e[0m" | tee -a $LOGFILE
