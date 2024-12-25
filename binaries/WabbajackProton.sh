@@ -15,7 +15,6 @@
 # Current Script Version (alpha)
 script_ver=0.02
 
-set -x
 # Today's date
 date=$(date +"%d%m%y")
 
@@ -23,7 +22,7 @@ date=$(date +"%d%m%y")
 LOGFILE=$HOME/wabbajack-via-proton-sh.log
 echo "" >$HOME/wabbajack-via-proton-sh.log
 # pre-emptively clean up wine processes
-cleanup_wine-procs
+cleanup_wine_procs
 #set -x
 
 ######################
@@ -218,6 +217,40 @@ set_appid() {
 	echo "Wabbajack App ID:" $APPID >>$LOGFILE 2>&1
 }
 
+####################################
+# Detect compatdata Directory Path #
+####################################
+
+detect_compatdata_path() {
+
+	# Check common Steam library locations first
+	for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
+		if [[ -d "$path/$APPID" ]]; then
+			compat_data_path="$path/$APPID"
+			echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
+			break
+		fi
+	done
+
+	# If not found in common locations, use find command
+	if [[ -z "$compat_data_path" ]]; then
+		find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
+			if [[ -d "$compatdata_dir/$APPID" ]]; then
+				compat_data_path="$compatdata_dir/$appid"
+				echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
+				break
+			fi
+		done
+	fi
+
+	if [[ -z "$compat_data_path" ]]; then
+		echo "Directory named '$APPID' not found in any compatdata directories."
+		echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
+	else
+		echo "Found compatdata directory with '$APPID': $compat_data_path" >>$LOGFILE 2>&1
+	fi
+}
+
 ##############################
 # Download WebView Installer #
 ##############################
@@ -228,9 +261,7 @@ webview_installer() {
 
   # Check if MicrosoftEdgeWebView2RuntimeInstallerX64.exe exists and skip download if so
   if ! [ -f "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" ]; then
-    #cp /home/deck/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
-    #wget https://archive.org/download/microsoft-edge-web-view-2-runtime-installer-v109.0.1518.78/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
-    wget "https://cdn.discordapp.com/attachments/839082262552510484/1321468583464665088/MicrosoftEdgeWebView2RuntimeInstallerX64.exe?ex=676d5905&is=676c0785&hm=d58d4dc2b56b089a5e980d8eeeaf886861b3d316a08190817c4be55c1382207e&" -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+    wget https://pixeldrain.com/api/file/dvLfbRkg -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
   else
     echo "WebView Installer already exists, skipping download."
   fi
@@ -255,28 +286,31 @@ configure_prefix() {
 	echo -e "\e[33m\nChange the default prefix version to win7..\e[0m" | tee -a $LOGFILE
 	run_protontricks --no-bwrap $APPID win7 >>$LOGFILE 2>&1
 
-	# Add Wabbajack as an application
-	echo -e "\e[33m\nAdding Wabbajack Application to customise settings..\e[0m" | tee -a $LOGFILE
-	cat <<EOF >$application_directory/WJApplication.reg
-Windows Registry Editor Version 5.00
+  # Add Wabbajack as an application
+  echo -e "\e[33m\nAdding Wabbajack Application to customise settings..\e[0m" | tee -a $LOGFILE
 
-[HKEY_CURRENT_USER\Software\Wine\AppDefaults\Wabbajack.exe]
-"Version"="win10"
-EOF
+file="$compat_data_path/pfx/user.reg"
 
-	run_protontricks --no-bwrap -c "wine regedit $application_directory/WJApplication.reg" $APPID >/dev/null 2>&1
-	echo -e "\e[33m\nDone..\e[0m" >>$LOGFILE 2>&1
+# Check if the file exists
+if [[ -f "$file" ]]; then
+    # Append the specified lines to the file
+    echo -e "\n[Software\\\\\\Wine\\\\\\AppDefaults\\\\\\Wabbajack.exe] 1735131722\n#time=1db56cd308cb316\n\"Version\"=\"win10\"" >> "$file"
+    echo "Lines added successfully." >>$LOGFILE 2>&1
+else
+    echo "File not found: $file"
+fi
 
-	# Remove additional WebView Application registry entry
-	echo -e "\e[33m\nRemoving additional WebView Application enrry..\e[0m" | tee -a $LOGFILE
-cat <<EOF >$application_directory/DelWebViewApp.reg
-Windows Registry Editor Version 5.00
+# Remove additional WebView Application registry entry
+echo -e "\e[33m\nRemoving additional WebView Application enrry..\e[0m" | tee -a $LOGFIL
 
-[-HKEY_CURRENT_USER\Software\Wine\AppDefaults\msedgewebview2.exe]
-EOF
-
-    run_protontricks --no-bwrap -c "wine regedit $application_directory/DelWebViewApp.reg" $APPID >/dev/null 2>&1
-    echo -e "\e[33m\nDone..\e[0m">>$LOGFILE 2>&1
+# Check if the file exists
+if [[ -f "$file" ]]; then
+    # Use sed to delete the target line and the next 3 lines
+    sed -i '/\[Software\\\\Wine\\\\AppDefaults\\\\msedgewebview2.exe\] 1734947971/,+3 d' "$file"
+    echo "Lines deleted successfully." >>$LOGFILE 2>&1
+else
+    echo "File not found: $file"
+fi
 
 }
 
@@ -312,11 +346,11 @@ detect_link_steam_library() {
     # Find the first valid Steam library location
     for location in "${steam_library_locations[@]}"; do
         if is_steam_library "$location"; then
-            read -p "Found Steam install at '$location' Is this path correct for your Steam install? (y/n): " -r choice
-            if [[ "$choice" =~ ^[Yy]$ ]]; then
+            #read -p "Found Steam install at '$location' Is this path correct for your Steam install? (y/n): " -r choice
+            #if [[ "$choice" =~ ^[Yy]$ ]]; then
                 chosen_library="$location"
                 break
-            fi
+            #fi
         fi
     done
 
@@ -360,14 +394,8 @@ echo -e "Creating directory $steam_config_directory" >>$LOGFILE 2>&1
 mkdir -p "$steam_config_directory"
 
 # copy real libraryfolders.vdf to config directory
-echo -e "Copying libraryfolders.vdf to config directory" >>$LOGFILE 2>&1
-cp  "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/."
-
-# Edit this new libraryfolders.vdf file to convert linux path to Z:\ path with double backslashes
-
-#sed -E 's|("path"[[:space:]]+)"(/)|\1"Z:\\\\|; s|/|\\\\|g' "$steam_config_directory/libraryfolders.vdf" > "$steam_config_directory/libraryfolders2.vdf"
-#cp "$steam_config_directory/libraryfolders2.vdf" "$steam_config_directory/libraryfolders.vdf"
-#rm "$steam_config_directory/libraryfolders2.vdf"
+echo -e "Symlinking libraryfolders.vdf to config directory" >>$LOGFILE 2>&1
+ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf"  >>$LOGFILE 2>&1
 
 }
 
@@ -386,21 +414,17 @@ create_dotnet_cache_dir() {
 # Cleanup Wine Processes #
 ##########################
 
-cleanup_wine-procs() {
+cleanup_wine_procs() {
 
-while true; do
-  pids_delweb=$(ps aux | grep "DelWebViewApp" | grep -v grep | awk '{print $2}')
-  pids_wjapl=$(ps aux | grep "WJApplication" | grep -v grep | awk '{print $2}')
+# Find and kill processes containing "WabbajackProton.exe" or "renderer"
+processes=$(pgrep -f "WabbajackProton.exe|renderer=vulkan|win7|win10")
+if [[ -n "$processes" ]]; then
+    echo "$processes" | xargs kill -9
+    echo "Processes killed successfully." >>$LOGFILE 2>&1
+else
+    echo "No matching processes found."
+fi
 
-  if [ -z "$pids_delweb" ] && [ -z "$pids_wjapl" ]; then
-    echo "No processes found."
-  else
-    all_pids=$(echo "$pids_delweb" "$pids_wjapl" | tr ' ' '\n')
-    kill -9 $(echo "$all_pids")  >>$LOGFILE 2>&1
-  fi
-
-  sleep 5 # Check every 5 seconds
-done
 
 }
 
@@ -462,6 +486,12 @@ get_wabbajack_path
 
 set_appid
 
+####################################
+# Detect compatdata Directory Path #
+####################################
+
+detect_compatdata_path
+
 ##########################################
 # Download and install WebView Installer #
 ##########################################
@@ -490,13 +520,11 @@ create_dotnet_cache_dir
 # Cleanup Wine Processes #
 ##########################
 
-cleanup_wine-procs
+cleanup_wine_procs
 
 ########
 # Exit #
 ########
-
-cleanup_wine-procs
 
 echo -e "\e[32m\nSet up complete.\e[0m"
 
