@@ -230,7 +230,7 @@ webview_installer() {
   if ! [ -f "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" ]; then
     #cp /home/deck/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
     #wget https://archive.org/download/microsoft-edge-web-view-2-runtime-installer-v109.0.1518.78/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
-    wget https://pixeldrain.com/api/file/dvLfbRkg -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+    wget "https://cdn.discordapp.com/attachments/839082262552510484/1321468583464665088/MicrosoftEdgeWebView2RuntimeInstallerX64.exe?ex=676d5905&is=676c0785&hm=d58d4dc2b56b089a5e980d8eeeaf886861b3d316a08190817c4be55c1382207e&" -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
   else
     echo "WebView Installer already exists, skipping download."
   fi
