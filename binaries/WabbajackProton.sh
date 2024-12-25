@@ -15,12 +15,15 @@
 # Current Script Version (alpha)
 script_ver=0.02
 
+set -x
 # Today's date
 date=$(date +"%d%m%y")
 
 # Set up and blank logs
 LOGFILE=$HOME/wabbajack-via-proton-sh.log
 echo "" >$HOME/wabbajack-via-proton-sh.log
+# pre-emptively clean up wine processes
+cleanup_wine-procs
 #set -x
 
 ######################
@@ -84,14 +87,14 @@ detect_steamdeck() {
 
 detect_protontricks() {
 
-	echo -ne "\nDetecting if protontricks is installed..." | tee -a $LOGFILE
+	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
 	# Check if "which protontricks" outputs "no protontricks"
 	if ! which protontricks 2>/dev/null; then
 		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
 		if [[ $(flatpak list | grep -i protontricks) ]]; then
 			# Protontricks is already installed or available
-			echo -e " Flatpak protontricks already installed." | tee -a $LOGFILE
+			echo -e " Flatpak protontricks already installed." >>$LOGFILE 2>&1
 			which_protontricks=flatpak
 		else
 			echo -e "\e[31m \n** Protontricks not found. Do you wish to install it? (y/n): ** \e[0m"
@@ -226,7 +229,8 @@ webview_installer() {
   # Check if MicrosoftEdgeWebView2RuntimeInstallerX64.exe exists and skip download if so
   if ! [ -f "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" ]; then
     #cp /home/deck/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
-    wget https://archive.org/download/microsoft-edge-web-view-2-runtime-installer-v109.0.1518.78/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+    #wget https://archive.org/download/microsoft-edge-web-view-2-runtime-installer-v109.0.1518.78/MicrosoftEdgeWebView2RuntimeInstallerX64.exe -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+    wget https://pixeldrain.com/api/file/dvLfbRkg -O "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
   else
     echo "WebView Installer already exists, skipping download."
   fi
@@ -260,7 +264,8 @@ Windows Registry Editor Version 5.00
 "Version"="win10"
 EOF
 
-	run_protontricks --no-bwrap -c "wine regedit $application_directory/WJApplication.reg" $APPID >>$LOGFILE 2>&1
+	run_protontricks --no-bwrap -c "wine regedit $application_directory/WJApplication.reg" $APPID >/dev/null 2>&1
+	echo -e "\e[33m\nDone..\e[0m" >>$LOGFILE 2>&1
 
 	# Remove additional WebView Application registry entry
 	echo -e "\e[33m\nRemoving additional WebView Application enrry..\e[0m" | tee -a $LOGFILE
@@ -270,7 +275,8 @@ Windows Registry Editor Version 5.00
 [-HKEY_CURRENT_USER\Software\Wine\AppDefaults\msedgewebview2.exe]
 EOF
 
-    run_protontricks --no-bwrap -c "wine regedit $application_directory/DelWebViewApp.reg" $APPID >>$LOGFILE 2>&1
+    run_protontricks --no-bwrap -c "wine regedit $application_directory/DelWebViewApp.reg" $APPID >/dev/null 2>&1
+    echo -e "\e[33m\nDone..\e[0m">>$LOGFILE 2>&1
 
 }
 
@@ -359,9 +365,9 @@ cp  "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/."
 
 # Edit this new libraryfolders.vdf file to convert linux path to Z:\ path with double backslashes
 
-sed -E 's|("path"[[:space:]]+)"(/)|\1"Z:\\\\|; s|/|\\\\|g' "$steam_config_directory/libraryfolders.vdf" > "$steam_config_directory/libraryfolders2.vdf"
-cp "$steam_config_directory/libraryfolders2.vdf" "$steam_config_directory/libraryfolders.vdf"
-rm "$steam_config_directory/libraryfolders2.vdf"
+#sed -E 's|("path"[[:space:]]+)"(/)|\1"Z:\\\\|; s|/|\\\\|g' "$steam_config_directory/libraryfolders.vdf" > "$steam_config_directory/libraryfolders2.vdf"
+#cp "$steam_config_directory/libraryfolders2.vdf" "$steam_config_directory/libraryfolders.vdf"
+#rm "$steam_config_directory/libraryfolders2.vdf"
 
 }
 
@@ -376,6 +382,28 @@ create_dotnet_cache_dir() {
   mkdir -p "$cache_dir"
 }
 
+##########################
+# Cleanup Wine Processes #
+##########################
+
+cleanup_wine-procs() {
+
+while true; do
+  pids_delweb=$(ps aux | grep "DelWebViewApp" | grep -v grep | awk '{print $2}')
+  pids_wjapl=$(ps aux | grep "WJApplication" | grep -v grep | awk '{print $2}')
+
+  if [ -z "$pids_delweb" ] && [ -z "$pids_wjapl" ]; then
+    echo "No processes found."
+  else
+    all_pids=$(echo "$pids_delweb" "$pids_wjapl" | tr ' ' '\n')
+    kill -9 $(echo "$all_pids")  >>$LOGFILE 2>&1
+  fi
+
+  sleep 5 # Check every 5 seconds
+done
+
+}
+
 #####################
 # Exit more cleanly #
 #####################
@@ -383,16 +411,7 @@ create_dotnet_cache_dir() {
 cleaner_exit() {
 
 	# Clean up wine and winetricks processes
-	pkill -9 winetricks
-
 	wineserver -k
-
-	# Merge Log files
-	echo "Merging Log Files.." >>$LOGFILE 2>&1
-	cat $LOGFILE2 | grep -v -e "[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]" >>$LOGFILE
-	echo "Removing Logfile2.." >>$LOGFILE 2>&1
-	rm $LOGFILE2
-
 	exit 1
 
 }
@@ -467,9 +486,17 @@ detect_link_steam_library
 
 create_dotnet_cache_dir
 
+##########################
+# Cleanup Wine Processes #
+##########################
+
+cleanup_wine-procs
+
 ########
 # Exit #
 ########
+
+cleanup_wine-procs
 
 echo -e "\e[32m\nSet up complete.\e[0m"
 
