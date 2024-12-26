@@ -4,15 +4,18 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.02 - Omni, from 23/12/24                 #
+#              Alpha v0.05 - Omni, from 26/12/24                 #
 #                                                                #
 ##################################################################
 
 # - v0.01 - Initial script structure.
 # - v0.02 - Added functions for most features
+# - v0.03 - Completed initial functions
+# - v0.04 - Added handling of WebP Installer
+# - v0.05 - Switched out installing WebP in favour of dll + .reg files
 
 # Current Script Version (alpha)
-script_ver=0.02
+script_ver=0.05
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -319,7 +322,6 @@ webview_installer() {
 	else
 		echo "WebView Installer already exists, skipping download."
 	fi
-
 }
 
 ####################
@@ -336,35 +338,21 @@ configure_prefix() {
 	echo -e "\e[33m\nInstalling Webview, this can take a while, please be patient..\e[0m" | tee -a $LOGFILE
 	run_protontricks --no-bwrap -c "wine $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install" $APPID >>$LOGFILE 2>&1
 
+	# Copy in place WebP .dll
+	echo -e "\e[33m\nConfiguring WebP..\e[0m" | tee -a $LOGFILE
+	mkdir -p "$compat_data_path/pfx/drive_c/Program Files (x86)/WebP Codec" >>$LOGFILE 2>&1
+	mkdir -p "$compat_data_path/pfx/drive_c/Program Files/WebP Codec" >>$LOGFILE 2>&1
+	wget https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/WebpWICCodec.dll-32 -O "$compat_data_path/pfx/drive_c/Program Files (x86)/WebP Codec/WebpWICCodec.dll" >>$LOGFILE 2>&1
+	wget https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/WebpWICCodec.dll-64 -O "$compat_data_path/pfx/drive_c/Program Files/WebP Codec/WebpWICCodec.dll" >>$LOGFILE 2>&1
+
 	# Change prefix version
 	echo -e "\e[33m\nChange the default prefix version to win7..\e[0m" | tee -a $LOGFILE
 	run_protontricks --no-bwrap $APPID win7 >>$LOGFILE 2>&1
 
-	# Add Wabbajack as an application
-	echo -e "\e[33m\nAdding Wabbajack Application to customise settings..\e[0m" | tee -a $LOGFILE
-
-	file="$compat_data_path/pfx/user.reg"
-
-	# Check if the file exists
-	if [[ -f "$file" ]]; then
-		# Append the specified lines to the file
-		echo -e "\n[Software\\\\\\Wine\\\\\\AppDefaults\\\\\\Wabbajack.exe] 1735131722\n#time=1db56cd308cb316\n\"Version\"=\"win10\"" >>"$file"
-		echo "Lines added successfully." >>$LOGFILE 2>&1
-	else
-		echo "File not found: $file"
-	fi
-
-	# Remove additional WebView Application registry entry
-	echo -e "\e[33m\nRemoving additional WebView Application enrry..\e[0m" | tee -a $LOGFIL
-
-	# Check if the file exists
-	if [[ -f "$file" ]]; then
-		# Use sed to delete the target line and the next 3 lines
-		sed -i '/\[Software\\\\Wine\\\\AppDefaults\\\\msedgewebview2.exe\] 1734947971/,+3 d' "$file"
-		echo "Lines deleted successfully." >>$LOGFILE 2>&1
-	else
-		echo "File not found: $file"
-	fi
+	# Copy in system.reg and user.reg
+	echo -e "\e[33m\nConfiguring Registry..\e[0m" | tee -a $LOGFILE
+	wget https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/system.reg -O "$compat_data_path/pfx/system.reg" >>$LOGFILE 2>&1
+	wget https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/user.reg -O "$compat_data_path/pfx/user.reg" >>$LOGFILE 2>&1
 
 }
 
@@ -444,25 +432,13 @@ configure_steam_libraries() {
 	# Make directories
 
 	steam_config_directory="$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/config"
-	echo -e "Creating directory $steam_config_directory"
+	echo -e "Creating directory $steam_config_directory" >>$LOGFILE 2>&1
 	mkdir -p "$steam_config_directory"
 
-#	if [[ "$steamdeck" != "1" ]]; then
-		## copy real libraryfolders.vdf to config directory
-		#echo -e "Copying libraryfolders.vdf to config directory" >>$LOGFILE 2>&1
-		#cp "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/."
-#
-		## Edit this new libraryfolders.vdf file to convert linux path to Z:\ path with double backslashes
-#
-		#sed -E 's|("path"[[:space:]]+)"(/)|\1"Z:\\\\|; s|/|\\\\|g' "$steam_config_directory/libraryfolders.vdf" >"$steam_config_directory/libraryfolders2.vdf"
-		#cp "$steam_config_directory/libraryfolders2.vdf" "$steam_config_directory/libraryfolders.vdf"
-		#rm "$steam_config_directory/libraryfolders2.vdf"
-	#else
 		# copy real libraryfolders.vdf to config directory
-		echo -e "Symlinking libraryfolders.vdf to config directory"
-		ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf"
-		mv "$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf"  "$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf.bak"
-	#fi
+		echo -e "Symlinking libraryfolders.vdf to config directory" >>$LOGFILE 2>&1
+		ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" >>$LOGFILE 2>&1
+		mv "$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf"  "$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf.bak" >>$LOGFILE 2>&1
 
 }
 
@@ -484,12 +460,12 @@ create_dotnet_cache_dir() {
 cleanup_wine_procs() {
 
 	# Find and kill processes containing "WabbajackProton.exe" or "renderer"
-	processes=$(pgrep -f "WabbajackProton.exe|renderer=vulkan|win7|win10|ShowDotFiles")
+	processes=$(pgrep -f "WabbajackProton.exe|renderer=vulkan|win7|win10|ShowDotFiles|MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe")
 	if [[ -n "$processes" ]]; then
 		echo "$processes" | xargs kill -9
 		echo "Processes killed successfully." >>$LOGFILE 2>&1
 	else
-		echo "No matching processes found."
+		echo "No matching processes found." >>$LOGFILE 2>&1
 	fi
 
 }
