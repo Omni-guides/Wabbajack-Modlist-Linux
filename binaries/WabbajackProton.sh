@@ -4,7 +4,7 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.05 - Omni, from 26/12/24                 #
+#              Alpha v0.06 - Omni, from 26/12/24                 #
 #                                                                #
 ##################################################################
 
@@ -13,9 +13,10 @@
 # - v0.03 - Completed initial functions
 # - v0.04 - Added handling of WebP Installer
 # - v0.05 - Switched out installing WebP in favour of dll + .reg files
+# - v0.06 - Tidied up some ordering of commands, plus output style differences.
 
 # Current Script Version (alpha)
-script_ver=0.05
+script_ver=0.06
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -23,9 +24,6 @@ date=$(date +"%d%m%y")
 # Set up and blank logs
 LOGFILE=$HOME/wabbajack-via-proton-sh.log
 echo "" >$HOME/wabbajack-via-proton-sh.log
-# pre-emptively clean up wine processes
-cleanup_wine_procs
-
 #set -x
 
 ######################
@@ -500,6 +498,12 @@ echo -e "Script Version $script_ver" >>$LOGFILE 2>&1
 ######################
 
 echo -e "Script started at: $(date +'%Y-%m-%d %H:%M:%S')" >>$LOGFILE 2>&1
+
+#########################################
+# pre-emptively clean up wine processes #
+#########################################
+
+cleanup_wine_procs
 
 #############################
 # Detect if running on deck #
