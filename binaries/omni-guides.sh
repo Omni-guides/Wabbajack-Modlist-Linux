@@ -1376,7 +1376,7 @@ detect_protontricks
 # Detect Protontricks Version #
 ###############################
 
-protontricks_version
+#protontricks_version
 
 ##############################################################
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
