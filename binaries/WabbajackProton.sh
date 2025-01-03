@@ -521,7 +521,7 @@ detect_protontricks
 # Detect Protontricks Version #
 ###############################
 
-protontricks_version
+#protontricks_version
 
 ###########################
 # Get Wabbajack Directory #
