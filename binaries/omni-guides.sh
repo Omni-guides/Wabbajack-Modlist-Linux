@@ -399,21 +399,23 @@ detect_modlist_dir_path() {
 
 	# Loop through locations and check for directory, ignoring case
 	for base_location in "${locations[@]}"; do
-	# Use find to locate the directory case-insensitively
-	found_location=$(find "$base_location" -maxdepth 1 -type d -iname "$expected" -print -quit)
+		if [ -e "$base_location" ]; then
+			# Use find to locate the directory case-insensitively
+			found_location=$(find "$base_location" -maxdepth 1 -type d -iname "$expected" -print -quit)
 
-	if [[ -n "$found_location" ]]; then
-		echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
-		modlist_dir=$found_location
-		modlist_ini=$modlist_dir/ModOrganizer.ini
-		# Check if ModOrganizer.ini actually exists here
-		if [[ -f "$modlist_ini" ]]; then
-		echo -e "\nModOrganizer.ini found in expected path: $modlist_ini, proceeding.." >>$LOGFILE 2>&1
-		return 0
-		else
-		echo -e "\nModOrganizer.ini not found! Proceed to ask for path.." >>$LOGFILE 2>&1
+			if [[ -n "$found_location" ]]; then
+				echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
+				modlist_dir=$found_location
+				modlist_ini=$modlist_dir/ModOrganizer.ini
+				# Check if ModOrganizer.ini actually exists here
+				if [[ -f "$modlist_ini" ]]; then
+				echo -e "\nModOrganizer.ini found in expected path: $modlist_ini, proceeding.." >>$LOGFILE 2>&1
+				return 0
+				else
+				echo -e "\nModOrganizer.ini not found! Proceed to ask for path.." >>$LOGFILE 2>&1
+				fi
+			fi
 		fi
-	fi
 	done
 
 	# Not found in any location, loop for valid user input
