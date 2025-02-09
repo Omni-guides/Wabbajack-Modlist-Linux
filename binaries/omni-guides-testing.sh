@@ -637,7 +637,7 @@ install_wine_components() {
 
 	# Get the output of the protontricks command
 	output="$(run_protontricks --no-bwrap $APPID list-installed)"
-	echo "Components Found: $output"
+	echo "Components Found: $output" >>$LOGFILE 2>&1
 
 	# Check if each component is present in the output
 	all_found=true
@@ -655,6 +655,8 @@ install_wine_components() {
 		echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
 		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 		echo "Done." | tee -a $LOGFILE
+		second_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+	echo "Components Found: $second_output" >>$LOGFILE 2>&1
 	fi
 
 }
@@ -1266,7 +1268,9 @@ modlist_specific_steps() {
 			echo -e "\nWine Component install completed successfully." | tee -a $LOGFILE
 		fi
 
-		# Set Resolution in the odd place Wildlander uses:
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 
 	fi
 
@@ -1287,6 +1291,10 @@ modlist_specific_steps() {
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
 	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
@@ -1299,6 +1307,10 @@ modlist_specific_steps() {
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
 	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lsiv"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"ls4"* ]]; then
@@ -1311,6 +1323,10 @@ modlist_specific_steps() {
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
 		if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lostlegacy"* ]]; then
@@ -1323,6 +1339,10 @@ modlist_specific_steps() {
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 }
 
