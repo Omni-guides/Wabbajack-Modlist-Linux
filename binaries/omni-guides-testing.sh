@@ -558,7 +558,7 @@ set_protontricks_perms() {
 
 enable_dotfiles() {
 
-	echo $APPID >>$LOGFILE 2>&1
+	echo "APPID=$APPID" >>$LOGFILE 2>&1
 	echo -ne "\nEnabling visibility of (.)dot files... " | tee -a $LOGFILE
 
 	# Check if already settings
@@ -594,8 +594,7 @@ install_wine_components() {
 	echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 	spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-	run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet40 dotnet6 dotnet7 >/dev/null 2>&1 &
-	#run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
+	run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 
 	pid=$! # Store the PID of the background process
 
@@ -648,7 +647,7 @@ install_wine_components() {
 		echo "All required components found." >>$LOGFILE 2>&1
 	else
 		echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
-		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
+		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 		echo "Done." | tee -a $LOGFILE
 	fi
 
@@ -1306,6 +1305,18 @@ modlist_specific_steps() {
 		# Re-set win10
 		set_win10_prefix
 	fi
+
+		if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lostlegacy"* ]]; then
+		echo ""
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		# Install dotnet 4.0
+		echo -ne "\nInstalling .NET 4..."
+		run_protontricks $APPID -q dotnet48 >/dev/null 2>&1
+		echo -e " Done."
+
+		# Re-set win10
+		set_win10_prefix
+	fi
 }
 
 ######################################
@@ -1360,9 +1371,22 @@ create_dxvk_file() {
 # Create protontricks alias (Deck only) #
 #########################################
 
-#protontricks_alias() {
+protontricks_alias() {
 
-#}
+  if [[ "$steamdeck" == 1 ]]; then
+    alias_exists=$(grep -q "^alias protontricks" ~/.bashrc)
+
+    if [[ ! $alias_exists ]]; then
+      echo "Adding protontricks alias to ~/.bashrc"
+      echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
+      # Optionally source the file to make the change effective immediately
+      source ~/.bashrc
+      echo "protontricks alias added. Remember to open a new terminal or source ~/.bashrc"
+    else
+      echo "protontricks alias already exists in ~/.bashrc"
+    fi
+  fi
+}
 
 #####################
 # Exit more cleanly #
@@ -1414,7 +1438,14 @@ detect_protontricks
 # Detect Protontricks Version #
 ###############################
 
-#protontricks_version
+protontricks_version
+
+##########################################
+# Create protontricks alias in ~/.bashrc #
+##########################################
+
+protontricks_alias
+
 
 ##############################################################
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
@@ -1532,7 +1563,11 @@ if [[ $response =~ ^[Yy]$ ]]; then
 	# MO2 Version Check  #
 	######################
 
-	mo2_version_check
+	#mo2_version_check
+
+	detect_mo2_version
+
+	detect_proton_version
 
 	###############################
 	# Confirmation before running #
