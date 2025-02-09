@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.55 - Omni 09/02/2025                         #
+#                       Beta v0.56 - Omni 09/02/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -80,9 +80,10 @@
 # - v0.53 - First pass at optimizing the time taken to complete the tasks. (bwrap change for protontricks commands)
 # - v0.54 - Add creation of protontricks alias to ease user troubleshooting post-install (steam deck only)
 # - v0.55 - Removed error resulting from MO2 version check when APPID is not passed correctly - Proton9/MO2 2.5 are old enough now that the check is redundant.
+# - v0.56 - Added a check to catch a rare scenario where $APPID is not set correctly - the script will now exit rather than continuing and failing in odd ways.
 
 # Current Script Version (beta)
-script_ver=0.55
+script_ver=0.56
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -532,12 +533,12 @@ set_protontricks_perms() {
 	if [ "$which_protontricks" = "flatpak" ]; then
 		echo "Setting Protontricks Permissions" >>$LOGFILE 2>&1
 
-		echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
+		echo -e "\e[31m \nSetting Protontricks permissions... \e[0m" | tee -a $LOGFILE
 		#Catch User flatpak install
 		flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
 
 		if [[ $steamdeck = 1 ]]; then
-			echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo password)..\e[0m" | tee -a $LOGFILE
+			echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately..\e[0m" | tee -a $LOGFILE
 			# Set protontricks SDCard permissions early to suppress warning
 			sdcard_path=$(df -h | grep "/run/media" | awk {'print $NF'})
 			echo $sdcard_path >>$LOGFILE 2>&1
@@ -556,6 +557,11 @@ set_protontricks_perms() {
 #####################################
 
 enable_dotfiles() {
+
+	if [ -z "$APPID" ]; then
+		echo "Error: APPID cannot be empty, exiting..."
+		exit 1
+	fi
 
 	echo "APPID=$APPID" >>$LOGFILE 2>&1
 	echo -ne "\nEnabling visibility of (.)dot files... " | tee -a $LOGFILE
@@ -631,6 +637,7 @@ install_wine_components() {
 
 	# Get the output of the protontricks command
 	output="$(run_protontricks --no-bwrap $APPID list-installed)"
+	echo "Components Found: $output"
 
 	# Check if each component is present in the output
 	all_found=true
@@ -767,6 +774,7 @@ confirmation_before_running() {
 	echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "Proton Version: $proton_ver .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
+	echo -e "App ID: $APPID"
 
 }
 
