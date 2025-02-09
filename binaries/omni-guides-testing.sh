@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.54 - Omni 12/05/2024                         #
+#                       Beta v0.55 - Omni 09/02/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -79,9 +79,10 @@
 # - v0.52 - Added download of seguisym.ttf font file to support Bethini
 # - v0.53 - First pass at optimizing the time taken to complete the tasks. (bwrap change for protontricks commands)
 # - v0.54 - Add creation of protontricks alias to ease user troubleshooting post-install (steam deck only)
+# - v0.55 - Removed error resulting from MO2 version check when APPID is not passed correctly - Proton9/MO2 2.5 are old enough now that the check is redundant.
 
 # Current Script Version (beta)
-script_ver=0.54
+script_ver=0.55
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -532,8 +533,6 @@ set_protontricks_perms() {
 		echo "Setting Protontricks Permissions" >>$LOGFILE 2>&1
 
 		echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
-		#Catch System flatpak install
-		#sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_dir"
 		#Catch User flatpak install
 		flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
 
@@ -542,8 +541,8 @@ set_protontricks_perms() {
 			# Set protontricks SDCard permissions early to suppress warning
 			sdcard_path=$(df -h | grep "/run/media" | awk {'print $NF'})
 			echo $sdcard_path >>$LOGFILE 2>&1
-			#sudo flatpak override --filesystem=$sdcard_path com.github.Matoking.protontricks
 			flatpak override --user --filesystem=$sdcard_path com.github.Matoking.protontricks
+			flatpak override --user --filesystem=/run/media/mmcblk0p1 com.github.Matoking.protontricks
 			echo -e " Done." | tee -a $LOGFILE
 		fi
 	else
