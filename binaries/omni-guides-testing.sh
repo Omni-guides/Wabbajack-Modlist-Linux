@@ -776,7 +776,7 @@ confirmation_before_running() {
 	echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "Proton Version: $proton_ver .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
-	echo -e "App ID: $APPID"
+	echo -e "App ID: $APPID" | tee -a $LOGFILE
 
 }
 
@@ -1343,7 +1343,7 @@ modlist_specific_steps() {
 		# Output list of components to check
 		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
-	fi
+		fi
 }
 
 ######################################
