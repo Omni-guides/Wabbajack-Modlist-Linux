@@ -4,7 +4,7 @@
 #                                                            #
 # Attempt to automate installing Wabbajack on Linux via Wine #
 #                                                            #
-#            Alpha v0.06 - Omni, from 12/05/2024             #
+#            Alpha v0.13 - Omni, from 08/02/25               #
 #                                                            #
 ##############################################################
 
@@ -26,9 +26,10 @@
 # - v0.10 - Completely replace Steam Library symlink with modified copy of libraryfolders.vdf - this should handle all Steam Libraries, and not just the default library
 # - v0.11 - create a dotnet_bundle_extract directory which seems required on some distros (harmless on others)
 # - v0.12 - Fixed incorrect path in Desktop Shortcut creation (thanks valkari)
+# - v0.13 - Modified Wine Version detection so that Wine 10 as well as future versions should be handled correctly.
 
 # Current Script Version (alpha)
-script_ver=0.12
+script_ver=0.13
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -80,29 +81,33 @@ read -n 1 -s -r -p ""
 ######################################
 
 detect_wine_version() {
+    # Which version of wine is installed?
+    wine_binary=$(which wine)
+    echo -e "Wine Binary Path: $wine_binary" >>$LOGFILE 2>&1
 
-	# Which version of wine is installed?
-	wine_binary=$(which wine)
-	echo -e "Wine Binary Path: $wine_binary" >>$LOGFILE 2>&1
-	wine_version=$(wine --version | grep -o '[0-9]\.[0-9]*')
+    # Extract the Wine version numbers
+    wine_version=$(wine --version | grep -oE '[0-9]+\.[0-9]+')
+    echo -e "Wine Version: $wine_version" >>$LOGFILE 2>&1
 
-	echo -e "Wine Version: $wine_version" >>$LOGFILE 2>&1
+    # Split major and minor version
+    major_version=$(echo "$wine_version" | cut -d. -f1)
+    minor_version=$(echo "$wine_version" | cut -d. -f2)
 
-	if [[ "$wine_version" < "9.15" ]]; then
-		echo -e "Wabbajack requires Wine newer than 9.15. Please arrange this on your system and rerun this script."
-		exit 0
-	else
-		echo -e "Wine version $wine_version, should be fine" >>$LOGFILE 2>&1
-	fi
+    # Convert to integers for proper numerical comparison
+    if (( major_version < 9 )) || (( major_version == 9 && minor_version < 15 )); then
+        echo -e "Wabbajack requires Wine newer than 9.15. Please arrange this on your system and rerun this script."
+        exit 0
+    else
+        echo -e "Wine version $wine_version, should be fine" >>$LOGFILE 2>&1
+    fi
 
-	# Is winetricks installed?
-	if [[ $(which winetricks) ]]; then
-		echo -e "Winetricks found at: $(which winetricks)" >>$LOGFILE 2>&1
-	else
-		echo -e "Winetricks not detected. Please arrange this on your system and rerun this script."
-		exit 0
-	fi
-
+    # Is winetricks installed?
+    if [[ $(which winetricks) ]]; then
+        echo -e "Winetricks found at: $(which winetricks)" >>$LOGFILE 2>&1
+    else
+        echo -e "Winetricks not detected. Please arrange this on your system and rerun this script."
+        exit 0
+    fi
 }
 
 ###########################
