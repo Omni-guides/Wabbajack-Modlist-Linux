@@ -84,11 +84,11 @@ detect_wine_version() {
 	# Which version of wine is installed?
 	wine_binary=$(which wine)
 	echo -e "Wine Binary Path: $wine_binary" >>$LOGFILE 2>&1
-	wine_version=$(wine --version | grep -o '[0-9]\.[0-9]*')
+	wine_version=$(wine --version | grep -oE '[0-9]{1,2}\.[0-9]*')
 
 	echo -e "Wine Version: $wine_version" >>$LOGFILE 2>&1
 
-	if [[ "$wine_version" < "9.15" ]]; then
+    if [ ! "$(printf '%s\n' "9.15" "$wine_version" | sort -V | head -n1)" = "9.15" ]; then
 		echo -e "Wabbajack requires Wine newer than 9.15. Please arrange this on your system and rerun this script."
 		exit 0
 	else
