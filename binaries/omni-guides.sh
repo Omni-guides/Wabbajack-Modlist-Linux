@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Alpha v0.44 - Omni 12/05/2024                        #
+#                       Beta v0.57 - Omni 20/02/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -74,9 +74,17 @@
 # - v0.48 - Better handling of ModOrganizer.ini location for both autodetection and manual input of modlist directory.
 # - v0.49 - Tidied up logging. Not great, but better than it was.
 # - v0.50 - Re-enabled the protontricks workaround after discovering that SteamOS doesn't yet have access to v.1.22
+# - v0.51 - Switch to Beta as this should now be feature complete - barring modlist-specific additions in future.
+# - v0.51 - Added some cleanup of wine and winetricks processes on script exit in case some rogue processes are left over.
+# - v0.52 - Added download of seguisym.ttf font file to support Bethini
+# - v0.53 - First pass at optimizing the time taken to complete the tasks. (bwrap change for protontricks commands)
+# - v0.54 - Add creation of protontricks alias to ease user troubleshooting post-install
+# - v0.55 - Removed check for MO2 2.5 preventing an incorrect errorfrom MO2 version check when APPID is not passed correctly - Proton9/MO2 2.5 are old enough now that the check is redundant.
+# - v0.56 - Added a check to catch a rare scenario where $APPID is not set correctly - the script will now exit rather than continuing and failing in odd ways. More work may be needed on this to find out why $APPID is empty on rare occasions
+# - v0.57 - Added handling for UUID-based SDCard/additional directory paths
 
-# Current Script Version (alpha)
-script_ver=0.50
+# Current Script Version (beta)
+script_ver=0.57
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -86,12 +94,12 @@ echo "" >$HOME/omni-guides-sh2.log
 exec &> >(tee $LOGFILE2) 2>&1
 #set -x
 #Protontricks Bug
-export PROTON_VERSION="Proton Experimental"
+#export PROTON_VERSION="Proton Experimental"
 
 # Fancy banner thing
 
 if [ -f "/usr/bin/toilet" ]; then
-	toilet -t -f smmono12 -F border:metal "Omni-Guides (alpha)"
+	toilet -t -f smmono12 -F border:metal "Omni-Guides (beta)"
 else
 	echo "=================================================================================================="
 	echo "|  #######  ##     ## ##    ## ####          ######   ##     ## #### ########   ########  ###### |"
@@ -101,19 +109,19 @@ else
 	echo "| ##     ## ##     ## ##  ####  ##          ##    ##  ##     ##  ##  ##     ## ##             ## |"
 	echo "| ##     ## ##     ## ##   ###  ##          ##    ##  ##     ##  ##  ##     ## ##       ##    ## |"
 	echo "|  #######  ##     ## ##    ## ####          ######    #######  #### ########   ########  ###### |"
-	echo "============================================================================~~--(alpha)--~~======="
+	echo "============================================================================~~--(beta)--~~========"
 fi
 
 #########
 # Intro #
 #########
 echo ""
-echo -e "This is an experimental script - an attempt to automate as much as possible of the process of getting"
-echo -e "Wabbajack Modlists running on Linux/Steam Deck. Please use at your own risk and accept that in the"
-echo -e "worst case (though very unlikely), you may have to reinstall the vanilla Skyrim or Fallout game, or"
-echo -e "re-copy the Modlist Install Directory from Windows. You can report back to me via GitHub or the Official"
-echo -e "Wabbajack Discord if you discover an issue with this automation script. Any other feedback, positive"
-echo -e "or negative, is also most welcome."
+echo -e "This script aims to automate as much as possible of the steps required to get Wabbajack Modlists running"
+echo -e "on Linux/Steam Deck. Please use at your own risk and accept that in the worst case (though very unlikely),"
+echo -e "you may have to reinstall the vanilla Skyrim or Fallout game, re-run Wabbajack, or re-copy the Modlist "
+echo -e "Install Directory from your Wabbajack system. You can report back to me via GitHub or the Official Wabbajack"
+echo -e "Discord if you discover an issue with this automation script. Any other feedback, positive or negative,"
+echo -e "is also most welcome."
 
 echo -e "\nPress any key to continue..."
 read -n 1 -s -r -p ""
@@ -121,6 +129,25 @@ read -n 1 -s -r -p ""
 #############
 # Functions #
 #############
+
+##########################
+# Cleanup Wine Processes #
+##########################
+
+cleanup_wine_procs() {
+
+	# Find and kill processes containing "WabbajackProton.exe" or "renderer"
+	processes=$(pgrep -f "win7|win10|ShowDotFiles")
+	if [[ -n "$processes" ]]; then
+		echo "$processes" | xargs kill -9
+		echo "Processes killed successfully." >>$LOGFILE 2>&1
+	else
+		echo "No matching processes found." >>$LOGFILE 2>&1
+	fi
+
+	pkill -9 winetricks
+
+}
 
 #############
 # Set APPID #
@@ -154,45 +181,46 @@ detect_steamdeck() {
 ###########################################
 
 detect_protontricks() {
+	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
-	echo -ne "\nDetecting if protontricks is installed..." | tee -a $LOGFILE
+	# Check if "which protontricks" outputs a valid path
+	if command -v protontricks >/dev/null 2>&1; then
+		protontricks_path=$(command -v protontricks)
 
-	# Check if "which protontricks" outputs "no protontricks"
-	if ! which protontricks 2>/dev/null; then
-		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
-		if [[ $(flatpak list | grep -i protontricks) ]]; then
-			# Protontricks is already installed or available
-			echo -e " Flatpak protontricks already installed." | tee -a $LOGFILE
+		# Check if the detected binary is actually a Flatpak wrapper
+		if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
+			echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
 			which_protontricks=flatpak
 		else
-			echo -e "\e[31m \n** Protontricks not found. Do you wish to install it? (y/n): ** \e[0m"
+			echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
+			which_protontricks=native
+			return 0 # Exit function since we confirmed native protontricks
+		fi
+	else
+		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
+		if flatpak list | grep -iq protontricks; then
+			echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
+			which_protontricks=flatpak
+		else
+			echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
 			read -p " " answer
 			if [[ $answer =~ ^[Yy]$ ]]; then
 				if [[ $steamdeck -eq 1 ]]; then
-					# Install Protontricks specifically for Deck
 					flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
 					which_protontricks=flatpak
 				else
 					read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
 					if [[ $choice =~ 1 ]]; then
-						# Install protontricks
 						flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
 						which_protontricks=flatpak
 					else
-						# Print message and exit
-						echo -e "\nSorry, there are way too many distro's to be able to automate this!" | tee -a $LOGFILE
-						echo -e "\nPlease check how to install protontricks using your OS package system (yum, dnf, apt, pacman etc)" | tee -a $LOGFILE
+						echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
+						echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
 					fi
 				fi
 			fi
 		fi
-	else
-		echo -e " Native Protontricks already found at $(which protontricks)." | tee -a $LOGFILE
-		which_protontricks=native
-		# Exit function if protontricks is found
-		return 0
 	fi
-
 }
 
 #############################
@@ -217,19 +245,19 @@ run_protontricks() {
 
 protontricks_version() {
 
-    # Get the current version of protontricks
-    protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
+	# Get the current version of protontricks
+	protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
 
-    # Remove any non-numeric characters from the version number
-    protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
+	# Remove any non-numeric characters from the version number
+	protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
 
-    echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >>$LOGFILE 2>&1
+	echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >>$LOGFILE 2>&1
 
-    # Compare version strings directly using simple string comparison
-    if [[ "$protontricks_version_cleaned" < "1.11" ]]; then
-        echo "Your protontricks version is too old! Update to version 1.11 or newer and rerun this script."  >>$LOGFILE 2>&1
-        cleaner_exit
-    fi
+	# Compare version strings directly using simple string comparison
+	if [[ "$protontricks_version_cleaned" < "1.11" ]]; then
+		echo "Your protontricks version is too old! Update to version 1.12 or newer and rerun this script. If 'flatpak run com.github.Matoking.protontricks -V' returns 'unknown', then please update via flatpak." | tee -a $LOGFILE
+		cleaner_exit
+	fi
 }
 
 #######################################
@@ -387,33 +415,33 @@ detect_modlist_dir_path() {
 
 	if [[ $steamdeck == 1 ]]; then
 		local locations=(
-		"$HOME/Games/$which_game"
-		"/run/media/mmcblk0p1/Games/$which_game"
+			"$HOME/Games/$which_game"
+			"/run/media/mmcblk0p1/Games/$which_game"
 		)
 	else
 		local locations=(
-		"$HOME/Games/$which_game"
-		"$HOME"
+			"$HOME/Games/$which_game"
+			"$HOME"
 		)
 	fi
 
 	# Loop through locations and check for directory, ignoring case
 	for base_location in "${locations[@]}"; do
-	# Use find to locate the directory case-insensitively
-	found_location=$(find "$base_location" -maxdepth 1 -type d -iname "$expected" -print -quit)
+		# Use find to locate the directory case-insensitively
+		found_location=$(find "$base_location" -maxdepth 1 -type d -iname "$expected" -print -quit)
 
-	if [[ -n "$found_location" ]]; then
-		echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
-		modlist_dir=$found_location
-		modlist_ini=$modlist_dir/ModOrganizer.ini
-		# Check if ModOrganizer.ini actually exists here
-		if [[ -f "$modlist_ini" ]]; then
-		echo -e "\nModOrganizer.ini found in expected path: $modlist_ini, proceeding.." >>$LOGFILE 2>&1
-		return 0
-		else
-		echo -e "\nModOrganizer.ini not found! Proceed to ask for path.." >>$LOGFILE 2>&1
+		if [[ -n "$found_location" ]]; then
+			echo -e "\nDirectory found: $found_location" | tee -a $LOGFILE
+			modlist_dir=$found_location
+			modlist_ini=$modlist_dir/ModOrganizer.ini
+			# Check if ModOrganizer.ini actually exists here
+			if [[ -f "$modlist_ini" ]]; then
+				echo -e "\nModOrganizer.ini found in expected path: $modlist_ini, proceeding.." >>$LOGFILE 2>&1
+				return 0
+			else
+				echo -e "\nModOrganizer.ini not found! Proceed to ask for path.." >>$LOGFILE 2>&1
+			fi
 		fi
-	fi
 	done
 
 	# Not found in any location, loop for valid user input
@@ -449,37 +477,36 @@ detect_modlist_dir_path() {
 				continue
 			fi
 		else
-		# If user_path is not a directory and doesn't include "ModOrganizer.ini"
+			# If user_path is not a directory and doesn't include "ModOrganizer.ini"
 			echo -e "\nWarning: Provided path \e[32m'$user_path'\e[0m is not a directory and does not include 'ModOrganizer.ini'. Please try again.." | tee -a $LOGFILE
 			path_to_confirm=1
 			continue
 		fi
 
-
 		echo -e "\nUsing user-provided path: \e[32m$user_path\e[0m" >>$LOGFILE 2>&1
-			path_to_confirm=1
-			if [[ $path_to_confirm -eq 1 ]]; then
-				# Confirmation section
-				echo -e "\n\e[31mModOrganizer.ini found in \e[32m'$user_path'\e[31m, continue? (y/n):\e[0m" | tee -a $LOGFILE
-				read -p " " confirm
-					if [[ $confirm == "n" ]]; then
-						echo -e "\nOkay, please try again." | tee -a $LOGFILE
-						path_to_confirm=1
-						continue
-					else
-						if [[ "$user_path" =~ "ModOrganizer.ini" ]]; then
-							modlist_dir=$(dirname $user_path)
-							modlist_ini=$modlist_dir/ModOrganizer.ini
-						else
-							modlist_dir=$user_path
-							modlist_ini=$modlist_dir/ModOrganizer.ini
-						fi
-						echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
-						echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
-						echo -e "\nModlist Install Path set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
-					fi
+		path_to_confirm=1
+		if [[ $path_to_confirm -eq 1 ]]; then
+			# Confirmation section
+			echo -e "\n\e[31mModOrganizer.ini found in \e[32m'$user_path'\e[31m, continue? (y/n):\e[0m" | tee -a $LOGFILE
+			read -p " " confirm
+			if [[ $confirm == "n" ]]; then
+				echo -e "\nOkay, please try again." | tee -a $LOGFILE
+				path_to_confirm=1
+				continue
+			else
+				if [[ "$user_path" =~ "ModOrganizer.ini" ]]; then
+					modlist_dir=$(dirname $user_path)
+					modlist_ini=$modlist_dir/ModOrganizer.ini
+				else
+					modlist_dir=$user_path
+					modlist_ini=$modlist_dir/ModOrganizer.ini
+				fi
+				echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
+				echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
+				echo -e "\nModlist Install Path set to \e[32m'$modlist_dir'\e[0m, continuing.." | tee -a $LOGFILE
 			fi
-			break
+		fi
+		break
 	done
 
 	#Check for a space in the path
@@ -505,21 +532,17 @@ detect_modlist_dir_path() {
 set_protontricks_perms() {
 
 	if [ "$which_protontricks" = "flatpak" ]; then
-		echo "Setting Protontricks Permissions" >>$LOGFILE 2>&1
-
-		echo -e "\e[31m \nSetting Protontricks permissions (may require sudo password)... \e[0m" | tee -a $LOGFILE
-		#Catch System flatpak install
-		sudo flatpak override com.github.Matoking.protontricks --filesystem="$modlist_dir"
+		echo -ne "\nSetting Protontricks permissions... " | tee -a $LOGFILE
 		#Catch User flatpak install
 		flatpak override --user com.github.Matoking.protontricks --filesystem="$modlist_dir"
-
+		echo "Done!" | tee -a $LOGFILE
 		if [[ $steamdeck = 1 ]]; then
-			echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately (may require sudo password)..\e[0m" | tee -a $LOGFILE
+			echo -e "\e[31m \nChecking for SDCard and setting permissions appropriately..\e[0m" | tee -a $LOGFILE
 			# Set protontricks SDCard permissions early to suppress warning
 			sdcard_path=$(df -h | grep "/run/media" | awk {'print $NF'})
 			echo $sdcard_path >>$LOGFILE 2>&1
-			sudo flatpak override --filesystem=$sdcard_path com.github.Matoking.protontricks
 			flatpak override --user --filesystem=$sdcard_path com.github.Matoking.protontricks
+			flatpak override --user --filesystem=/run/media/mmcblk0p1 com.github.Matoking.protontricks
 			echo -e " Done." | tee -a $LOGFILE
 		fi
 	else
@@ -534,18 +557,23 @@ set_protontricks_perms() {
 
 enable_dotfiles() {
 
-	echo $APPID >>$LOGFILE 2>&1
+	if [ -z "$APPID" ]; then
+		echo "Error: APPID cannot be empty, exiting..."
+		exit 1
+	fi
+
+	echo "APPID=$APPID" >>$LOGFILE 2>&1
 	echo -ne "\nEnabling visibility of (.)dot files... " | tee -a $LOGFILE
 
 	# Check if already settings
-	dotfiles_check=$(run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
+	dotfiles_check=$(run_protontricks -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
 
 	printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
 
 	if [[ "$dotfiles_check" = "Y" ]]; then
 		printf '%s\n' "DotFiles already enabled... skipping" | tee -a $LOGFILE
 	else
-		run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID 2>/dev/null &
+		run_protontricks -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID 2>/dev/null &
 		echo "Done!" | tee -a $LOGFILE
 	fi
 
@@ -557,7 +585,7 @@ enable_dotfiles() {
 
 set_win10_prefix() {
 
-	run_protontricks --no-bwrap $APPID win10 >>$LOGFILE 2>&1
+	run_protontricks $APPID win10 >>$LOGFILE 2>&1
 
 }
 
@@ -570,8 +598,7 @@ install_wine_components() {
 	echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
 
 	spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-	run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
-	#run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
+	run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 
 	pid=$! # Store the PID of the background process
 
@@ -609,6 +636,7 @@ install_wine_components() {
 
 	# Get the output of the protontricks command
 	output="$(run_protontricks --no-bwrap $APPID list-installed)"
+	echo "Components Found: $output" >>$LOGFILE 2>&1
 
 	# Check if each component is present in the output
 	all_found=true
@@ -624,8 +652,10 @@ install_wine_components() {
 		echo "All required components found." >>$LOGFILE 2>&1
 	else
 		echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
-		run_protontricks --no-bwrap $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 >/dev/null 2>&1 &
+		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 		echo "Done." | tee -a $LOGFILE
+		second_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $second_output" >>$LOGFILE 2>&1
 	fi
 
 }
@@ -731,7 +761,6 @@ detect_proton_version() {
 
 }
 
-
 ###############################
 # Confirmation before running #
 ###############################
@@ -745,6 +774,7 @@ confirmation_before_running() {
 	echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "Proton Version: $proton_ver .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
+	echo -e "App ID: $APPID" | tee -a $LOGFILE
 
 }
 
@@ -839,6 +869,13 @@ replace_gamepath() {
 			echo "Using SDCard" >>$LOGFILE 2>&1
 			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
 			sdcard_new_path="$modlist_gamedir_sdcard"
+
+			# Strip /run/media/deck/UUID if present
+			if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
+				sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
+				echo "SD Card Path after stripping: $sdcard_new_path" >>$LOGFILE 2>&1
+			fi
+
 			new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
 			echo "New String: $new_string" >>$LOGFILE 2>&1
 		else
@@ -914,10 +951,15 @@ update_executables() {
 		if [[ "$modlist_sdcard" -eq 1 ]]; then
 			echo "Using SDCard" >>$LOGFILE 2>&1
 			drive_letter=" = D:"
-			echo $modlist_dir >>$LOGFILE 2>&1
+			echo "$modlist_dir" >>$LOGFILE 2>&1
 			path_middle="${modlist_dir#*mmcblk0p1}"
+			# Strip /run/media/deck/UUID
+			if [[ "$path_middle" == /run/media/*/* ]]; then
+				path_middle="/${path_middle#*/run/media/*/*/*}"
+				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
+			fi
 		else
-			path_middle=$modlist_dir
+			path_middle="$modlist_dir"
 		fi
 
 		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
@@ -932,12 +974,18 @@ update_executables() {
 		echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
 		# Path Middle / modlist_dr
-		if [[ "$modlist_sdcard" -eq "1" ]]; then
+		if [[ "$modlist_sdcard" -eq 1 ]]; then
 			echo "Using SDCard" >>$LOGFILE 2>&1
-			path_middle="${modlist_dir#*mmcblk0p1}"
 			drive_letter=" = D:"
+			echo "$modlist_dir" >>$LOGFILE 2>&1
+			path_middle="${modlist_dir#*mmcblk0p1}"
+			# Strip /run/media/deck/UUID
+			if [[ "$path_middle" == /run/media/*/* ]]; then
+				path_middle="/${path_middle#*/run/media/*/*/*}"
+				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
+			fi
 		else
-			path_middle=$modlist_dir
+			path_middle="$modlist_dir"
 		fi
 		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 
@@ -1026,7 +1074,6 @@ update_executables() {
 		echo "New Path: $new_path" >>$LOGFILE 2>&1
 
 		# Convert the lines in ModOrganizer.ini, if it isn't already
-		# Convert binary entries:
 
 		sed -i "\|^${bin_path_start}|s|^.*$|${full_bin_path}|" $modlist_ini
 		# Convert workingDirectory entries
@@ -1093,12 +1140,13 @@ update_ini_resolution() {
 	if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
 		while IFS= read -r ini_file; do
 			# Use awk to replace the lines with the new values, handling spaces in paths
-			awk -v res="$set_res" '/^(#?)Resolution=/ { print "Resolution=" res; next } \
-                               /^(#?)Fullscreen=/ { print "Fullscreen=false"; next } \
-                               /^(#?)#Fullscreen=/ { print "#Fullscreen=false"; next } \
-                               /^(#?)Borderless=/ { print "Borderless=true"; next } \
-                               /^(#?)#Borderless=/ { print "#Borderless=true"; next }1' "$ini_file" >$HOME/temp_file && mv $HOME/temp_file "$ini_file"
+			awk -v res="$set_res" '/^(#?)Resolution[[:space:]]*=/ { print "Resolution=" res; next } \
+                               /^(#?)Fullscreen[[:space:]]*=/ { print "Fullscreen=false"; next } \
+                               /^(#?)#Fullscreen[[:space:]]*=/ { print "#Fullscreen=false"; next } \
+                               /^(#?)Borderless[[:space:]]*=/ { print "Borderless=true"; next } \
+                               /^(#?)#Borderless[[:space:]]*=/ { print "#Borderless=true"; next }1' "$ini_file" >"$ini_file.new"
 
+			cp "$ini_file.new" "$ini_file"
 			echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
 			echo -e " Done." >>$LOGFILE 2>&1
 		done <<<"$ini_files"
@@ -1177,6 +1225,9 @@ small_additional_tasks() {
 		echo "File does not exist: $file_to_delete" >>$LOGFILE 2>&1
 	fi
 
+	# Download Font to support Bethini
+	wget https://github.com/mrbvrz/segoe-ui-linux/raw/refs/heads/master/font/seguisym.ttf -q -nc -O $compat_data_path/pfx/drive_c/windows/Fonts/seguisym.ttf
+
 }
 
 ###########################
@@ -1210,7 +1261,7 @@ modlist_specific_steps() {
 		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet72
 		spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-		run_protontricks --no-bwrap $APPID -q dotnet472 >/dev/null 2>&1 &
+		run_protontricks $APPID -q dotnet472 >/dev/null 2>&1 &
 
 		pid=$! # Store the PID of the background process
 
@@ -1232,27 +1283,33 @@ modlist_specific_steps() {
 			echo -e "\nWine Component install completed successfully." | tee -a $LOGFILE
 		fi
 
-		# Set Resolution in the odd place Wildlander uses:
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 
 	fi
 
-	if [[ $MODLIST == *"Librum"* ]]; then
+	if [[ "$MODLIST" == *"Librum"* ]] || [[ "$MODLIST" == *"Apostasy"* ]]; then
 		echo ""
 		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet 4.0
 		echo -ne "\nInstalling .NET 4..."
-		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
 		echo -e " Done."
 		# Download dotnet8
 		echo -e "\nDownloading .NET 8 Runtime" | tee -a $LOGFILE
 		wget https://download.visualstudio.microsoft.com/download/pr/77284554-b8df-4697-9a9e-4c70a8b35f29/6763c16069d1ab8fa2bc506ef0767366/dotnet-runtime-8.0.5-win-x64.exe -q -nc --show-progress --progress=bar:force:noscroll -O $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe
 		# Install it
 		echo -ne "\nInstalling .NET 8 Runtime...."
-		run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe /Q' $APPID 2>/dev/null
+		run_protontricks -c 'WINEDEBUG=-all wine $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe /Q' $APPID 2>/dev/null
 		echo -e " Done."
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
 	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
@@ -1260,11 +1317,15 @@ modlist_specific_steps() {
 		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet 4.0
 		echo -ne "\nInstalling .NET 4..."
-		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
 		echo -e " Done."
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
 	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lsiv"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"ls4"* ]]; then
@@ -1272,11 +1333,31 @@ modlist_specific_steps() {
 		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
 		# Install dotnet 4.0
 		echo -ne "\nInstalling .NET 4..."
-		run_protontricks --no-bwrap $APPID -q dotnet40 >/dev/null 2>&1
+		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
 		echo -e " Done."
 
 		# Re-set win10
 		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
+	fi
+
+	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lostlegacy"* ]]; then
+		echo ""
+		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
+		# Install dotnet 4.0
+		echo -ne "\nInstalling .NET 4..."
+		run_protontricks $APPID -q dotnet48 >/dev/null 2>&1
+		echo -e " Done."
+
+		# Re-set win10
+		set_win10_prefix
+
+		# Output list of components to check
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 }
 
@@ -1328,12 +1409,44 @@ create_dxvk_file() {
 
 }
 
+#############################
+# Create protontricks alias #
+#############################
+
+protontricks_alias() {
+
+		protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
+		launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
+
+		if [[ ! $protontricks_alias_exists ]]; then
+			echo -e "\nAdding protontricks alias to ~/.bashrc"
+			echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
+
+			# source the file to make the change effective immediately
+			source ~/.bashrc
+		else
+			echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
+		fi
+
+		if [[ ! $launch_alias_exists ]]; then
+			echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
+			echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >> ~/.bashrc
+
+			# source the file to make the change effective immediately
+			source ~/.bashrc
+		else
+			echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
+		fi
+}
+
 #####################
 # Exit more cleanly #
 #####################
 
 cleaner_exit() {
 
+	# Clean up wine and winetricks processes
+	cleanup_wine_procs
 	# Merge Log files
 	echo "Merging Log Files.." >>$LOGFILE 2>&1
 	cat $LOGFILE2 | grep -v -e "[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]" >>$LOGFILE
@@ -1376,7 +1489,13 @@ detect_protontricks
 # Detect Protontricks Version #
 ###############################
 
-#protontricks_version
+protontricks_version
+
+##########################################
+# Create protontricks alias in ~/.bashrc #
+##########################################
+
+protontricks_alias
 
 ##############################################################
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
@@ -1408,6 +1527,12 @@ echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
 
 read -p " " response
 if [[ $response =~ ^[Yy]$ ]]; then
+
+	######################################################
+	# Pre-emptively cleanup any left-over wine processes #
+	######################################################
+
+	cleanup_wine_procs
 
 	#############
 	# Set APPID #
@@ -1466,12 +1591,6 @@ if [[ $response =~ ^[Yy]$ ]]; then
 
 	enable_dotfiles
 
-	###############################################
-	# Set Windows 10 version in the proton prefix #
-	###############################################
-
-	set_win10_prefix
-
 	######################################
 	# Install Wine Components & VCRedist #
 	######################################
@@ -1488,7 +1607,9 @@ if [[ $response =~ ^[Yy]$ ]]; then
 	# MO2 Version Check  #
 	######################
 
-	mo2_version_check
+	detect_mo2_version
+
+	detect_proton_version
 
 	###############################
 	# Confirmation before running #
@@ -1562,8 +1683,6 @@ if [[ $response =~ ^[Yy]$ ]]; then
 
 	# Parting message
 	echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
-	echo -e "\n\e[4mPlease follow any additional steps in the guide for this modlist on github (if there is one) for disabling mods etc\e[0m]" | tee -a $LOGFILE
-	echo -e "\nOnce you've done that, click Play for the modlist in Steam and get playing!" | tee -a $LOGFILE
 
 	cleaner_exit
 else
