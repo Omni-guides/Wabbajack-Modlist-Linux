@@ -4,7 +4,7 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.11 - Omni, from 21/01/25                 #
+#              Alpha v0.12 - Omni, from 21/01/25                 #
 #                                                                #
 ##################################################################
 
@@ -19,9 +19,10 @@
 # - v0.09 - Initial support for Flatpak Steam libraries
 # - v0.10 - Better detection of flatpak protontricks (Bazzite has a wrapper that made it look like native protontricks)
 # - v0.11 - Better handling of the Webview Installer
+# - v0.12 - Added further support for Flatpak Steam, including override requirement message.
 
 # Current Script Version (alpha)
-script_ver=0.11
+script_ver=0.12
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -504,6 +505,7 @@ configure_steam_libraries() {
 
 	# Copy or symlink libraryfolders.vdf to config directory
 	if [[ "$chosen_library" == "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam" ]]; then
+        steam_is_flatpak=1
 		# For Flatpak Steam, adjust the paths accordingly
 		echo -e "Symlinking libraryfolders.vdf to config directory for Flatpak" >>$LOGFILE 2>&1
 		ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" >>$LOGFILE 2>&1 || {
@@ -620,7 +622,7 @@ detect_protontricks
 # Detect Protontricks Version #
 ###############################
 
-#protontricks_version
+protontricks_version
 
 ###########################
 # Get Wabbajack Directory #
@@ -688,4 +690,9 @@ cleanup_wine_procs
 
 echo -e "\e[32m\nSet up complete.\e[0m"
 
+if [[ $steam_is_flatpak -eq 1 ]]; then
+    echo -e "\e[33m\nFlatpak Steam is in use, you may need to add a permissions override so that Wabbajack can access the directories.\e[0m"
+    echo -e "\e[33m\nFor example, if you wanted to install the modlist to /home/user/Games/Skyrim/Modlistname, then you would need to run something like:\e[0m"
+    echo -e "\e[33m\nflatpak override --user com.valvesoftware.Steam --filesystem="/home/user/Games"\e[0m"
+fi
 cleaner_exit
