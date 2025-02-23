@@ -395,7 +395,7 @@ configure_prefix() {
 	if [ "$which_protontricks" = "flatpak" ]; then
 		/usr/bin/flatpak run --command=protontricks-launch com.github.Matoking.protontricks --appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
 	else
-		protontricks-launch ---appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
+		protontricks-launch --appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
 	fi
 
 
