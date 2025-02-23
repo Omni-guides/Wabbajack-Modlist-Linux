@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.57 - Omni 20/02/2025                         #
+#                       Beta v0.58 - Omni 22/02/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -82,9 +82,10 @@
 # - v0.55 - Removed check for MO2 2.5 preventing an incorrect errorfrom MO2 version check when APPID is not passed correctly - Proton9/MO2 2.5 are old enough now that the check is redundant.
 # - v0.56 - Added a check to catch a rare scenario where $APPID is not set correctly - the script will now exit rather than continuing and failing in odd ways. More work may be needed on this to find out why $APPID is empty on rare occasions
 # - v0.57 - Added handling for UUID-based SDCard/additional directory paths
+# - v0.58 - Minor correction for exit handling if APPID isn't detected
 
 # Current Script Version (beta)
-script_ver=0.57
+script_ver=0.58
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -559,7 +560,7 @@ enable_dotfiles() {
 
 	if [ -z "$APPID" ]; then
 		echo "Error: APPID cannot be empty, exiting..."
-		exit 1
+		cleaner_exit
 	fi
 
 	echo "APPID=$APPID" >>$LOGFILE 2>&1
