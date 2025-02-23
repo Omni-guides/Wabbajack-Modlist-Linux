@@ -157,11 +157,12 @@ cleanup_wine_procs() {
 set_appid() {
 
 	APPID=$(echo $choice | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:')
-	echo "APPID=$APPID" >>$LOGFILE 2>&1
 
 	if [ -z "$APPID" ]; then
-		echo "Error: APPID cannot be empty, exiting... Please tell Omni :("
+		echo "Error: APPID ($APPID) cannot be empty, exiting... Please tell Omni :("
 		cleaner_exit
+  	else
+   		echo "APPID set to $APPID" >>$LOGFILE 2>&1
 	fi
 
 }
