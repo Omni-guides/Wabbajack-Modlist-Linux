@@ -4,7 +4,7 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.12 - Omni, from 21/01/25                 #
+#              Alpha v0.13 - Omni, from 21/01/25                 #
 #                                                                #
 ##################################################################
 
@@ -20,9 +20,10 @@
 # - v0.10 - Better detection of flatpak protontricks (Bazzite has a wrapper that made it look like native protontricks)
 # - v0.11 - Better handling of the Webview Installer
 # - v0.12 - Added further support for Flatpak Steam, including override requirement message.
+# - v0.13 - Fixed incorrect protontricks-launch command for installing Webview using native protontricks
 
 # Current Script Version (alpha)
-script_ver=0.12
+script_ver=0.13
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -391,8 +392,12 @@ configure_prefix() {
 
 	# Install WebView
 	echo -e "\e[33m\nInstalling Webview, this can take a while, please be patient..\e[0m" | tee -a $LOGFILE
-	#chmod +x $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe
-	/usr/bin/flatpak run --command=protontricks-launch com.github.Matoking.protontricks --appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
+	if [ "$which_protontricks" = "flatpak" ]; then
+		/usr/bin/flatpak run --command=protontricks-launch com.github.Matoking.protontricks --appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
+	else
+		protontricks-launch ---appid $APPID $application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe /silent /install >>$LOGFILE 2>&1
+	fi
+
 
 	# Copy in place WebP .dll
 	echo -e "\e[33m\nConfiguring WebP..\e[0m" | tee -a $LOGFILE
@@ -406,10 +411,9 @@ configure_prefix() {
 		exit 1
 	fi
 
-	# Copy in place win7 based system.reg
-	#echo -e "\e[33m\nChange the default prefix version to win7..\e[0m" | tee -a $LOGFILE
-	#cp /home/deck/WabbajackFiles/WJProton/system.reg.win7 $compat_data_path/pfx/system.reg
-	#    echo "Prefix version changed to win7." | tee -a $LOGFILE
+	# Backup system.reg and user.reg
+	cp $compat_data_path/pfx/system.reg $compat_data_path/pfx/system.reg.orig
+	cp $compat_data_path/pfx/user.reg $compat_data_path/pfx/user.reg.orig
 
 	# Copy in system.reg and user.reg
 	echo -e "\e[33m\nConfiguring Registry..\e[0m" | tee -a $LOGFILE
