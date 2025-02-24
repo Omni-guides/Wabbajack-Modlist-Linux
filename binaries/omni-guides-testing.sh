@@ -156,13 +156,16 @@ cleanup_wine_procs() {
 
 set_appid() {
 
-	APPID=$(echo $choice | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:')
+	echo "DEBUG: Extracting APPID from choice: '$choice'" >>$LOGFILE 2>&1
+	APPID=$(echo "$choice" | awk -F'[()]' '{print $2}')
+	echo "DEBUG: Extracted APPID: '$APPID'" >>$LOGFILE 2>&1
+
+	#APPID=$(echo $choice | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:')
+	echo "APPID=$APPID" >>$LOGFILE 2>&1
 
 	if [ -z "$APPID" ]; then
-		echo "Error: APPID ($APPID) cannot be empty, exiting... Please tell Omni :("
+		echo "Error: APPID cannot be empty, exiting... Please tell Omni :("
 		cleaner_exit
-  	else
-   		echo "APPID set to $APPID" >>$LOGFILE 2>&1
 	fi
 
 }
@@ -1520,10 +1523,13 @@ echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 
 PS3=$'\e[31mPlease Select: \e[0m' # Set prompt for select
 select choice in "${output_array[@]}"; do
-	MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-	echo -e "\n$choice" | tee -a $LOGFILE
-	echo -e "\nYou are about to run the automated steps on the Proton Prefix for:\e[32m $MODLIST\e[0m" | tee -a $LOGFILE
-	break
+    if [[ -n "$choice" ]]; then
+        echo "You are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
+        MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+        break
+    else
+        echo "Invalid selection. Please choose a valid modlist." | tee -a $LOGFILE
+    fi
 done
 
 echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
