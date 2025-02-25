@@ -254,62 +254,62 @@ detect_game() {
 ###################################
 
 detect_steam_library() {
-    #local steam_library
+	#local steam_library
 
-    local libraryfolders_vdf="$HOME/.steam/steam/config/libraryfolders.vdf"
+	local libraryfolders_vdf="$HOME/.steam/steam/config/libraryfolders.vdf"
 
-    if [[ ! -f "$libraryfolders_vdf" ]]; then
-        echo "libraryfolders.vdf not found in ~/.steam/steam/config/. Please ensure Steam is installed." | tee -a "$LOGFILE"
-        return 1
-    fi
+	if [[ ! -f "$libraryfolders_vdf" ]]; then
+		echo "libraryfolders.vdf not found in ~/.steam/steam/config/. Please ensure Steam is installed." | tee -a "$LOGFILE"
+		return 1
+	fi
 
-    local library_paths=()
-    while IFS='' read -r line; do
-        if [[ "$line" =~ \"path\" ]]; then
-            local path=$(echo "$line" | sed 's/.*"path"\s*"\(.*\)"/\1/')
-            if [[ -n "$path" ]]; then
-                library_paths+=("$path/steamapps/common")
-            fi
-        fi
-    done < "$libraryfolders_vdf"
+	local library_paths=()
+	while IFS='' read -r line; do
+		if [[ "$line" =~ \"path\" ]]; then
+			local path=$(echo "$line" | sed 's/.*"path"\s*"\(.*\)"/\1/')
+			if [[ -n "$path" ]]; then
+				library_paths+=("$path/steamapps/common")
+			fi
+		fi
+	done <"$libraryfolders_vdf"
 
-    local found=0
-    for library_path in "${library_paths[@]}"; do
-        if [[ -d "$library_path/$gamevar" ]]; then
-            steam_library="$library_path"
-            found=1
-            echo "Found '$gamevar' in $steam_library." | tee -a "$LOGFILE"
-            break
-        else
-            echo "Checking $library_path: '$gamevar' not found." | tee -a "$LOGFILE"
-        fi
-    done
+	local found=0
+	for library_path in "${library_paths[@]}"; do
+		if [[ -d "$library_path/$gamevar" ]]; then
+			steam_library="$library_path"
+			found=1
+			echo "Found '$gamevar' in $steam_library." | tee -a "$LOGFILE"
+			break
+		else
+			echo "Checking $library_path: '$gamevar' not found." | tee -a "$LOGFILE"
+		fi
+	done
 
-    if [[ "$found" -eq 0 ]]; then
-        echo "Vanilla game not found in Steam library locations." | tee -a "$LOGFILE"
+	if [[ "$found" -eq 0 ]]; then
+		echo "Vanilla game not found in Steam library locations." | tee -a "$LOGFILE"
 
-        while true; do
-            echo -e "\n** Enter the path to your Vanilla $gamevar directory manually (e.g. /data/SteamLibrary/steamapps/common/$gamevar): **"
-            read -e -r gamevar_input
+		while true; do
+			echo -e "\n** Enter the path to your Vanilla $gamevar directory manually (e.g. /data/SteamLibrary/steamapps/common/$gamevar): **"
+			read -e -r gamevar_input
 
-            steam_library_input="${gamevar_input%/*}/"
+			steam_library_input="${gamevar_input%/*}/"
 
-            if [[ -d "$steam_library_input/$gamevar" ]]; then
-                steam_library="$steam_library_input"
-                echo "Found $gamevar in $steam_library_input." | tee -a "$LOGFILE"
-                echo "Steam Library set to: $steam_library" | tee -a "$LOGFILE"
-                break
-            else
-                echo "Game not found in $steam_library_input. Please enter a valid path to Vanilla $gamevar." | tee -a "$LOGFILE"
-            fi
-        done
-    fi
+			if [[ -d "$steam_library_input/$gamevar" ]]; then
+				steam_library="$steam_library_input"
+				echo "Found $gamevar in $steam_library_input." | tee -a "$LOGFILE"
+				echo "Steam Library set to: $steam_library" | tee -a "$LOGFILE"
+				break
+			else
+				echo "Game not found in $steam_library_input. Please enter a valid path to Vanilla $gamevar." | tee -a "$LOGFILE"
+			fi
+		done
+	fi
 
-    echo "Steam Library Location: $steam_library" | tee -a "$LOGFILE"
+	echo "Steam Library Location: $steam_library" | tee -a "$LOGFILE"
 
 	if [[ "$steamdeck" -eq 1 && "$steam_library" == "/run/media"* ]]; then
-        basegame_sdcard=1
-    fi
+		basegame_sdcard=1
+	fi
 
 }
 
@@ -318,103 +318,103 @@ detect_steam_library() {
 #################################
 
 detect_modlist_dir_path() {
-  echo -e "Detecting $MODLIST Install Directory.." | tee -a $LOGFILE
-  local modlist_entries
-  local selected_entry
-  local modlist_ini_temp
-  local modlist_grep_pattern
+	echo -e "Detecting $MODLIST Install Directory.." | tee -a $LOGFILE
+	local modlist_entries
+	local selected_entry
+	local modlist_ini_temp
+	local modlist_grep_pattern
 
-  # Create a grep pattern for similar matches
-  modlist_grep_pattern=$(echo "$MODLIST" | sed 's/ /.*\|/g') #Replace spaces with ".*|"
-  modlist_grep_pattern=".*${modlist_grep_pattern}.*" # Add wildcards to start and end.
+	# Create a grep pattern for similar matches
+	modlist_grep_pattern=$(echo "$MODLIST" | sed 's/ /.*\|/g') #Replace spaces with ".*|"
+	modlist_grep_pattern=".*${modlist_grep_pattern}.*"         # Add wildcards to start and end.
 
-  # Find all entries with ModOrganizer.exe and similar $MODLIST matches
-  modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
+	# Find all entries with ModOrganizer.exe and similar $MODLIST matches
+	modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
 
-  if [[ -z "$modlist_entries" ]]; then
-    echo "No ModOrganizer.exe entries found similar to $MODLIST in shortcuts.vdf."
-    echo "Displaying all ModOrganizer.exe entries:"
+	if [[ -z "$modlist_entries" ]]; then
+		echo "No ModOrganizer.exe entries found similar to $MODLIST in shortcuts.vdf."
+		echo "Displaying all ModOrganizer.exe entries:"
 
-    local all_modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe")
+		local all_modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe")
 
-    if [[ -z "$all_modlist_entries" ]]; then
-      echo "No ModOrganizer.exe entries found in shortcuts.vdf."
-      return 1 # Indicate failure
-    fi
+		if [[ -z "$all_modlist_entries" ]]; then
+			echo "No ModOrganizer.exe entries found in shortcuts.vdf."
+			return 1 # Indicate failure
+		fi
 
-    local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
-    if [[ "$entry_count_all" -eq 1 ]]; then
-      local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-      read -p "Use ModOrganizer directory: $path? (y/n): " confirm
-      if [[ "$confirm" == "y" ]]; then
-        modlist_dir="$path"
-        modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-      else
-        return 1 # user declined, fail.
-      fi
-    else
-      local i=1
-      while IFS= read -r entry; do
-        local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-        echo "$i) $path"
-        ((i++))
-      done <<< "$all_modlist_entries"
+		local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
+		if [[ "$entry_count_all" -eq 1 ]]; then
+			local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+			read -p "Use ModOrganizer directory: $path? (y/n): " confirm
+			if [[ "$confirm" == "y" ]]; then
+				modlist_dir="$path"
+				modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+			else
+				return 1 # user declined, fail.
+			fi
+		else
+			local i=1
+			while IFS= read -r entry; do
+				local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+				echo "$i) $path"
+				((i++))
+			done <<<"$all_modlist_entries"
 
-      # Prompt user to select an entry
-      read -p "Enter the number of the desired entry: " selected_entry
+			# Prompt user to select an entry
+			read -p "Enter the number of the desired entry: " selected_entry
 
-      if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
-        echo "Invalid selection."
-        return 1 # Indicate failure
-      fi
+			if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
+				echo "Invalid selection."
+				return 1 # Indicate failure
+			fi
 
-      # Extract the selected entry
-      local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
-      modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-      modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-    fi
+			# Extract the selected entry
+			local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
+			modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+		fi
 
-  else
-    # Matching entries found
-    local entry_count=$(echo "$modlist_entries" | wc -l)
-    if [[ "$entry_count" -gt 1 ]]; then
-      echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
-      local i=1
-      while IFS= read -r entry; do
-        local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-        echo "$i) $path"
-        ((i++))
-      done <<< "$modlist_entries"
+	else
+		# Matching entries found
+		local entry_count=$(echo "$modlist_entries" | wc -l)
+		if [[ "$entry_count" -gt 1 ]]; then
+			echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
+			local i=1
+			while IFS= read -r entry; do
+				local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+				echo "$i) $path"
+				((i++))
+			done <<<"$modlist_entries"
 
-      # Prompt user to select an entry
-      read -p "Enter the number of the desired entry: " selected_entry
+			# Prompt user to select an entry
+			read -p "Enter the number of the desired entry: " selected_entry
 
-      if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
-        echo "Invalid selection."
-        return 1 # Indicate failure
-      fi
+			if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
+				echo "Invalid selection."
+				return 1 # Indicate failure
+			fi
 
-      # Extract the selected entry
-      local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
-      modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-      modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-    else
-      # Single matching entry
-      modlist_dir=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-      modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-    fi
-  fi
+			# Extract the selected entry
+			local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
+			modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+		else
+			# Single matching entry
+			modlist_dir=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
+			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+		fi
+	fi
 
-  # Check if ModOrganizer.ini exists
-  if [[ -f "$modlist_ini_temp" ]]; then
-    modlist_ini="$modlist_ini_temp"
-    echo "Modlist directory: $modlist_dir"
-    echo "Modlist INI location: $modlist_ini"
-    return 0 # Indicate success
-  else
-    echo "ModOrganizer.ini not found in $modlist_dir"
-    return 1 #Indicate Failure.
-  fi
+	# Check if ModOrganizer.ini exists
+	if [[ -f "$modlist_ini_temp" ]]; then
+		modlist_ini="$modlist_ini_temp"
+		echo "Modlist directory: $modlist_dir"
+		echo "Modlist INI location: $modlist_ini"
+		return 0 # Indicate success
+	else
+		echo "ModOrganizer.ini not found in $modlist_dir"
+		return 1 #Indicate Failure.
+	fi
 }
 
 #####################################################
@@ -929,7 +929,7 @@ update_executables() {
 			path_middle="${steam_library#*mmcblk0p1}"
 			drive_letter=" = D:"
 		else
-            echo "Steamapps Steam Library Path: $steam_library"
+			echo "Steamapps Steam Library Path: $steam_library"
 			path_middle=${steam_library%%steamapps*}
 		fi
 		echo "Path Middle: $path_middle" #>>$LOGFILE 2>&1
@@ -1303,28 +1303,28 @@ create_dxvk_file() {
 
 protontricks_alias() {
 
-		protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
-		launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
+	protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
+	launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
 
-		if [[ ! $protontricks_alias_exists ]]; then
-			echo -e "\nAdding protontricks alias to ~/.bashrc"
-			echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
+	if [[ ! $protontricks_alias_exists ]]; then
+		echo -e "\nAdding protontricks alias to ~/.bashrc"
+		echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >>~/.bashrc
 
-			# source the file to make the change effective immediately
-			source ~/.bashrc
-		else
-			echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-		fi
+		# source the file to make the change effective immediately
+		source ~/.bashrc
+	else
+		echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
+	fi
 
-		if [[ ! $launch_alias_exists ]]; then
-			echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
-			echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >> ~/.bashrc
+	if [[ ! $launch_alias_exists ]]; then
+		echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
+		echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >>~/.bashrc
 
-			# source the file to make the change effective immediately
-			source ~/.bashrc
-		else
-			echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-		fi
+		# source the file to make the change effective immediately
+		source ~/.bashrc
+	else
+		echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
+	fi
 }
 
 #####################
@@ -1405,13 +1405,13 @@ echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 
 PS3=$'\e[31mPlease Select: \e[0m' # Set prompt for select
 select choice in "${output_array[@]}"; do
-    if [[ -n "$choice" ]]; then
-        echo "You are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
-        MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-        break
-    else
-        echo "Invalid selection. Please choose a valid modlist." | tee -a $LOGFILE
-    fi
+	if [[ -n "$choice" ]]; then
+		echo "You are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
+		MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+		break
+	else
+		echo "Invalid selection. Please choose a valid modlist." | tee -a $LOGFILE
+	fi
 done
 
 echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
