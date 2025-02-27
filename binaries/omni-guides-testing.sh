@@ -21,6 +21,7 @@
 # - v0.57 - Added handling for UUID-based SDCard/additional directory paths
 # - v0.58 - Minor correction for exit handling if APPID isn't detected
 # - v0.59 - Rewrite Modlist Directory and Steam Library detection mechanisms completely, utilising Steam's .vdf files and reducing the ambiguity and user intput required.
+# - v0.60 - Alter protontricks alias creation to make sure flatpak protontricks is in use
 
 # Current Script Version (beta)
 script_ver=0.59
@@ -719,70 +720,70 @@ blank_downloads_dir() {
 replace_gamepath() {
 
 	echo "Using Steeam Library Path: $steam_library"
-	echo "Use SDCard?: $basegame_sdcard" #>>$LOGFILE 2>&1
+	echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
 	echo -ne "\nChecking if Modlist uses Game Root, Stock Game, etc, etc.." | tee -a $LOGFILE
 	game_path_line=$(grep '^gamePath' "$modlist_ini")
-	echo "Game Path Line: $game_path_line" #>>$LOGFILE 2>&1
+	echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
 	if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* || $game_path_line == *root\\\\Skyrim\ Special\ Edition* ]]; then
 
 		# Stock Game, Game Root or equivalent directory found
-		echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " #>>$LOGFILE 2>&1
+		echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
 
 		# Get the end of our path
 		if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
 			modlist_gamedir="$modlist_dir/Stock Game Folder"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ Stock\ Folder ]]; then
 			modlist_gamedir="$modlist_dir/Stock Folder"
 		elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
 			modlist_gamedir="$modlist_dir/Skyrim Stock"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ Game\ Root ]]; then
 			modlist_gamedir="$modlist_dir/Game Root"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ STOCK\ GAME ]]; then
 			modlist_gamedir="$modlist_dir/STOCK GAME"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ Stock\ Game ]]; then
 			modlist_gamedir="$modlist_dir/Stock Game"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
 			modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
-			echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		fi
 
 		if [[ "$modlist_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" #>>$LOGFILE 2>&1
+			echo "Using SDCard" >>$LOGFILE 2>&1
 			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
 			sdcard_new_path="$modlist_gamedir_sdcard"
 
 			# Strip /run/media/deck/UUID if present
 			if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
 				sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
-				echo "SD Card Path after stripping: $sdcard_new_path" #>>$LOGFILE 2>&1
+				echo "SD Card Path after stripping: $sdcard_new_path" >>$LOGFILE 2>&1
 			fi
 
 			new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-			echo "New String: $new_string" #>>$LOGFILE 2>&1
+			echo "New String: $new_string" >>$LOGFILE 2>&1
 		else
 			new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-			echo "New String: $new_string" #>>$LOGFILE 2>&1
+			echo "New String: $new_string" >>$LOGFILE 2>&1
 		fi
 
 	elif [[ "$game_path_line" == *steamapps* ]]; then
-		echo -ne "Vanilla Game Directory required, editing Game Path.. " #>>$LOGFILE 2>&1
+		echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
 		modlist_gamedir="$steam_library/$gamevar"
-		echo "Modlist Gamedir: $modlist_gamedir" #>>$LOGFILE 2>&1
+		echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
 		if [[ "$basegame_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" #>>$LOGFILE 2>&1
+			echo "Using SDCard" >>$LOGFILE 2>&1
 			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
 			sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
 			new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-			echo "New String: $new_string" #>>$LOGFILE 2>&1
+			echo "New String: $new_string" >>$LOGFILE 2>&1
 		else
 			new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-			echo "New String: $new_string" #>>$LOGFILE 2>&1
+			echo "New String: $new_string" >>$LOGFILE 2>&1
 		fi
 	else
 		echo "Neither Game Root, Stock Game or Vanilla Game directory found, Please launch MO and set path manually.." | tee -a $LOGFILE
@@ -804,14 +805,14 @@ replace_gamepath() {
 update_executables() {
 
 	# Take the line passed to the function
-	echo "Original Line: $orig_line_path" #>>$LOGFILE 2>&1
+	echo "Original Line: $orig_line_path" >>$LOGFILE 2>&1
 
 	skse_loc=$(echo "$orig_line_path" | cut -d '=' -f 2-)
-	echo "SKSE Loc: $skse_loc" #>>$LOGFILE 2>&1
+	echo "SKSE Loc: $skse_loc" >>$LOGFILE 2>&1
 
 	# Drive letter
 	if [[ "$modlist_sdcard" -eq 1 ]]; then
-		echo "Using SDCard" #>>$LOGFILE 2>&1
+		echo "Using SDCard" >>$LOGFILE 2>&1
 		drive_letter=" = D:"
 	else
 		drive_letter=" = Z:"
@@ -820,146 +821,146 @@ update_executables() {
 	# Find the workingDirectory number
 
 	binary_num=$(echo "$orig_line_path" | cut -d '=' -f -1)
-	echo "Binary Num: $binary_num" #>>$LOGFILE 2>&1
+	echo "Binary Num: $binary_num" >>$LOGFILE 2>&1
 
 	# Find the equvalent workingDirectory
 	justnum=$(echo "$binary_num" | cut -d '\' -f 1)
 	bin_path_start=$(echo "$binary_num" | tr -d ' ' | sed 's/\\/\\\\/g')
 	path_start=$(echo "$justnum\\workingDirectory" | sed 's/\\/\\\\/g')
-	echo "Path Start: $path_start" #>>$LOGFILE 2>&1
+	echo "Path Start: $path_start" >>$LOGFILE 2>&1
 
 	# Decide on steam apps or Stock Game etc
 
 	if [[ "$orig_line_path" == *"mods"* ]]; then
 		# mods path type found
-		echo -e "mods path Found" #>>$LOGFILE 2>&1
+		echo -e "mods path Found" >>$LOGFILE 2>&1
 
 		# Path Middle / modlist_dr
 		if [[ "$modlist_sdcard" -eq 1 ]]; then
-			echo "Using SDCard" #>>$LOGFILE 2>&1
+			echo "Using SDCard" >>$LOGFILE 2>&1
 			drive_letter=" = D:"
-			echo "$modlist_dir" #>>$LOGFILE 2>&1
+			echo "$modlist_dir" >>$LOGFILE 2>&1
 			path_middle="${modlist_dir#*mmcblk0p1}"
 			# Strip /run/media/deck/UUID
 			if [[ "$path_middle" == /run/media/*/* ]]; then
 				path_middle="/${path_middle#*/run/media/*/*/*}"
-				echo "Path Middle after stripping: $path_middle" #>>$LOGFILE 2>&1
+				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
 			fi
 		else
 			path_middle="$modlist_dir"
 		fi
 
-		echo "Path Middle: $path_middle" #>>$LOGFILE 2>&1
+		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 
 		path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/mods/\/mods/')
-		echo "Path End: $path_end" #>>$LOGFILE 2>&1
+		echo "Path End: $path_end" >>$LOGFILE 2>&1
 		bin_path_end=$(echo "$skse_loc" | sed 's/.*\/mods/\/mods/')
-		echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+		echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
 	elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock|root/Skyrim Special Edition)" <<<"$orig_line_path"; then
 		# STOCK GAME ROOT FOUND
-		echo -e "Stock/Game Root Found" #>>$LOGFILE 2>&1
+		echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
 		# Path Middle / modlist_dr
 		if [[ "$modlist_sdcard" -eq 1 ]]; then
-			echo "Using SDCard" #>>$LOGFILE 2>&1
+			echo "Using SDCard" >>$LOGFILE 2>&1
 			drive_letter=" = D:"
-			echo "Modlist Dir: $modlist_dir" #>>$LOGFILE 2>&1
+			echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
 			path_middle="${modlist_dir#*mmcblk0p1}"
 			# Strip /run/media/deck/UUID
 			if [[ "$path_middle" == /run/media/*/* ]]; then
 				path_middle="/${path_middle#*/run/media/*/*/*}"
-				echo "Path Middle after stripping: $path_middle" #>>$LOGFILE 2>&1
+				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
 			fi
 		else
 			path_middle="$modlist_dir"
 		fi
-		echo "Path Middle: $path_middle" #>>$LOGFILE 2>&1
+		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 
 		# Get the end of our path
 		if [[ $orig_line_path =~ Stock\ Game ]]; then
 			dir_type="stockgame"
 			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Game/\/Stock Game/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game/\/Stock Game/')
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ Game\ Root ]]; then
 			dir_type="gameroot"
 			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Game Root/\/Game Root/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Game Root/\/Game Root/')
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ STOCK\ GAME ]]; then
 			dir_type="STOCKGAME"
 			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ Stock\ Folder ]]; then
 			dir_type="stockfolder"
 			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Folder/\/Stock Folder/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Folder/\/Stock Folder/')
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ Skyrim\ Stock ]]; then
 			dir_type="skyrimstock"
 			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
 			dir_type="stockgamefolder"
 			path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game Folder/\/Stock Game Folder/')
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 		elif [[ $orig_line_path =~ root\/Skyrim\ Special\ Edition ]]; then
 			dir_type="rootskyrimse"
 			path_end="/${skse_loc# }"
-			echo "Path End: $path_end" #>>$LOGFILE 2>&1
+			echo "Path End: $path_end" >>$LOGFILE 2>&1
 			bin_path_end="/${skse_loc# }"
-			echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 		fi
 
 	elif [[ "$orig_line_path" == *"steamapps"* ]]; then
 		# STEAMAPPS FOUND
-		echo -e "steamapps Found" #>>$LOGFILE 2>&1
+		echo -e "steamapps Found" >>$LOGFILE 2>&1
 
 		# Path Middle / modlist_dr
 		if [[ "$basegame_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" #>>$LOGFILE 2>&1
+			echo "Using SDCard" >>$LOGFILE 2>&1
 			path_middle="${steam_library#*mmcblk0p1}"
 			drive_letter=" = D:"
 		else
 			echo "Steamapps Steam Library Path: $steam_library"
 			path_middle=${steam_library%%steamapps*}
 		fi
-		echo "Path Middle: $path_middle" #>>$LOGFILE 2>&1
+		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 		path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/steamapps/\/steamapps/')
-		echo "Path End: $path_end" #>>$LOGFILE 2>&1
+		echo "Path End: $path_end" >>$LOGFILE 2>&1
 		bin_path_end=$(echo "$skse_loc" | sed 's/.*\/steamapps/\/steamapps/')
-		echo "Bin Path End: $bin_path_end" #>>$LOGFILE 2>&1
+		echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
 	else
-		echo "No matching pattern found in the path: $orig_line_path" #>>$LOGFILE 2>&1
+		echo "No matching pattern found in the path: $orig_line_path" >>$LOGFILE 2>&1
 		bail_out=1
-		echo $bail_out #>>$LOGFILE 2>&1
+		echo $bail_out >>$LOGFILE 2>&1
 
 	fi
 
-	echo "Bail Out: $bail_out" #>>$LOGFILE 2>&1
+	echo "Bail Out: $bail_out" >>$LOGFILE 2>&1
 
 	if [[ $bail_out -eq 1 ]]; then
-		echo "Exiting function due to bail_out" #>>$LOGFILE 2>&1
+		echo "Exiting function due to bail_out" >>$LOGFILE 2>&1
 		return
 	else
 		# Combine them all together
 		full_bin_path="$bin_path_start$drive_letter$path_middle$bin_path_end"
-		echo "Full Bin Path: $full_bin_path" #>>$LOGFILE 2>&1
+		echo "Full Bin Path: $full_bin_path" >>$LOGFILE 2>&1
 		full_path="$path_start$drive_letter$path_middle$path_end"
-		echo "Full Path: $full_path" #>>$LOGFILE 2>&1
+		echo "Full Path: $full_path" >>$LOGFILE 2>&1
 
 		# Replace forwardslashes with double backslashes
 		new_path=${full_path//\//\\\\\\\\}
-		echo "New Path: $new_path" #>>$LOGFILE 2>&1
+		echo "New Path: $new_path" >>$LOGFILE 2>&1
 
 		# Convert the lines in ModOrganizer.ini, if it isn't already
 
@@ -1302,29 +1303,28 @@ create_dxvk_file() {
 #############################
 
 protontricks_alias() {
+    if [[ "$which_protontricks" = "flatpak" ]]; then
+        local protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
+        local launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
 
-	protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
-	launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
+        if [[ -z "$protontricks_alias_exists" ]]; then
+            echo -e "\nAdding protontricks alias to ~/.bashrc"
+            echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
+            source ~/.bashrc
+        else
+            echo "protontricks alias already exists in ~/.bashrc" >> "$LOGFILE" 2>&1
+        fi
 
-	if [[ ! $protontricks_alias_exists ]]; then
-		echo -e "\nAdding protontricks alias to ~/.bashrc"
-		echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >>~/.bashrc
-
-		# source the file to make the change effective immediately
-		source ~/.bashrc
-	else
-		echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-	fi
-
-	if [[ ! $launch_alias_exists ]]; then
-		echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
-		echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >>~/.bashrc
-
-		# source the file to make the change effective immediately
-		source ~/.bashrc
-	else
-		echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-	fi
+        if [[ -z "$launch_alias_exists" ]]; then
+            echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
+            echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >> ~/.bashrc
+            source ~/.bashrc
+        else
+            echo "protontricks-launch alias already exists in ~/.bashrc" >> "$LOGFILE" 2>&1
+        fi
+    else
+        echo "Protontricks is not installed via flatpak, skipping alias creation." >> "$LOGFILE" 2>&1
+    fi
 }
 
 #####################
