@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.60 - Omni 27/02/2025                         #
+#                       Beta v0.61 - Omni 27/02/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -23,9 +23,10 @@
 # - v0.59 - Rewrite Modlist Directory and Steam Library detection mechanisms completely, utilising Steam's .vdf files, reducing ambiguity and user intput required.
 # - v0.60 - Alter protontricks alias creation to make sure flatpak protontricks is in use
 # - v0.60 - Rewrite protontricks version check to be more accurate.
+# - v0.61 - Minor tidy up of protontricks output and output displayed to user.
 
 # Current Script Version (beta)
-script_ver=0.60
+script_ver=0.61
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -525,7 +526,7 @@ install_wine_components() {
 	)
 
 	# Get the output of the protontricks command
-	output="$(run_protontricks --no-bwrap $APPID list-installed)"
+	output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 	echo "Components Found: $output" >>$LOGFILE 2>&1
 
 	# Check if each component is present in the output
@@ -544,7 +545,7 @@ install_wine_components() {
 		echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
 		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
 		echo "Done." | tee -a $LOGFILE
-		second_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		second_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $second_output" >>$LOGFILE 2>&1
 	fi
 
@@ -565,13 +566,13 @@ detect_mo2_version() {
 		cleaner_exit
 	fi
 
-	echo -ne "\nDetecting MO2 Version... " | tee -a $LOGFILE
+	echo -ne "\nDetecting MO2 Version... " >>$LOGFILE 2>&1
 
 	# Build regular expression for matching 2.5.[0-9]+
 	mo2ver=$(grep version $modlist_ini)
 	vernum=$(echo $mo2ver | awk -F "=" {'print $NF'})
 
-	echo -e "$vernum" | tee -a $LOGFILE
+	echo -e "$vernum" >>$LOGFILE 2>&1
 }
 
 ####################################
@@ -616,11 +617,11 @@ detect_proton_version() {
 
 	echo -e "Compatdata: $compat_data_path" >>$LOGFILE 2>&1
 
-	echo -ne "Detecting Proton Version:... " | tee -a $LOGFILE
+	echo -ne "Detecting Proton Version:... " >>$LOGFILE 2>&1
 
 	proton_ver=$(head -n 1 "$compat_data_path/config_info")
 
-	echo -e "$proton_ver" | tee -a $LOGFILE
+	echo -e "$proton_ver" >>$LOGFILE 2>&1
 
 }
 
@@ -631,12 +632,11 @@ detect_proton_version() {
 confirmation_before_running() {
 
 	echo "" | tee -a $LOGFILE
-	echo -e "Final Checklist:" | tee -a $LOGFILE
-	echo -e "================" | tee -a $LOGFILE
+	echo -e "Detail Checklist:" | tee -a $LOGFILE
+	echo -e "=================" | tee -a $LOGFILE
 	echo -e "Modlist: $MODLIST .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "Directory: $modlist_dir .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "Proton Version: $proton_ver .....\e[32m OK.\e[0m" | tee -a $LOGFILE
-	echo -e "MO2 Version .....\e[32m OK.\e[0m" | tee -a $LOGFILE
 	echo -e "App ID: $APPID" | tee -a $LOGFILE
 
 }
@@ -694,7 +694,7 @@ blank_downloads_dir() {
 
 replace_gamepath() {
 
-	echo "Using Steeam Library Path: $steam_library"
+	echo "Using Steam Library Path: $steam_library" >>$LOGFILE 2>&1
 	echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
 	echo -ne "\nChecking if Modlist uses Game Root, Stock Game, etc, etc.." | tee -a $LOGFILE
 	game_path_line=$(grep '^gamePath' "$modlist_ini")
@@ -1148,7 +1148,7 @@ modlist_specific_steps() {
 		fi
 
 		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 
 	fi
@@ -1172,7 +1172,7 @@ modlist_specific_steps() {
 		set_win10_prefix
 
 		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
@@ -1188,7 +1188,7 @@ modlist_specific_steps() {
 		set_win10_prefix
 
 		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
@@ -1204,7 +1204,7 @@ modlist_specific_steps() {
 		set_win10_prefix
 
 		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 
@@ -1220,7 +1220,7 @@ modlist_specific_steps() {
 		set_win10_prefix
 
 		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed)"
+		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
 		echo "Components Found: $new_output" >>$LOGFILE 2>&1
 	fi
 }
@@ -1381,7 +1381,7 @@ echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
 PS3=$'\e[31mPlease Select: \e[0m' # Set prompt for select
 select choice in "${output_array[@]}"; do
 	if [[ -n "$choice" ]]; then
-		echo "You are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
+		echo -e "\nYou are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
 		MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
 		break
 	else
