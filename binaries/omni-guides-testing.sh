@@ -4,14 +4,14 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.59 - Omni 25/02/2025                         #
+#                       Beta v0.60 - Omni 27/02/2025                         #
 #                                                                            #
 ##############################################################################
 
 # Full Changelog can be found here: https://github.com/Omni-guides/Wabbajack-Modlist-Linux/blob/main/binaries/omni-guides-sh.changelog.txt
 
 # - v0.50 - Re-enabled the protontricks workaround after discovering that SteamOS doesn't yet have access to v.1.22
-# - v0.51 - Switch to Beta as this should now be feature complete - barring modlist-specific additions in future.
+# - v0.51 - Switch to Beta as this should now be feature complete - barring minor or modlist-specific additions in future.
 # - v0.51 - Added some cleanup of wine and winetricks processes on script exit in case some rogue processes are left over.
 # - v0.52 - Added download of seguisym.ttf font file to support Bethini
 # - v0.53 - First pass at optimizing the time taken to complete the tasks. (bwrap change for protontricks commands)
@@ -20,11 +20,12 @@
 # - v0.56 - Added a check to catch a rare scenario where $APPID is not set correctly - the script will now exit rather than continuing and failing in odd ways. More work may be needed on this to find out why $APPID is empty on rare occasions
 # - v0.57 - Added handling for UUID-based SDCard/additional directory paths
 # - v0.58 - Minor correction for exit handling if APPID isn't detected
-# - v0.59 - Rewrite Modlist Directory and Steam Library detection mechanisms completely, utilising Steam's .vdf files and reducing the ambiguity and user intput required.
+# - v0.59 - Rewrite Modlist Directory and Steam Library detection mechanisms completely, utilising Steam's .vdf files, reducing ambiguity and user intput required.
 # - v0.60 - Alter protontricks alias creation to make sure flatpak protontricks is in use
+# - v0.60 - Rewrite protontricks version check to be more accurate.
 
 # Current Script Version (beta)
-script_ver=0.59
+script_ver=0.60
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -76,7 +77,7 @@ read -n 1 -s -r -p ""
 
 cleanup_wine_procs() {
 
-	# Find and kill processes containing "WabbajackProton.exe" or "renderer"
+	# Find and kill processes containing various process names
 	processes=$(pgrep -f "win7|win10|ShowDotFiles")
 	if [[ -n "$processes" ]]; then
 		echo "$processes" | xargs kill -9
@@ -133,7 +134,7 @@ detect_steamdeck() {
 detect_protontricks() {
 	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
-	# Check if "which protontricks" outputs a valid path
+	# Check if protontricks exists
 	if command -v protontricks >/dev/null 2>&1; then
 		protontricks_path=$(command -v protontricks)
 
@@ -194,20 +195,22 @@ run_protontricks() {
 ###############################
 
 protontricks_version() {
+    # Get the current version of protontricks
+    protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g')
 
-	# Get the current version of protontricks
-	protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
+    # Remove any non-numeric characters from the version number
+    protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
 
-	# Remove any non-numeric characters from the version number
-	protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
+    echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >> "$LOGFILE" 2>&1
 
-	echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >>$LOGFILE 2>&1
+    # Split the version into digits
+    IFS='.' read -r first_digit second_digit third_digit <<< "$protontricks_version_cleaned"
 
-	# Compare version strings directly using simple string comparison
-	if [[ "$protontricks_version_cleaned" < "1.11" ]]; then
-		echo "Your protontricks version is too old! Update to version 1.12 or newer and rerun this script. If 'flatpak run com.github.Matoking.protontricks -V' returns 'unknown', then please update via flatpak." | tee -a $LOGFILE
-		cleaner_exit
-	fi
+    # Check if the second digit is defined and greater than or equal to 12
+    if [[ -n "$second_digit" && "$second_digit" -lt 12 ]]; then
+        echo "Your protontricks version is too old! Update to version 1.12 or newer and rerun this script. If 'flatpak run com.github.Matoking.protontricks -V' returns 'unknown', then please update via flatpak." | tee -a "$LOGFILE"
+        cleaner_exit
+    fi
 }
 
 #######################################
@@ -255,7 +258,6 @@ detect_game() {
 ###################################
 
 detect_steam_library() {
-	#local steam_library
 
 	local libraryfolders_vdf="$HOME/.steam/steam/config/libraryfolders.vdf"
 
@@ -279,10 +281,10 @@ detect_steam_library() {
 		if [[ -d "$library_path/$gamevar" ]]; then
 			steam_library="$library_path"
 			found=1
-			echo "Found '$gamevar' in $steam_library." | tee -a "$LOGFILE"
+			echo "Found '$gamevar' in $steam_library." >>$LOGFILE 2>&1
 			break
 		else
-			echo "Checking $library_path: '$gamevar' not found." | tee -a "$LOGFILE"
+			echo "Checking $library_path: '$gamevar' not found." >>$LOGFILE 2>&1
 		fi
 	done
 
@@ -298,7 +300,7 @@ detect_steam_library() {
 			if [[ -d "$steam_library_input/$gamevar" ]]; then
 				steam_library="$steam_library_input"
 				echo "Found $gamevar in $steam_library_input." | tee -a "$LOGFILE"
-				echo "Steam Library set to: $steam_library" | tee -a "$LOGFILE"
+				echo "Steam Library set to: $steam_library" >>$LOGFILE 2>&1
 				break
 			else
 				echo "Game not found in $steam_library_input. Please enter a valid path to Vanilla $gamevar." | tee -a "$LOGFILE"
@@ -306,7 +308,7 @@ detect_steam_library() {
 		done
 	fi
 
-	echo "Steam Library Location: $steam_library" | tee -a "$LOGFILE"
+	echo "Steam Library Location: $steam_library" >>$LOGFILE 2>&1
 
 	if [[ "$steamdeck" -eq 1 && "$steam_library" == "/run/media"* ]]; then
 		basegame_sdcard=1
@@ -340,7 +342,7 @@ detect_modlist_dir_path() {
 
 		if [[ -z "$all_modlist_entries" ]]; then
 			echo "No ModOrganizer.exe entries found in shortcuts.vdf."
-			return 1 # Indicate failure
+			return 1 # fail out
 		fi
 
 		local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
@@ -409,12 +411,12 @@ detect_modlist_dir_path() {
 	# Check if ModOrganizer.ini exists
 	if [[ -f "$modlist_ini_temp" ]]; then
 		modlist_ini="$modlist_ini_temp"
-		echo "Modlist directory: $modlist_dir"
-		echo "Modlist INI location: $modlist_ini"
-		return 0 # Indicate success
+		echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
+		echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
+		return 0
 	else
 		echo "ModOrganizer.ini not found in $modlist_dir"
-		return 1 #Indicate Failure.
+		return 1 # fail our
 	fi
 }
 
@@ -530,7 +532,7 @@ install_wine_components() {
 	all_found=true
 	for component in "${components[@]}"; do
 		if ! grep -q "$component" <<<"$output"; then
-			echo "Component $component not found."
+			echo "Component $component not found." | tee -a $LOGFILE
 			all_found=false
 		fi
 	done
@@ -544,33 +546,6 @@ install_wine_components() {
 		echo "Done." | tee -a $LOGFILE
 		second_output="$(run_protontricks --no-bwrap $APPID list-installed)"
 		echo "Components Found: $second_output" >>$LOGFILE 2>&1
-	fi
-
-}
-
-######################
-# MO2 Version Check  #
-######################
-
-mo2_version_check() {
-
-	detect_mo2_version
-
-	detect_proton_version
-
-	if [[ "$proton_ver" == *"9."* ]] || [[ "$proton_ver" == "GE-Proton9"* ]]; then
-
-		echo "Proton 9 detected... should be fine.." >>$LOGFILE 2>&1
-
-	elif [[ $mo2ver = *2.5* ]]; then
-		#echo  $vernum | tee -a $LOGFILE
-		echo -e "\nError: Unsupported MO2 version" | tee -a $LOGFILE
-		echo "" | tee -a $LOGFILE
-		# Ask the user for input
-		echo "WARNING: ModOrganizer 2.5 detected along with incompatible Proton version. Please change the Proton version to 9.* in the compatibility tab of the properties on Steam" | tee -a $LOGFILE
-		cleaner_exit
-	else
-		echo -ne $vernum | tee -a $LOGFILE
 	fi
 
 }
@@ -1458,8 +1433,6 @@ if [[ $response =~ ^[Yy]$ ]]; then
 		cleaner_exit
 	fi
 
-	#modlist_dir="/run/media/blah"
-
 	# Set modlist_sdcard if required
 	if [[ $modlist_dir == "/run/media"* ]]; then
 		modlist_sdcard=1
@@ -1560,7 +1533,7 @@ if [[ $response =~ ^[Yy]$ ]]; then
 	# Check Swap Space (Deck) #
 	###########################
 
-	check_swap_space
+	#check_swap_space
 
 	##########################
 	# Modlist Specific Steps #
