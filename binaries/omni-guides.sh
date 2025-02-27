@@ -1416,29 +1416,31 @@ create_dxvk_file() {
 
 protontricks_alias() {
 
-		protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
-		launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
-
-		if [[ ! $protontricks_alias_exists ]]; then
-			echo -e "\nAdding protontricks alias to ~/.bashrc"
-			echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
-
-			# source the file to make the change effective immediately
-			source ~/.bashrc
-		else
-			echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-		fi
-
-		if [[ ! $launch_alias_exists ]]; then
-			echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
-			echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >> ~/.bashrc
-
-			# source the file to make the change effective immediately
-			source ~/.bashrc
-		else
-			echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
-		fi
-}
+if [[ "$which_protontricks" = "flatpak" ]]; then
++		protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
++		launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
++
++		if [[ ! $protontricks_alias_exists ]]; then
++			echo -e "\nAdding protontricks alias to ~/.bashrc"
++			echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >>~/.bashrc
++
++			# source the file to make the change effective immediately
++			source ~/.bashrc
++		else
++			echo "protontricks alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
++		fi
++
++		if [[ ! $launch_alias_exists ]]; then
++			echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
++			echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >>~/.bashrc
++
++			# source the file to make the change effective immediately
++			source ~/.bashrc
++		else
++			echo "protontricks-launch alias already exists in ~/.bashrc" >>$LOGFILE 2>&1
++		fi
++	fi
+ }
 
 #####################
 # Exit more cleanly #
