@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.61 - Omni 27/02/2025                         #
+#                       Beta v0.62 - Omni 03/03/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -24,9 +24,10 @@
 # - v0.60 - Alter protontricks alias creation to make sure flatpak protontricks is in use
 # - v0.60 - Rewrite protontricks version check to be more accurate.
 # - v0.61 - Minor tidy up of protontricks output and output displayed to user.
+# - v0.62 - Added initial support for Fallout New Vegas modlsits (tested with Begin Again so far)
 
 # Current Script Version (beta)
-script_ver=0.61
+script_ver=0.62
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -219,39 +220,80 @@ protontricks_version() {
 #######################################
 
 detect_game() {
-	# Try to decide if Skyrim or Fallout
-	if [[ $choice == *"Skyrim"* ]]; then
-		gamevar="Skyrim Special Edition"
-		which_game="${gamevar%% *}"
-		echo "Game variable set to $which_game." >>$LOGFILE 2>&1
-	elif [[ $choice == *"Fallout"* ]]; then
-		gamevar="Fallout 4"
-		which_game="${gamevar%% *}"
-		echo "Game variable set to $which_game." >>$LOGFILE 2>&1
-	else
-		PS3="Please select a game (enter the number): "
-		options=("Skyrim" "Fallout")
+    # Try to decide if Skyrim, Fallout, Oblivion, or Fallout New Vegas/FNV
+    if [[ $choice == *"Skyrim"* ]]; then
+        gamevar="Skyrim Special Edition"
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+    elif [[ $choice == *"Fallout 4"* ]]; then
+        gamevar="Fallout 4"
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+    elif [[ $choice == *"Fallout New Vegas"* ]] || [[ $choice == *"FNV"* ]]; then
+        gamevar="Fallout New Vegas"
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+    elif [[ $choice == *"Oblivion"* ]]; then
+        gamevar="Oblivion"
+        which_game="${gamevar%% *}"
+        echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+    elif [[ $choice == *"Fallout"* ]]; then
+        #handle generic fallout, if no specific fallout is selected.
+        PS3="Please select a Fallout game (enter the number): "
+        fallout_options=("Fallout 4" "Fallout New Vegas")
+        select fallout_opt in "${fallout_options[@]}"; do
+            case $fallout_opt in
+            "Fallout 4")
+                gamevar="Fallout 4"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+                ;;
+            "Fallout New Vegas")
+                gamevar="Fallout New Vegas"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+                ;;
+            *) echo "Invalid option" ;;
+            esac
+        done
+    else
+        PS3="Please select a game (enter the number): "
+        options=("Skyrim" "Fallout 4" "Fallout New Vegas" "Oblivion")
 
-		select opt in "${options[@]}"; do
-			case $opt in
-			"Skyrim")
-				gamevar="Skyrim Special Edition"
-				which_game="${gamevar%% *}"
-				echo "Game variable set to $which_game." >>$LOGFILE 2>&1
-				break
-				;;
-			"Fallout")
-				gamevar="Fallout 4"
-				which_game="${gamevar%% *}"
-				echo "Game variable set to $which_game." >>$LOGFILE 2>&1
-				break
-				;;
-			*) echo "Invalid option" ;;
-			esac
-		done
-	fi
+        select opt in "${options[@]}"; do
+            case $opt in
+            "Skyrim")
+                gamevar="Skyrim Special Edition"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+                ;;
+            "Fallout 4")
+                gamevar="Fallout 4"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+                ;;
+            "Fallout New Vegas")
+                gamevar="Fallout New Vegas"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+            ;;
+            "Oblivion")
+                gamevar="Oblivion"
+                which_game="${gamevar%% *}"
+                echo "Game variable set to $which_game." >>"$LOGFILE" 2>&1
+                break
+                ;;
+            *) echo "Invalid option" ;;
+            esac
+        done
+    fi
 
-	echo "Game variable: $gamevar" >>$LOGFILE 2>&1
+    echo "Game variable: $gamevar" >>"$LOGFILE" 2>&1
 }
 
 ###################################
@@ -486,68 +528,98 @@ set_win10_prefix() {
 
 install_wine_components() {
 
-	echo -e "\nInstalling Wine Components and VCRedist 2022... This can take some time, be patient!" | tee -a $LOGFILE
+    echo -e "\nInstalling Wine Components... This can take some time, be patient!" | tee -a "$LOGFILE"
 
-	spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-	run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
+    spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local protontricks_components
+    local components
+    local protontricks_appid="$APPID" #default to previously detected appid
 
-	pid=$! # Store the PID of the background process
+    if [[ "$gamevar" == "Skyrim Special Edition" ]] || [[ "$gamevar" == "Fallout 4" ]]; then
+        protontricks_components="xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7"
+        components=(
+            "xact"
+            "xact_x64"
+            "d3dcompiler_47"
+            "d3dx11_43"
+            "d3dcompiler_43"
+            "vcrun2022"
+            "dotnet6"
+            "dotnet7"
+        )
+    elif [[ "$gamevar" == "Fallout New Vegas" ]]; then
+        protontricks_components="fontsmooth=rgb xact xact_x64 d3dx9_43 d3dx9 vcrun2022"
+        components=(
+            "fontsmooth=rgb"
+            "xact"
+            "xact_x64"
+            "d3dx9_43"
+            "d3dx9"
+            "vcrun2022"
+        )
+        protontricks_appid="22380" #force appid to 22380 for FNV protontricks
+    elif [[ "$gamevar" == "Oblivion" ]]; then
+        protontricks_components="fontsmooth=rgb xact xact_x64 d3dx9_43 d3dx9 vcrun2022"
+        components=(
+            "fontsmooth=rgb"
+            "xact"
+            "xact_x64"
+            "d3dx9_43"
+            "d3dx9"
+            "vcrun2022"
+        )
+    else
+        echo "Unsupported game: $gamevar" | tee -a "$LOGFILE"
+        return 1
+    fi
 
-	while kill -0 $pid >/dev/null 2>&1; do
-		for i in "${spinner[@]}"; do
-			echo -en "\r${i}\c"
-			sleep 0.1
-		done
-	done
+    run_protontricks "$protontricks_appid" -q $protontricks_components >/dev/null 2>&1 &
 
-	wait $pid # Wait for the process to finish
+    pid=$! # Store the PID of the background process
 
-	# Clear the spinner and move to the next line
-	echo -en "\r\033[K" # Clear the spinner line
+    while kill -0 "$pid" >/dev/null 2>&1; do
+        for i in "${spinner[@]}"; do
+            echo -en "\r${i}\c"
+            sleep 0.1
+        done
+    done
 
-	if [[ $? -ne 0 ]]; then # Check for non-zero exit code (error)
-		echo -e "\nError: Component install failed with exit code $?" | tee -a $LOGFILE
-	else
-		echo -e "\nWine Component install completed successfully." | tee -a $LOGFILE
-	fi
+    wait "$pid" # Wait for the process to finish
 
-	# Double check they actually installed
+    # Clear the spinner and move to the next line
+    echo -en "\r\033[K" # Clear the spinner line
 
-	# List of components to check for
-	components=(
-		"xact"
-		"xact_x64"
-		"d3dcompiler_47"
-		"d3dx11_43"
-		"d3dcompiler_43"
-		"vcrun2022"
-		"dotnet6"
-		"dotnet7"
-	)
+    if [[ $? -ne 0 ]]; then # Check for non-zero exit code (error)
+        echo -e "\nError: Component install failed with exit code $?" | tee -a "$LOGFILE"
+    else
+        echo -e "\nWine Component install completed successfully." | tee -a "$LOGFILE"
+    fi
 
-	# Get the output of the protontricks command
-	output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-	echo "Components Found: $output" >>$LOGFILE 2>&1
+    # Double check they actually installed
 
-	# Check if each component is present in the output
-	all_found=true
-	for component in "${components[@]}"; do
-		if ! grep -q "$component" <<<"$output"; then
-			echo "Component $component not found." | tee -a $LOGFILE
-			all_found=false
-		fi
-	done
+    # Get the output of the protontricks command
+    output="$(run_protontricks --no-bwrap "$protontricks_appid" list-installed 2>/dev/null)"
+    echo "Components Found: $output" >>"$LOGFILE" 2>&1
 
-	# Display a summary message
-	if [[ $all_found == true ]]; then
-		echo "All required components found." >>$LOGFILE 2>&1
-	else
-		echo -ne "\nSome required components are missing, retrying install..." | tee -a $LOGFILE
-		run_protontricks $APPID -q xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7 >/dev/null 2>&1 &
-		echo "Done." | tee -a $LOGFILE
-		second_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $second_output" >>$LOGFILE 2>&1
-	fi
+    # Check if each component is present in the output
+    all_found=true
+    for component in "${components[@]}"; do
+        if ! grep -q "$component" <<<"$output"; then
+            echo "Component $component not found." | tee -a "$LOGFILE"
+            all_found=false
+        fi
+    done
+
+    # Display a summary message
+    if [[ $all_found == true ]]; then
+        echo "All required components found." >>"$LOGFILE" 2>&1
+    else
+        echo -ne "\nSome required components are missing, retrying install..." | tee -a "$LOGFILE"
+        run_protontricks "$protontricks_appid" -q "$protontricks_components" >/dev/null 2>&1 &
+        echo "Done." | tee -a "$LOGFILE"
+        second_output="$(run_protontricks --no-bwrap "$protontricks_appid" list-installed 2>/dev/null)"
+        echo "Components Found: $second_output" >>"$LOGFILE" 2>&1
+    fi
 
 }
 
@@ -581,32 +653,39 @@ detect_mo2_version() {
 
 detect_compatdata_path() {
 
-	# Check common Steam library locations first
-	for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
-		if [[ -d "$path/$APPID" ]]; then
-			compat_data_path="$path/$APPID"
-			echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
-			break
-		fi
-	done
+    #local compat_data_path=""
+    local appid_to_check="$APPID" #default to previously detected appid
 
-	# If not found in common locations, use find command
-	if [[ -z "$compat_data_path" ]]; then
-		find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
-			if [[ -d "$compatdata_dir/$APPID" ]]; then
-				compat_data_path="$compatdata_dir/$appid"
-				echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
-				break
-			fi
-		done
-	fi
+    if [[ "$gamevar" == "Fallout New Vegas" ]]; then
+        appid_to_check="22380"
+    fi
 
-	if [[ -z "$compat_data_path" ]]; then
-		echo "Directory named '$APPID' not found in any compatdata directories."
-		echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
-	else
-		echo "Found compatdata directory with '$APPID': $compat_data_path" >>$LOGFILE 2>&1
-	fi
+    # Check common Steam library locations first
+    for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
+        if [[ -d "$path/$appid_to_check" ]]; then
+            compat_data_path="$path/$appid_to_check"
+            echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
+            break
+        fi
+    done
+
+    # If not found in common locations, use find command
+    if [[ -z "$compat_data_path" ]]; then
+        find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
+            if [[ -d "$compatdata_dir/$appid_to_check" ]]; then
+                compat_data_path="$compatdata_dir/$appid_to_check"
+                echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$compat_data_path" ]]; then
+        echo "Directory named '$appid_to_check' not found in any compatdata directories."
+        echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
+    else
+        echo "Found compatdata directory with '$appid_to_check': $compat_data_path" >>"$LOGFILE" 2>&1
+    fi
 }
 
 #########################
@@ -996,55 +1075,64 @@ select_resolution() {
 
 update_ini_resolution() {
 
-	echo -ne "\nEditing Resolution in prefs files... " | tee -a $LOGFILE
+    echo -ne "\nEditing Resolution in prefs files... " | tee -a "$LOGFILE"
 
-	# Find all SSEDisplayTweaks.ini files in the specified directory and its subdirectories
-	ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
+    # Find all SSEDisplayTweaks.ini files in the specified directory and its subdirectories
+    ini_files=$(find "$modlist_dir" -name "SSEDisplayTweaks.ini")
 
-	if [[ $gamevar == "Skyrim Special Edition" && -n "$ini_files" ]]; then
-		while IFS= read -r ini_file; do
-			# Use awk to replace the lines with the new values, handling spaces in paths
-			awk -v res="$set_res" '/^(#?)Resolution[[:space:]]*=/ { print "Resolution=" res; next } \
-                               /^(#?)Fullscreen[[:space:]]*=/ { print "Fullscreen=false"; next } \
-                               /^(#?)#Fullscreen[[:space:]]*=/ { print "#Fullscreen=false"; next } \
-                               /^(#?)Borderless[[:space:]]*=/ { print "Borderless=true"; next } \
-                               /^(#?)#Borderless[[:space:]]*=/ { print "#Borderless=true"; next }1' "$ini_file" >"$ini_file.new"
+    if [[ "$gamevar" == "Skyrim Special Edition" && -n "$ini_files" ]]; then
+        while IFS= read -r ini_file; do
+            # Use awk to replace the lines with the new values, handling spaces in paths
+            awk -v res="$set_res" '/^(#?)Resolution[[:space:]]*=/ { print "Resolution=" res; next } \
+                                    /^(#?)Fullscreen[[:space:]]*=/ { print "Fullscreen=false"; next } \
+                                    /^(#?)#Fullscreen[[:space:]]*=/ { print "#Fullscreen=false"; next } \
+                                    /^(#?)Borderless[[:space:]]*=/ { print "Borderless=true"; next } \
+                                    /^(#?)#Borderless[[:space:]]*=/ { print "#Borderless=true"; next }1' "$ini_file" >"$ini_file.new"
 
-			cp "$ini_file.new" "$ini_file"
-			echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>$LOGFILE 2>&1
-			echo -e " Done." >>$LOGFILE 2>&1
-		done <<<"$ini_files"
-	elif [[ $gamevar == "Fallout 4" ]]; then
-		echo "Not Skyrim, skipping SSEDisplayTweaks" >>$LOGFILE 2>&1
-	fi
+            cp "$ini_file.new" "$ini_file"
+            echo "Updated $ini_file with Resolution=$set_res, Fullscreen=false, Borderless=true" >>"$LOGFILE" 2>&1
+            echo -e " Done." >>"$LOGFILE" 2>&1
+        done <<<"$ini_files"
+    elif [[ "$gamevar" == "Fallout 4" ]]; then
+        echo "Not Skyrim, skipping SSEDisplayTweaks" >>"$LOGFILE" 2>&1
+    fi
 
-	##########
+    ##########
 
-	# Split $set_res into two variables
-	isize_w=$(echo "$set_res" | cut -d'x' -f1)
-	isize_h=$(echo "$set_res" | cut -d'x' -f2)
+    # Split $set_res into two variables
+    isize_w=$(echo "$set_res" | cut -d'x' -f1)
+    isize_h=$(echo "$set_res" | cut -d'x' -f2)
 
-	# Find all instances of skyrimprefs.ini or Fallout4Prefs.ini in specified directories
+    # Find all instances of skyrimprefs.ini, Fallout4Prefs.ini, falloutprefs.ini, or Oblivion.ini in specified directories
 
-	if [[ $gamevar == "Skyrim Special Edition" ]]; then
-		ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" "$modlist_dir/Skyrim Stock" -iname "skyrimprefs.ini" 2>/dev/null)
-	elif [[ $gamevar == "Fallout 4" ]]; then
-		ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
-	fi
+    if [[ "$gamevar" == "Skyrim Special Edition" ]]; then
+        ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" "$modlist_dir/Skyrim Stock" -iname "skyrimprefs.ini" 2>/dev/null)
+    elif [[ "$gamevar" == "Fallout 4" ]]; then
+        ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "Fallout4Prefs.ini" 2>/dev/null)
+    elif [[ "$gamevar" == "Fallout New Vegas" ]]; then
+        ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "falloutprefs.ini" 2>/dev/null)
+    elif [[ "$gamevar" == "Oblivion" ]]; then
+        ini_files=$(find "$modlist_dir/profiles" "$modlist_dir/Stock Game" "$modlist_dir/Game Root" "$modlist_dir/STOCK GAME" "$modlist_dir/Stock Game Folder" "$modlist_dir/Stock Folder" -iname "Oblivion.ini" 2>/dev/null)
+    fi
 
-	if [ -n "$ini_files" ]; then
-		while IFS= read -r ini_file; do
-			# Use awk to replace the lines with the new values in skyrimprefs.ini
-			awk -v isize_w="$isize_w" -v isize_h="$isize_h" '/^iSize W/ { print "iSize W = " isize_w; next } \
-                                                           /^iSize H/ { print "iSize H = " isize_h; next }1' "$ini_file" >$HOME/temp_file && mv $HOME/temp_file "$ini_file"
+    if [ -n "$ini_files" ]; then
+        while IFS= read -r ini_file; do
+            # Use awk to replace the lines with the new values in the appropriate ini file
+            if [[ "$gamevar" == "Skyrim Special Edition" ]] || [[ "$gamevar" == "Fallout 4" ]] || [[ "$gamevar" == "Fallout New Vegas" ]]; then
+                awk -v isize_w="$isize_w" -v isize_h="$isize_h" '/^iSize W/ { print "iSize W = " isize_w; next } \
+                                                                    /^iSize H/ { print "iSize H = " isize_h; next }1' "$ini_file" >"$HOME/temp_file" && mv "$HOME/temp_file" "$ini_file"
+            elif [[ "$gamevar" == "Oblivion" ]]; then
+                awk -v isize_w="$isize_w" -v isize_h="$isize_h" '/^iSize W=/ { print "iSize W=" isize_w; next } \
+                                                                    /^iSize H=/ { print "iSize H=" isize_h; next }1' "$ini_file" >"$HOME/temp_file" && mv "$HOME/temp_file" "$ini_file"
+            fi
 
-			echo "Updated $ini_file with iSize W=$isize_w, iSize H=$isize_h" >>$LOGFILE 2>&1
-		done <<<"$ini_files"
-	else
-		echo "No suitable prefs.ini files found in specified directories. Please set manually in skyrimprefs.ini or Fallout4Prefs.ini using the INI Editor in MO2." | tee -a $LOGFILE
-	fi
+            echo "Updated $ini_file with iSize W=$isize_w, iSize H=$isize_h" >>"$LOGFILE" 2>&1
+        done <<<"$ini_files"
+    else
+        echo "No suitable prefs.ini files found in specified directories. Please set manually using the INI Editor in MO2." | tee -a "$LOGFILE"
+    fi
 
-	echo -e "Done." | tee -a $LOGFILE
+    echo -e "Done." | tee -a "$LOGFILE"
 
 }
 
@@ -1302,6 +1390,44 @@ protontricks_alias() {
     fi
 }
 
+############################
+# FNV Launch Option Notice #
+############################
+
+fnv_launch_options() {
+    if [[ "$gamevar" == "Fallout New Vegas" ]]; then
+        #local compat_data_path=""
+        #local appid_to_check="22380"
+
+        # Check common Steam library locations first
+        for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
+            if [[ -d "$path/$appid_to_check" ]]; then
+                compat_data_path="$path/$appid_to_check"
+                break
+            fi
+        done
+
+        # If not found in common locations, use find command
+        #if [[ -z "$compat_data_path" ]]; then
+        #    find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
+        #        if [[ -d "$compatdata_dir/$appid_to_check" ]]; then
+        #            compat_data_path="$compatdata_dir/$appid_to_check"
+        #            break
+        #        fi
+        #    done
+        #fi
+
+        if [[ -n "$compat_data_path" ]]; then
+            echo -e "\e[31m \n***For $MODLIST, please add the following line to the Launch Options in Steam for your '$MODLIST' entry:*** \e[0m"
+            echo -e "\e[32m \nSTEAM_COMPAT_DATA_PATH=\"$compat_data_path/22380\" %command% \e[0m"
+            echo -e "\e[31m \nThis is essential for the modlist to load correctly. \e[0m"
+        else
+            echo -e "\nCould not determine the compatdata path for Fallout New Vegas. Please manually set the correct path in the Launch Options."
+        fi
+    fi
+}
+
+
 #####################
 # Exit more cleanly #
 #####################
@@ -1364,11 +1490,11 @@ protontricks_alias
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
 ##############################################################
 
-IFS=$'\n' readarray -t output_array < <(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout' | cut -d ' ' -f 3-)
+IFS=$'\n' readarray -t output_array < <(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout\|FNV\|Oblivion' | cut -d ' ' -f 3-)
 
 if [[ ${#output_array[@]} -eq 0 ]]; then
 	echo "" | tee -a $LOGFILE
-	echo -e "\e[31mError: No modlists detected for Skyrim or Fallout!\e[0m"
+	echo -e "\e[31mError: No modlists detected for Skyrim, Oblivion or Fallout/FNV!\e[0m"
 	echo -e "\nPlease make sure your entry in Steam is something like 'Skyrim - ModlistName'"
 	echo -e "or 'Fallout - ModlistName' AND that you have pressed play in Steam at least once!" | tee -a $LOGFILE
 	cleaner_exit
@@ -1540,6 +1666,12 @@ if [[ $response =~ ^[Yy]$ ]]; then
 	##########################
 
 	modlist_specific_steps
+
+	############################
+	# FNV Launch Option Notice #
+	############################
+
+	fnv_launch_options
 
 	############
 	# Finished #
