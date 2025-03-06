@@ -380,7 +380,7 @@ detect_modlist_dir_path() {
     # Find all entries with ModOrganizer.exe and similar $MODLIST matches
     modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
 
-    echo "Modlist entries found in shortcuts.vdf: $modlist_entries" >>$LOGFILE 2>&1
+    echo "Modlist entries found in shortcuts.vdf: \"$modlist_entries\"" >>$LOGFILE 2>&1
 
     if [[ -z "$modlist_entries" ]]; then
         echo "No ModOrganizer.exe entries found named similar to $MODLIST in shortcuts.vdf."
@@ -453,12 +453,12 @@ detect_modlist_dir_path() {
             local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
             modlist_dir=$(dirname "$path")
             modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-        else
-            # Single matching entry
-            local path=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | tr -d '"')
-            modlist_dir=$(dirname "$path")
-            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-        fi
+       else
+    # Single matching entry
+    local path="$modlist_entries" # Use the variable directly
+    modlist_dir=$(dirname "$path")
+    modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+fi
     fi
 
     # Check if ModOrganizer.ini exists
