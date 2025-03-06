@@ -366,7 +366,7 @@ detect_steam_library() {
 #################################
 
 detect_modlist_dir_path() {
-    echo -e "Detecting $MODLIST Install Directory.." | tee -a $LOGFILE
+    echo -e "Detecting $MODLIST Install Directory.." | tee -a "$LOGFILE"
     local modlist_entries
     local selected_entry
     local modlist_ini_temp
@@ -375,12 +375,12 @@ detect_modlist_dir_path() {
     # Create a grep pattern for similar matches
     modlist_grep_pattern=$(echo "$MODLIST" | sed 's/ /.*\|/g') #Replace spaces with ".*|"
     modlist_grep_pattern=".*${modlist_grep_pattern}.*"          # Add wildcards to start and end.
-    echo "modlist_grep_pattern: $modlist_grep_pattern" >>$LOGFILE 2>&1
+    echo "modlist_grep_pattern: $modlist_grep_pattern" >>"$LOGFILE" 2>&1
 
     # Find all entries with ModOrganizer.exe and similar $MODLIST matches
     modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
 
-    echo "Modlist entries found in shortcuts.vdf: \"$modlist_entries\"" >>$LOGFILE 2>&1
+    echo "Modlist entries found in shortcuts.vdf: \"$modlist_entries\"" >>"$LOGFILE" 2>&1
 
     if [[ -z "$modlist_entries" ]]; then
         echo "No ModOrganizer.exe entries found named similar to $MODLIST in shortcuts.vdf."
@@ -396,6 +396,9 @@ detect_modlist_dir_path() {
         local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
         if [[ "$entry_count_all" -eq 1 ]]; then
             local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | tr -d '"' | xargs dirname)
+            if [[ -z "$path" ]]; then
+                path=$(echo "$all_modlist_entries" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+            fi
             read -p "Use ModOrganizer directory: $path? (y/n): " confirm
             if [[ "$confirm" == "y" ]]; then
                 modlist_dir="$path"
@@ -407,6 +410,9 @@ detect_modlist_dir_path() {
             local i=1
             while IFS= read -r entry; do
                 local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
+                if [[ -z "$path" ]]; then
+                    path=$(echo "$entry" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+                fi
                 path=$(dirname "$path")
                 echo "$i) $path"
                 ((i++))
@@ -423,6 +429,9 @@ detect_modlist_dir_path() {
             # Extract the selected entry
             local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
             local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
+            if [[ -z "$path" ]]; then
+                path=$(echo "$selected_line" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+            fi
             modlist_dir=$(dirname "$path")
             modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
         fi
@@ -435,6 +444,9 @@ detect_modlist_dir_path() {
             local i=1
             while IFS= read -r entry; do
                 local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
+                if [[ -z "$path" ]]; then
+                    path=$(echo "$entry" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+                fi
                 path=$(dirname "$path")
                 echo "$i) $path"
                 ((i++))
@@ -451,21 +463,27 @@ detect_modlist_dir_path() {
             # Extract the selected entry
             local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
             local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
+            if [[ -z "$path" ]]; then
+                path=$(echo "$selected_line" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+            fi
             modlist_dir=$(dirname "$path")
             modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-       else
-    # Single matching entry
-    local path="$modlist_entries" # Use the variable directly
-    modlist_dir=$(dirname "$path")
-    modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-fi
+        else
+            # Single matching entry
+            local path=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | tr -d '"')
+            if [[ -z "$path" ]]; then
+                path=$(echo "$modlist_entries" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
+            fi
+            modlist_dir=$(dirname "$path")
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        fi
     fi
 
     # Check if ModOrganizer.ini exists
     if [[ -f "$modlist_ini_temp" ]]; then
         modlist_ini="$modlist_ini_temp"
-        echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
-        echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
+        echo "Modlist directory: $modlist_dir" >>"$LOGFILE" 2>&1
+        echo "Modlist INI location: $modlist_ini" >>"$LOGFILE" 2>&1
         return 0
     else
         echo "ModOrganizer.ini not found in $modlist_dir"
