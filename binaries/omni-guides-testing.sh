@@ -395,13 +395,11 @@ detect_modlist_dir_path() {
 
         local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
         if [[ "$entry_count_all" -eq 1 ]]; then
-            local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | tr -d '"' | xargs dirname)
-            if [[ -z "$path" ]]; then
-                path=$(echo "$all_modlist_entries" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-            fi
-            read -p "Use ModOrganizer directory: $path? (y/n): " confirm
+            local path=$(echo "$all_modlist_entries" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
+            modlist_dir=$(dirname "$path")
+            modlist_dir="$modlist_dir/"
+            read -p "Use ModOrganizer directory: $modlist_dir? (y/n): " confirm
             if [[ "$confirm" == "y" ]]; then
-                modlist_dir="$path"
                 modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
             else
                 return 1 # user declined, fail.
@@ -409,12 +407,10 @@ detect_modlist_dir_path() {
         else
             local i=1
             while IFS= read -r entry; do
-                local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
-                if [[ -z "$path" ]]; then
-                    path=$(echo "$entry" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-                fi
-                path=$(dirname "$path")
-                echo "$i) $path"
+                local path=$(echo "$entry" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
+                modlist_dir=$(dirname "$path")
+                modlist_dir="$modlist_dir/"
+                echo "$i) $modlist_dir"
                 ((i++))
             done <<<"$all_modlist_entries"
 
@@ -428,56 +424,20 @@ detect_modlist_dir_path() {
 
             # Extract the selected entry
             local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
-            local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
-            if [[ -z "$path" ]]; then
-                path=$(echo "$selected_line" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-            fi
+            local path=$(echo "$selected_line" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
             modlist_dir=$(dirname "$path")
+            modlist_dir="$modlist_dir/"
             modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
         fi
 
-    else
-        # Matching entries found
-        local entry_count=$(echo "$modlist_entries" | wc -l)
-        if [[ "$entry_count" -gt 1 ]]; then
-            echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
-            local i=1
-            while IFS= read -r entry; do
-                local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
-                if [[ -z "$path" ]]; then
-                    path=$(echo "$entry" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-                fi
-                path=$(dirname "$path")
-                echo "$i) $path"
-                ((i++))
-            done <<<"$modlist_entries"
-
-            # Prompt user to select an entry
-            read -p "Enter the number of the desired entry: " selected_entry
-
-            if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
-                echo "Invalid selection."
-                return 1 # Indicate failure
-            fi
-
-            # Extract the selected entry
-            local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
-            local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
-            if [[ -z "$path" ]]; then
-                path=$(echo "$selected_line" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-            fi
-            modlist_dir=$(dirname "$path")
-            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-        else
-            # Single matching entry
-            local path=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | tr -d '"')
-            if [[ -z "$path" ]]; then
-                path=$(echo "$modlist_entries" | grep -oE '[^"]*ModOrganizer.exe' | sed 's/ModOrganizer.exe//')
-            fi
-            modlist_dir=$(dirname "$path")
-            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-        fi
-    fi
+else
+    # Single matching entry
+    path="$modlist_entries" # Use the variable directly
+    path="${path//\"/}" # Remove all double quotes
+    path="${path//\'/}" # Remove all single quotes
+    modlist_dir=$(dirname "$path")
+    modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+fi
 
     # Check if ModOrganizer.ini exists
     if [[ -f "$modlist_ini_temp" ]]; then
