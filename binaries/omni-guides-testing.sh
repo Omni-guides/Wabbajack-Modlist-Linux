@@ -4,7 +4,7 @@
 #                                                                            #
 # Attempt to automate as many of the steps for modlists on Linux as possible #
 #                                                                            #
-#                       Beta v0.62 - Omni 03/03/2025                         #
+#                       Beta v0.63 - Omni 03/03/2025                         #
 #                                                                            #
 ##############################################################################
 
@@ -24,10 +24,12 @@
 # - v0.60 - Alter protontricks alias creation to make sure flatpak protontricks is in use
 # - v0.60 - Rewrite protontricks version check to be more accurate.
 # - v0.61 - Minor tidy up of protontricks output and output displayed to user.
-# - v0.62 - Added initial support for Fallout New Vegas modlsits (tested with Begin Again so far)
+# - v0.62 - Added initial support for Fallout New Vegas modlsits (tested with Begin Again so far).
+# - v0.63 - Added handling for spaces in the modlist directory name.
+# - v0.63 - Added initial attempt at handling failed protontricks wine component install, now attempts to retry..
 
 # Current Script Version (beta)
-script_ver=0.62
+script_ver=0.63
 
 # Set up and blank logs
 LOGFILE=$HOME/omni-guides-sh.log
@@ -80,7 +82,7 @@ read -n 1 -s -r -p ""
 cleanup_wine_procs() {
 
 	# Find and kill processes containing various process names
-	processes=$(pgrep -f "win7|win10|ShowDotFiles")
+	processes=$(pgrep -f "win7|win10|ShowDotFiles|protontricks")
 	if [[ -n "$processes" ]]; then
 		echo "$processes" | xargs kill -9
 		echo "Processes killed successfully." >>$LOGFILE 2>&1
@@ -364,103 +366,111 @@ detect_steam_library() {
 #################################
 
 detect_modlist_dir_path() {
-	echo -e "Detecting $MODLIST Install Directory.." | tee -a $LOGFILE
-	local modlist_entries
-	local selected_entry
-	local modlist_ini_temp
-	local modlist_grep_pattern
+    echo -e "Detecting $MODLIST Install Directory.." | tee -a $LOGFILE
+    local modlist_entries
+    local selected_entry
+    local modlist_ini_temp
+    local modlist_grep_pattern
 
-	# Create a grep pattern for similar matches
-	modlist_grep_pattern=$(echo "$MODLIST" | sed 's/ /.*\|/g') #Replace spaces with ".*|"
-	modlist_grep_pattern=".*${modlist_grep_pattern}.*"         # Add wildcards to start and end.
+    # Create a grep pattern for similar matches
+    modlist_grep_pattern=$(echo "$MODLIST" | sed 's/ /.*\|/g') #Replace spaces with ".*|"
+    modlist_grep_pattern=".*${modlist_grep_pattern}.*"          # Add wildcards to start and end.
+    echo "modlist_grep_pattern: $modlist_grep_pattern" >>$LOGFILE 2>&1
 
-	# Find all entries with ModOrganizer.exe and similar $MODLIST matches
-	modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
+    # Find all entries with ModOrganizer.exe and similar $MODLIST matches
+    modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe" | grep -iE "$modlist_grep_pattern")
 
-	if [[ -z "$modlist_entries" ]]; then
-		echo "No ModOrganizer.exe entries found similar to $MODLIST in shortcuts.vdf."
-		echo "Displaying all ModOrganizer.exe entries:"
+    echo "Modlist entries found in shortcuts.vdf: $modlist_entries" >>$LOGFILE 2>&1
 
-		local all_modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe")
+    if [[ -z "$modlist_entries" ]]; then
+        echo "No ModOrganizer.exe entries found named similar to $MODLIST in shortcuts.vdf."
+        echo "Displaying all ModOrganizer.exe entries:"
 
-		if [[ -z "$all_modlist_entries" ]]; then
-			echo "No ModOrganizer.exe entries found in shortcuts.vdf."
-			return 1 # fail out
-		fi
+        local all_modlist_entries=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "ModOrganizer.exe")
 
-		local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
-		if [[ "$entry_count_all" -eq 1 ]]; then
-			local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-			read -p "Use ModOrganizer directory: $path? (y/n): " confirm
-			if [[ "$confirm" == "y" ]]; then
-				modlist_dir="$path"
-				modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-			else
-				return 1 # user declined, fail.
-			fi
-		else
-			local i=1
-			while IFS= read -r entry; do
-				local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-				echo "$i) $path"
-				((i++))
-			done <<<"$all_modlist_entries"
+        if [[ -z "$all_modlist_entries" ]]; then
+            echo "No ModOrganizer.exe entries found in shortcuts.vdf."
+            return 1 # fail out
+        fi
 
-			# Prompt user to select an entry
-			read -p "Enter the number of the desired entry: " selected_entry
+        local entry_count_all=$(echo "$all_modlist_entries" | wc -l)
+        if [[ "$entry_count_all" -eq 1 ]]; then
+            local path=$(echo "$all_modlist_entries" | grep -oE '"[^"]+"' | tr -d '"' | xargs dirname)
+            read -p "Use ModOrganizer directory: $path? (y/n): " confirm
+            if [[ "$confirm" == "y" ]]; then
+                modlist_dir="$path"
+                modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+            else
+                return 1 # user declined, fail.
+            fi
+        else
+            local i=1
+            while IFS= read -r entry; do
+                local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
+                path=$(dirname "$path")
+                echo "$i) $path"
+                ((i++))
+            done <<<"$all_modlist_entries"
 
-			if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
-				echo "Invalid selection."
-				return 1 # Indicate failure
-			fi
+            # Prompt user to select an entry
+            read -p "Enter the number of the desired entry: " selected_entry
 
-			# Extract the selected entry
-			local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
-			modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-		fi
+            if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
+                echo "Invalid selection."
+                return 1 # Indicate failure
+            fi
 
-	else
-		# Matching entries found
-		local entry_count=$(echo "$modlist_entries" | wc -l)
-		if [[ "$entry_count" -gt 1 ]]; then
-			echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
-			local i=1
-			while IFS= read -r entry; do
-				local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-				echo "$i) $path"
-				((i++))
-			done <<<"$modlist_entries"
+            # Extract the selected entry
+            local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
+            local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
+            modlist_dir=$(dirname "$path")
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        fi
 
-			# Prompt user to select an entry
-			read -p "Enter the number of the desired entry: " selected_entry
+    else
+        # Matching entries found
+        local entry_count=$(echo "$modlist_entries" | wc -l)
+        if [[ "$entry_count" -gt 1 ]]; then
+            echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
+            local i=1
+            while IFS= read -r entry; do
+                local path=$(echo "$entry" | grep -oE '"[^"]+"' | tr -d '"')
+                path=$(dirname "$path")
+                echo "$i) $path"
+                ((i++))
+            done <<<"$modlist_entries"
 
-			if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
-				echo "Invalid selection."
-				return 1 # Indicate failure
-			fi
+            # Prompt user to select an entry
+            read -p "Enter the number of the desired entry: " selected_entry
 
-			# Extract the selected entry
-			local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
-			modlist_dir=$(echo "$selected_line" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-		else
-			# Single matching entry
-			modlist_dir=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"' | xargs dirname)
-			modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-		fi
-	fi
+            if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
+                echo "Invalid selection."
+                return 1 # Indicate failure
+            fi
 
-	# Check if ModOrganizer.ini exists
-	if [[ -f "$modlist_ini_temp" ]]; then
-		modlist_ini="$modlist_ini_temp"
-		echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
-		echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
-		return 0
-	else
-		echo "ModOrganizer.ini not found in $modlist_dir"
-		return 1 # fail our
-	fi
+            # Extract the selected entry
+            local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
+            local path=$(echo "$selected_line" | grep -oE '"[^"]+"' | tr -d '"')
+            modlist_dir=$(dirname "$path")
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        else
+            # Single matching entry
+            local path=$(echo "$modlist_entries" | grep -oE '"[^"]+"' | tr -d '"')
+            modlist_dir=$(dirname "$path")
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        fi
+    fi
+
+    # Check if ModOrganizer.ini exists
+    if [[ -f "$modlist_ini_temp" ]]; then
+        modlist_ini="$modlist_ini_temp"
+        echo "Modlist directory: $modlist_dir" >>$LOGFILE 2>&1
+        echo "Modlist INI location: $modlist_ini" >>$LOGFILE 2>&1
+        return 0
+    else
+        echo "ModOrganizer.ini not found in $modlist_dir"
+        return 1 # fail out
+    fi
 }
 
 #####################################################
@@ -518,7 +528,7 @@ enable_dotfiles() {
 
 set_win10_prefix() {
 
-	run_protontricks $APPID win10 >>$LOGFILE 2>&1
+	run_protontricks --no-bwrap $APPID win10 >>$LOGFILE 2>&1
 
 }
 
@@ -529,14 +539,24 @@ set_win10_prefix() {
 install_wine_components() {
 
     echo -e "\nInstalling Wine Components... This can take some time, be patient!" | tee -a "$LOGFILE"
-
-    spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    #echo "PATH: $PATH" | tee -a "$LOGFILE" #Added line
     local protontricks_components
     local components
     local protontricks_appid="$APPID" #default to previously detected appid
+    local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local spinner_index=0
 
     if [[ "$gamevar" == "Skyrim Special Edition" ]] || [[ "$gamevar" == "Fallout 4" ]]; then
-        protontricks_components="xact xact_x64 d3dcompiler_47 d3dx11_43 d3dcompiler_43 vcrun2022 dotnet6 dotnet7"
+        protontricks_components=(
+            "xact"
+            "xact_x64"
+            "d3dcompiler_47"
+            "d3dx11_43"
+            "d3dcompiler_43"
+            "vcrun2022"
+            "dotnet6"
+            "dotnet7"
+        )
         components=(
             "xact"
             "xact_x64"
@@ -548,7 +568,14 @@ install_wine_components() {
             "dotnet7"
         )
     elif [[ "$gamevar" == "Fallout New Vegas" ]]; then
-        protontricks_components="fontsmooth=rgb xact xact_x64 d3dx9_43 d3dx9 vcrun2022"
+        protontricks_components=(
+            "fontsmooth=rgb"
+            "xact"
+            "xact_x64"
+            "d3dx9_43"
+            "d3dx9"
+            "vcrun2022"
+        )
         components=(
             "fontsmooth=rgb"
             "xact"
@@ -559,7 +586,14 @@ install_wine_components() {
         )
         protontricks_appid="22380" #force appid to 22380 for FNV protontricks
     elif [[ "$gamevar" == "Oblivion" ]]; then
-        protontricks_components="fontsmooth=rgb xact xact_x64 d3dx9_43 d3dx9 vcrun2022"
+        protontricks_components=(
+            "fontsmooth=rgb"
+            "xact"
+            "xact_x64"
+            "d3dx9_43"
+            "d3dx9"
+            "vcrun2022"
+        )
         components=(
             "fontsmooth=rgb"
             "xact"
@@ -573,27 +607,35 @@ install_wine_components() {
         return 1
     fi
 
-    run_protontricks "$protontricks_appid" -q $protontricks_components >/dev/null 2>&1 &
+    retries=3
+    while [[ $retries -gt 0 ]]; do
+        echo "Executing: run_protontricks --no-bwrap \"$protontricks_appid\" -q \"${protontricks_components[@]}\"" >>$LOGFILE 2>&1
+        run_protontricks --no-bwrap "$protontricks_appid" -q "${protontricks_components[@]}" >/dev/null 2>&1 &
+        pid=$!
 
-    pid=$! # Store the PID of the background process
-
-    while kill -0 "$pid" >/dev/null 2>&1; do
-        for i in "${spinner[@]}"; do
-            echo -en "\r${i}\c"
-            sleep 0.1
+        while kill -0 "$pid" 2>/dev/null; do
+            echo -en "\rProtontricks running... ${spinner[spinner_index]}"
+            spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+            sleep 0.2 # Adjust sleep time for smoother animation
         done
+        wait "$pid"
+        if [[ $? -eq 0 ]]; then
+            break # Success, exit the loop
+        else
+            echo -en "\rProtontricks command failed (attempt $((4-retries)) of 3). Retrying in 10 seconds... ${spinner[spinner_index]}"
+            spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+            sleep 10
+            retries=$((retries - 1))
+        fi
     done
-
-    wait "$pid" # Wait for the process to finish
-
-    # Clear the spinner and move to the next line
     echo -en "\r\033[K" # Clear the spinner line
 
-    if [[ $? -ne 0 ]]; then # Check for non-zero exit code (error)
-        echo -e "\nError: Component install failed with exit code $?" | tee -a "$LOGFILE"
-    else
-        echo -e "\nWine Component install completed successfully." | tee -a "$LOGFILE"
+    if [[ $retries -eq 0 ]]; then # All retries failed
+        echo -e "\nError: Component install failed after multiple retries." | tee -a "$LOGFILE"
+        exit 1
     fi
+
+    echo -e "\nWine Component install completed successfully." | tee -a "$LOGFILE"
 
     # Double check they actually installed
 
@@ -614,13 +656,32 @@ install_wine_components() {
     if [[ $all_found == true ]]; then
         echo "All required components found." >>"$LOGFILE" 2>&1
     else
-        echo -ne "\nSome required components are missing, retrying install..." | tee -a "$LOGFILE"
-        run_protontricks "$protontricks_appid" -q "$protontricks_components" >/dev/null 2>&1 &
-        echo "Done." | tee -a "$LOGFILE"
+        echo -ne "\nSome required components are missing, retrying install... ${spinner[spinner_index]}"
+        spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+        retries=3
+        while [[ $retries -gt 0 ]]; do
+            echo "Executing: run_protontricks --no-bwrap \"$protontricks_appid\" -q \"${protontricks_components[@]}\"" | tee -a "$LOGFILE"
+            run_protontricks --no-bwrap "$protontricks_appid" -q "${protontricks_components[@]}" >/dev/null 2>&1 &
+            pid=$!
+            while kill -0 "$pid" 2>/dev/null; do
+                echo -en "\rProtontricks running... ${spinner[spinner_index]}"
+                spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+                sleep 0.2
+            done
+            wait "$pid"
+            if [[ $? -eq 0 ]]; then
+                break
+            else
+                echo -en "\rProtontricks command failed (attempt $((4-retries)) of 3). Retrying in 10 seconds... ${spinner[spinner_index]}"
+                spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+                sleep 10
+                retries=$((retries - 1))
+            fi
+        done
+        echo -en "\r\033[KDone.\n"
         second_output="$(run_protontricks --no-bwrap "$protontricks_appid" list-installed 2>/dev/null)"
         echo "Components Found: $second_output" >>"$LOGFILE" 2>&1
     fi
-
 }
 
 ######################
@@ -628,24 +689,24 @@ install_wine_components() {
 ######################
 
 detect_mo2_version() {
+    echo "Modlist INI: $modlist_ini" >>$LOGFILE 2>&1
 
-	echo "Modlist INI: $modlist_ini" >>$LOGFILE 2>&1
+    if [[ -f "$modlist_ini" ]]; then
+        echo -e "\nModOrganizer.ini found, proceeding.." >>$LOGFILE 2>&1
+    else
+        echo -e "\nModOrganizer.ini not found! Exiting.." | tee -a $LOGFILE
+        cleaner_exit
+    fi
 
-	if [[ -f "$modlist_ini" ]]; then
-		echo -e "\nModOrganizer.ini found, proceeding.." >>$LOGFILE 2>&1
-	else
-		echo -e "\nModOrganizer.ini not found! Exiting.." | tee -a $LOGFILE
-		cleaner_exit
-	fi
+    echo -ne "\nDetecting MO2 Version... " >>$LOGFILE 2>&1
 
-	echo -ne "\nDetecting MO2 Version... " >>$LOGFILE 2>&1
+    # Build regular expression for matching 2.5.[0-9]+
+    mo2ver=$(grep version "$modlist_ini")
+    vernum=$(echo "$mo2ver" | awk -F "=" '{print $NF}')
 
-	# Build regular expression for matching 2.5.[0-9]+
-	mo2ver=$(grep version $modlist_ini)
-	vernum=$(echo $mo2ver | awk -F "=" {'print $NF'})
-
-	echo -e "$vernum" >>$LOGFILE 2>&1
+    echo -e "$vernum" >>$LOGFILE 2>&1
 }
+
 
 ####################################
 # Detect compatdata Directory Path #
@@ -726,17 +787,18 @@ confirmation_before_running() {
 
 chown_chmod_modlist_dir() {
 
-	echo -e "\e[31m \nChanging Ownership and Permissions of modlist directory (may require sudo password) \e[0m" | tee -a $LOGFILE
+    echo -e "\e[31m \nChanging Ownership and Permissions of modlist directory (may require sudo password) \e[0m" | tee -a $LOGFILE
 
-	user=$(whoami)
-	group=$(id -gn)
+    user=$(whoami)
+    group=$(id -gn)
 
-	echo -e "User is $user and Group is $group" >>$LOGFILE 2>&1
+    echo -e "User is $user and Group is $group" >>$LOGFILE 2>&1
 
-	sudo chown -R $user:$group $modlist_dir
-	sudo chmod -R 755 $modlist_dir
+    sudo chown -R "$user:$group" "$modlist_dir"
+    sudo chmod -R 755 "$modlist_dir"
 
 }
+
 
 #######################################################################
 # Backup ModOrganizer.ini and backup gamePath & create checkmark file #
@@ -744,14 +806,16 @@ chown_chmod_modlist_dir() {
 
 backup_and_checkmark() {
 
-	# Backup ModOrganizer.ini
-	cp $modlist_ini $modlist_ini.$(date +"%Y%m%d_%H%M%S").bak
+    echo "Backing up ModOrganizer.ini: $modlist_ini" >>$LOGFILE 2>&1
 
-	# Backup gamePath line
-	grep gamePath $modlist_ini | sed '/^backupPath/! s/gamePath/backupPath/' >>$modlist_ini
+    # Backup ModOrganizer.ini
+    cp "$modlist_ini" "$modlist_ini.$(date +"%Y%m%d_%H%M%S").bak"
 
-	# Create checkmark file
-	touch $modlist_dir/.tmp_omniguides_run1
+    # Backup gamePath line
+    grep gamePath "$modlist_ini" | sed '/^backupPath/! s/gamePath/backupPath/' >> "$modlist_ini"
+
+    # Create checkmark file
+    touch "$modlist_dir/.tmp_omniguides_run1"
 
 }
 
@@ -761,9 +825,9 @@ backup_and_checkmark() {
 
 blank_downloads_dir() {
 
-	echo -ne "\nEditing download_directory.. " | tee -a $LOGFILE
-	sed -i "/download_directory/c\download_directory =" $modlist_ini
-	echo "Done." | tee -a $LOGFILE
+    echo -ne "\nEditing download_directory.. " | tee -a $LOGFILE
+    sed -i "/download_directory/c\download_directory =" "$modlist_ini"
+    echo "Done." | tee -a $LOGFILE
 
 }
 
@@ -773,82 +837,82 @@ blank_downloads_dir() {
 
 replace_gamepath() {
 
-	echo "Using Steam Library Path: $steam_library" >>$LOGFILE 2>&1
-	echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
-	echo -ne "\nChecking if Modlist uses Game Root, Stock Game, etc, etc.." | tee -a $LOGFILE
-	game_path_line=$(grep '^gamePath' "$modlist_ini")
-	echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
+    echo "Using Steam Library Path: $steam_library" >>$LOGFILE 2>&1
+    echo "Use SDCard?: $basegame_sdcard" >>$LOGFILE 2>&1
+    echo -ne "\nChecking if Modlist uses Game Root, Stock Game, etc, etc.." | tee -a $LOGFILE
+    game_path_line=$(grep '^gamePath' "$modlist_ini")
+    echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
 
-	if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* || $game_path_line == *root\\\\Skyrim\ Special\ Edition* ]]; then
+    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* || $game_path_line == *root\\\\Skyrim\ Special\ Edition* ]]; then
 
-		# Stock Game, Game Root or equivalent directory found
-		echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
+        # Stock Game, Game Root or equivalent directory found
+        echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
 
-		# Get the end of our path
-		if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
-			modlist_gamedir="$modlist_dir/Stock Game Folder"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		elif [[ $game_path_line =~ Stock\ Folder ]]; then
-			modlist_gamedir="$modlist_dir/Stock Folder"
-		elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
-			modlist_gamedir="$modlist_dir/Skyrim Stock"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		elif [[ $game_path_line =~ Game\ Root ]]; then
-			modlist_gamedir="$modlist_dir/Game Root"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		elif [[ $game_path_line =~ STOCK\ GAME ]]; then
-			modlist_gamedir="$modlist_dir/STOCK GAME"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		elif [[ $game_path_line =~ Stock\ Game ]]; then
-			modlist_gamedir="$modlist_dir/Stock Game"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
-			modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
-			echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		fi
+        # Get the end of our path
+        if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
+            modlist_gamedir="$modlist_dir/Stock Game Folder"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        elif [[ $game_path_line =~ Stock\ Folder ]]; then
+            modlist_gamedir="$modlist_dir/Stock Folder"
+        elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
+            modlist_gamedir="$modlist_dir/Skyrim Stock"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        elif [[ $game_path_line =~ Game\ Root ]]; then
+            modlist_gamedir="$modlist_dir/Game Root"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        elif [[ $game_path_line =~ STOCK\ GAME ]]; then
+            modlist_gamedir="$modlist_dir/STOCK GAME"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        elif [[ $game_path_line =~ Stock\ Game ]]; then
+            modlist_gamedir="$modlist_dir/Stock Game"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
+            modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
+            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        fi
 
-		if [[ "$modlist_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-			sdcard_new_path="$modlist_gamedir_sdcard"
+        if [[ "$modlist_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>$LOGFILE 2>&1
+            modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+            sdcard_new_path="$modlist_gamedir_sdcard"
 
-			# Strip /run/media/deck/UUID if present
-			if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
-				sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
-				echo "SD Card Path after stripping: $sdcard_new_path" >>$LOGFILE 2>&1
-			fi
+            # Strip /run/media/deck/UUID if present
+            if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
+                sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
+                echo "SD Card Path after stripping: $sdcard_new_path" >>$LOGFILE 2>&1
+            fi
 
-			new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-			echo "New String: $new_string" >>$LOGFILE 2>&1
-		else
-			new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-			echo "New String: $new_string" >>$LOGFILE 2>&1
-		fi
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
+            echo "New String: $new_string" >>$LOGFILE 2>&1
+        else
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
+            echo "New String: $new_string" >>$LOGFILE 2>&1
+        fi
 
-	elif [[ "$game_path_line" == *steamapps* ]]; then
-		echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
-		modlist_gamedir="$steam_library/$gamevar"
-		echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-		if [[ "$basegame_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-			sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-			new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-			echo "New String: $new_string" >>$LOGFILE 2>&1
-		else
-			new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-			echo "New String: $new_string" >>$LOGFILE 2>&1
-		fi
-	else
-		echo "Neither Game Root, Stock Game or Vanilla Game directory found, Please launch MO and set path manually.." | tee -a $LOGFILE
-	fi
+    elif [[ "$game_path_line" == *steamapps* ]]; then
+        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
+        modlist_gamedir="$steam_library/$gamevar"
+        echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        if [[ "$basegame_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>$LOGFILE 2>&1
+            modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+            sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
+            echo "New String: $new_string" >>$LOGFILE 2>&1
+        else
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
+            echo "New String: $new_string" >>$LOGFILE 2>&1
+        fi
+    else
+        echo "Neither Game Root, Stock Game or Vanilla Game directory found, Please launch MO and set path manually.." | tee -a $LOGFILE
+    fi
 
-	# replace the string in the file
-	file_to_modify="$modlist_dir/ModOrganizer.ini" # Replace with the actual file path
-	escaped_new_string=$(printf '%s\n' "$new_string" | sed -e 's/[\/&]/\\&/g')
-	sed -i "/^gamePath/c\gamePath=$escaped_new_string" $file_to_modify
+    # replace the string in the file
+    file_to_modify="$modlist_dir/ModOrganizer.ini" # Replace with the actual file path
+    escaped_new_string=$(printf '%s\n' "$new_string" | sed -e 's/[\/&]/\\&/g')
+    sed -i "/^gamePath/c\gamePath=$escaped_new_string" "$file_to_modify"
 
-	echo -e " Done." | tee -a $LOGFILE
+    echo -e " Done." | tee -a $LOGFILE
 
 }
 
@@ -858,170 +922,167 @@ replace_gamepath() {
 
 update_executables() {
 
-	# Take the line passed to the function
-	echo "Original Line: $orig_line_path" >>$LOGFILE 2>&1
+    # Take the line passed to the function
+    echo "Original Line: $orig_line_path" >>$LOGFILE 2>&1
 
-	skse_loc=$(echo "$orig_line_path" | cut -d '=' -f 2-)
-	echo "SKSE Loc: $skse_loc" >>$LOGFILE 2>&1
+    skse_loc=$(echo "$orig_line_path" | cut -d '=' -f 2-)
+    echo "SKSE Loc: $skse_loc" >>$LOGFILE 2>&1
 
-	# Drive letter
-	if [[ "$modlist_sdcard" -eq 1 ]]; then
-		echo "Using SDCard" >>$LOGFILE 2>&1
-		drive_letter=" = D:"
-	else
-		drive_letter=" = Z:"
-	fi
+    # Drive letter
+    if [[ "$modlist_sdcard" -eq 1 ]]; then
+        echo "Using SDCard" >>$LOGFILE 2>&1
+        drive_letter=" = D:"
+    else
+        drive_letter=" = Z:"
+    fi
 
-	# Find the workingDirectory number
+    # Find the workingDirectory number
 
-	binary_num=$(echo "$orig_line_path" | cut -d '=' -f -1)
-	echo "Binary Num: $binary_num" >>$LOGFILE 2>&1
+    binary_num=$(echo "$orig_line_path" | cut -d '=' -f -1)
+    echo "Binary Num: $binary_num" >>$LOGFILE 2>&1
 
-	# Find the equvalent workingDirectory
-	justnum=$(echo "$binary_num" | cut -d '\' -f 1)
-	bin_path_start=$(echo "$binary_num" | tr -d ' ' | sed 's/\\/\\\\/g')
-	path_start=$(echo "$justnum\\workingDirectory" | sed 's/\\/\\\\/g')
-	echo "Path Start: $path_start" >>$LOGFILE 2>&1
+    # Find the equvalent workingDirectory
+    justnum=$(echo "$binary_num" | cut -d '\' -f 1)
+    bin_path_start=$(echo "$binary_num" | tr -d ' ' | sed 's/\\/\\\\/g')
+    path_start=$(echo "$justnum\\workingDirectory" | sed 's/\\/\\\\/g')
+    echo "Path Start: $path_start" >>$LOGFILE 2>&1
+    # Decide on steam apps or Stock Game etc
 
-	# Decide on steam apps or Stock Game etc
+    if [[ "$orig_line_path" == *"mods"* ]]; then
+        # mods path type found
+        echo -e "mods path Found" >>$LOGFILE 2>&1
 
-	if [[ "$orig_line_path" == *"mods"* ]]; then
-		# mods path type found
-		echo -e "mods path Found" >>$LOGFILE 2>&1
+        # Path Middle / modlist_dr
+        if [[ "$modlist_sdcard" -eq 1 ]]; then
+            echo "Using SDCard" >>$LOGFILE 2>&1
+            drive_letter=" = D:"
+            echo "$modlist_dir" >>$LOGFILE 2>&1
+            path_middle="${modlist_dir#*mmcblk0p1}"
+            # Strip /run/media/deck/UUID
+            if [[ "$path_middle" == /run/media/*/* ]]; then
+                path_middle="/${path_middle#*/run/media/*/*/*}"
+                echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
+            fi
+        else
+            path_middle="$modlist_dir"
+        fi
 
-		# Path Middle / modlist_dr
-		if [[ "$modlist_sdcard" -eq 1 ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			drive_letter=" = D:"
-			echo "$modlist_dir" >>$LOGFILE 2>&1
-			path_middle="${modlist_dir#*mmcblk0p1}"
-			# Strip /run/media/deck/UUID
-			if [[ "$path_middle" == /run/media/*/* ]]; then
-				path_middle="/${path_middle#*/run/media/*/*/*}"
-				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
-			fi
-		else
-			path_middle="$modlist_dir"
-		fi
+        echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 
-		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
+        path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/mods/\/mods/')
+        echo "Path End: $path_end" >>$LOGFILE 2>&1
+        bin_path_end=$(echo "$skse_loc" | sed 's/.*\/mods/\/mods/')
+        echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock|root/Skyrim Special Edition)" <<<"$orig_line_path"; then
+        # STOCK GAME ROOT FOUND
+        echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
-		path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/mods/\/mods/')
-		echo "Path End: $path_end" >>$LOGFILE 2>&1
-		bin_path_end=$(echo "$skse_loc" | sed 's/.*\/mods/\/mods/')
-		echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        # Path Middle / modlist_dr
+        if [[ "$modlist_sdcard" -eq 1 ]]; then
+            echo "Using SDCard" >>$LOGFILE 2>&1
+            drive_letter=" = D:"
+            echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
+            path_middle="${modlist_dir#*mmcblk0p1}"
+            # Strip /run/media/deck/UUID
+            if [[ "$path_middle" == /run/media/*/* ]]; then
+                path_middle="/${path_middle#*/run/media/*/*/*}"
+                echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
+            fi
+        else
+            path_middle="$modlist_dir"
+        fi
+        echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
 
-	elif grep -q -E "(Stock Game|Game Root|STOCK GAME|Stock Game Folder|Stock Folder|Skyrim Stock|root/Skyrim Special Edition)" <<<"$orig_line_path"; then
-		# STOCK GAME ROOT FOUND
-		echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
+        # Get the end of our path
+        if [[ $orig_line_path =~ Stock\ Game ]]; then
+            dir_type="stockgame"
+            path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Game/\/Stock Game/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game/\/Stock Game/')
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ Game\ Root ]]; then
+            dir_type="gameroot"
+            path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Game Root/\/Game Root/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Game Root/\/Game Root/')
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ STOCK\ GAME ]]; then
+            dir_type="STOCKGAME"
+            path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end=$(echo "$skse_loc" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ Stock\ Folder ]]; then
+            dir_type="stockfolder"
+            path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Folder/\/Stock Folder/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Folder/\/Stock Folder/')
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ Skyrim\ Stock ]]; then
+            dir_type="skyrimstock"
+            path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
+            dir_type="stockgamefolder"
+            path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game Folder/\/Stock Game Folder/')
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+        elif [[ $orig_line_path =~ root\/Skyrim\ Special\ Edition ]]; then
+            dir_type="rootskyrimse"
+            path_end="/${skse_loc# }"
+            echo "Path End: $path_end" >>$LOGFILE 2>&1
+            bin_path_end="/${skse_loc# }"
+            echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+        fi
+        elif [[ "$orig_line_path" == *"steamapps"* ]]; then
+        # STEAMAPPS FOUND
+        echo -e "steamapps Found" >>$LOGFILE 2>&1
 
-		# Path Middle / modlist_dr
-		if [[ "$modlist_sdcard" -eq 1 ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			drive_letter=" = D:"
-			echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
-			path_middle="${modlist_dir#*mmcblk0p1}"
-			# Strip /run/media/deck/UUID
-			if [[ "$path_middle" == /run/media/*/* ]]; then
-				path_middle="/${path_middle#*/run/media/*/*/*}"
-				echo "Path Middle after stripping: $path_middle" >>$LOGFILE 2>&1
-			fi
-		else
-			path_middle="$modlist_dir"
-		fi
-		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
+        # Path Middle / modlist_dr
+        if [[ "$basegame_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>$LOGFILE 2>&1
+            path_middle="${steam_library#*mmcblk0p1}"
+            drive_letter=" = D:"
+        else
+            echo "Steamapps Steam Library Path: $steam_library"
+            path_middle=${steam_library%%steamapps*}
+        fi
+        echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
+        path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/steamapps/\/steamapps/')
+        echo "Path End: $path_end" >>$LOGFILE 2>&1
+        bin_path_end=$(echo "$skse_loc" | sed 's/.*\/steamapps/\/steamapps/')
+        echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
 
-		# Get the end of our path
-		if [[ $orig_line_path =~ Stock\ Game ]]; then
-			dir_type="stockgame"
-			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Game/\/Stock Game/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game/\/Stock Game/')
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ Game\ Root ]]; then
-			dir_type="gameroot"
-			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Game Root/\/Game Root/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Game Root/\/Game Root/')
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ STOCK\ GAME ]]; then
-			dir_type="STOCKGAME"
-			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/STOCK GAME/\/STOCK GAME/')
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ Stock\ Folder ]]; then
-			dir_type="stockfolder"
-			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Stock Folder/\/Stock Folder/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Folder/\/Stock Folder/')
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ Skyrim\ Stock ]]; then
-			dir_type="skyrimstock"
-			path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end=$(echo "$skse_loc" | sed 's/.*\/Skyrim Stock/\/Skyrim Stock/')
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ Stock\ Game\ Folder ]]; then
-			dir_type="stockgamefolder"
-			path_end=$(echo "$skse_loc" | sed 's/.*\/Stock Game Folder/\/Stock Game Folder/')
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-		elif [[ $orig_line_path =~ root\/Skyrim\ Special\ Edition ]]; then
-			dir_type="rootskyrimse"
-			path_end="/${skse_loc# }"
-			echo "Path End: $path_end" >>$LOGFILE 2>&1
-			bin_path_end="/${skse_loc# }"
-			echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
-		fi
+    else
+        echo "No matching pattern found in the path: $orig_line_path" >>$LOGFILE 2>&1
+        bail_out=1
+        echo $bail_out >>$LOGFILE 2>&1
 
-	elif [[ "$orig_line_path" == *"steamapps"* ]]; then
-		# STEAMAPPS FOUND
-		echo -e "steamapps Found" >>$LOGFILE 2>&1
+    fi
 
-		# Path Middle / modlist_dr
-		if [[ "$basegame_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			path_middle="${steam_library#*mmcblk0p1}"
-			drive_letter=" = D:"
-		else
-			echo "Steamapps Steam Library Path: $steam_library"
-			path_middle=${steam_library%%steamapps*}
-		fi
-		echo "Path Middle: $path_middle" >>$LOGFILE 2>&1
-		path_end=$(echo "${skse_loc%/*}" | sed 's/.*\/steamapps/\/steamapps/')
-		echo "Path End: $path_end" >>$LOGFILE 2>&1
-		bin_path_end=$(echo "$skse_loc" | sed 's/.*\/steamapps/\/steamapps/')
-		echo "Bin Path End: $bin_path_end" >>$LOGFILE 2>&1
+    echo "Bail Out: $bail_out" >>$LOGFILE 2>&1
 
-	else
-		echo "No matching pattern found in the path: $orig_line_path" >>$LOGFILE 2>&1
-		bail_out=1
-		echo $bail_out >>$LOGFILE 2>&1
+    if [[ $bail_out -eq 1 ]]; then
+        echo "Exiting function due to bail_out" >>$LOGFILE 2>&1
+        return
+    else
+        # Combine them all together
+        full_bin_path="$bin_path_start$drive_letter$path_middle$bin_path_end"
+        echo "Full Bin Path: $full_bin_path" >>$LOGFILE 2>&1
+        full_path="$path_start$drive_letter$path_middle$path_end"
+        echo "Full Path: $full_path" >>$LOGFILE 2>&1
 
-	fi
+        # Replace forwardslashes with double backslashes
+        new_path=${full_path//\//\\\\\\\\}
+        echo "New Path: $new_path" >>$LOGFILE 2>&1
 
-	echo "Bail Out: $bail_out" >>$LOGFILE 2>&1
+        # Convert the lines in ModOrganizer.ini, if it isn't already
 
-	if [[ $bail_out -eq 1 ]]; then
-		echo "Exiting function due to bail_out" >>$LOGFILE 2>&1
-		return
-	else
-		# Combine them all together
-		full_bin_path="$bin_path_start$drive_letter$path_middle$bin_path_end"
-		echo "Full Bin Path: $full_bin_path" >>$LOGFILE 2>&1
-		full_path="$path_start$drive_letter$path_middle$path_end"
-		echo "Full Path: $full_path" >>$LOGFILE 2>&1
-
-		# Replace forwardslashes with double backslashes
-		new_path=${full_path//\//\\\\\\\\}
-		echo "New Path: $new_path" >>$LOGFILE 2>&1
-
-		# Convert the lines in ModOrganizer.ini, if it isn't already
-
-		sed -i "\|^${bin_path_start}|s|^.*$|${full_bin_path}|" $modlist_ini
-		# Convert workingDirectory entries
-		sed -i "\|^${path_start}|s|^.*$|${new_path}|" $modlist_ini
-	fi
+        sed -i "\|^${bin_path_start}|s|^.*$|${full_bin_path}|" "$modlist_ini"
+        # Convert workingDirectory entries
+        sed -i "\|^${path_start}|s|^.*$|${new_path}|" "$modlist_ini"
+    fi
 
 }
 
@@ -1142,21 +1203,21 @@ update_ini_resolution() {
 
 edit_resolution() {
 
-	# Ask if we should set the resolution
-	#
-	echo -e "\nDo you wish to attempt to set the resolution? This can be changed manually later."
-	echo "(Please note that if running this script on a Steam Deck, a resolution of 1280x800 will be applied)"
-	echo -e "\e[31m \n** Select and set Resolution? (y/N): ** \e[0m"
-	read -p " " response
+    # Ask if we should set the resolution
+    #
+    echo -e "\nDo you wish to attempt to set the resolution? This can be changed manually later."
+    echo "(Please note that if running this script on a Steam Deck, a resolution of 1280x800 will be applied)"
+    echo -e "\e[31m \n** Select and set Resolution? (y/N): ** \e[0m"
+    read -p " " response
 
-	if [[ "$response" =~ ^[Yy]$ ]]; then
-		echo ""
-		select_resolution
-		update_ini_resolution
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo ""
+        select_resolution
+        update_ini_resolution
 
-	else
-		echo "Resolution update cancelled." >>$LOGFILE 2>&1
-	fi
+    else
+        echo "Resolution update cancelled." >>$LOGFILE 2>&1
+    fi
 
 }
 
@@ -1166,19 +1227,19 @@ edit_resolution() {
 
 small_additional_tasks() {
 
-	# Delete MO2 plugins that don't work via Proton
+    # Delete MO2 plugins that don't work via Proton
 
-	file_to_delete="$modlist_dir/plugins/FixGameRegKey.py"
+    file_to_delete="$modlist_dir/plugins/FixGameRegKey.py"
 
-	if [ -e "$file_to_delete" ]; then
-		rm "$file_to_delete"
-		echo "File deleted: $file_to_delete" | tee -a $LOGFILE
-	else
-		echo "File does not exist: $file_to_delete" >>$LOGFILE 2>&1
-	fi
+    if [ -e "$file_to_delete" ]; then
+        rm "$file_to_delete"
+        echo "File deleted: $file_to_delete" | tee -a "$LOGFILE"
+    else
+        echo "File does not exist: $file_to_delete" >>"$LOGFILE" 2>&1
+    fi
 
-	# Download Font to support Bethini
-	wget https://github.com/mrbvrz/segoe-ui-linux/raw/refs/heads/master/font/seguisym.ttf -q -nc -O $compat_data_path/pfx/drive_c/windows/Fonts/seguisym.ttf
+    # Download Font to support Bethini
+    wget https://github.com/mrbvrz/segoe-ui-linux/raw/refs/heads/master/font/seguisym.ttf -q -nc -O "$compat_data_path/pfx/drive_c/windows/Fonts/seguisym.ttf"
 
 }
 
@@ -1208,109 +1269,109 @@ check_swap_space() {
 
 modlist_specific_steps() {
 
-	if [[ $MODLIST == *"Wildlander"* ]]; then
-		echo ""
-		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
-		# Install dotnet72
-		spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-		run_protontricks $APPID -q dotnet472 >/dev/null 2>&1 &
+    if [[ $MODLIST == *"Wildlander"* ]]; then
+        echo ""
+        echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a "$LOGFILE"
+        # Install dotnet72
+        spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+        run_protontricks --no-bwrap "$APPID" -q dotnet472 >/dev/null 2>&1 &
 
-		pid=$! # Store the PID of the background process
+        pid=$! # Store the PID of the background process
 
-		while kill -0 $pid >/dev/null 2>&1; do
-			for i in "${spinner[@]}"; do
-				echo -en "\r${i}\c"
-				sleep 0.1
-			done
-		done
+        while kill -0 "$pid" >/dev/null 2>&1; do
+            for i in "${spinner[@]}"; do
+                echo -en "\r${i}\c"
+                sleep 0.1
+            done
+        done
 
-		wait $pid # Wait for the process to finish
+        wait "$pid" # Wait for the process to finish
 
-		# Clear the spinner and move to the next line
-		echo -en "\r\033[K" # Clear the spinner line
+        # Clear the spinner and move to the next line
+        echo -en "\r\033[K" # Clear the spinner line
 
-		if [[ $? -ne 0 ]]; then # Check for non-zero exit code (error)
-			echo -e "\nError: Component install failed with exit code $?" | tee -a $LOGFILE
-		else
-			echo -e "\nWine Component install completed successfully." | tee -a $LOGFILE
-		fi
+        if [[ $? -ne 0 ]]; then # Check for non-zero exit code (error)
+            echo -e "\nError: Component install failed with exit code $?" | tee -a "$LOGFILE"
+        else
+            echo -e "\nWine Component install completed successfully." | tee -a "$LOGFILE"
+        fi
 
-		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $new_output" >>$LOGFILE 2>&1
+        # Output list of components to check
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        echo "Components Found: $new_output" >>"$LOGFILE" 2>&1
 
-	fi
+    fi
 
-	if [[ "$MODLIST" == *"Librum"* ]] || [[ "$MODLIST" == *"Apostasy"* ]]; then
-		echo ""
-		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
-		# Install dotnet 4.0
-		echo -ne "\nInstalling .NET 4..."
-		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
-		echo -e " Done."
-		# Download dotnet8
-		echo -e "\nDownloading .NET 8 Runtime" | tee -a $LOGFILE
-		wget https://download.visualstudio.microsoft.com/download/pr/77284554-b8df-4697-9a9e-4c70a8b35f29/6763c16069d1ab8fa2bc506ef0767366/dotnet-runtime-8.0.5-win-x64.exe -q -nc --show-progress --progress=bar:force:noscroll -O $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe
-		# Install it
-		echo -ne "\nInstalling .NET 8 Runtime...."
-		run_protontricks -c 'WINEDEBUG=-all wine $HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe /Q' $APPID 2>/dev/null
-		echo -e " Done."
+    if [[ "$MODLIST" == *"Librum"* ]] || [[ "$MODLIST" == *"Apostasy"* ]]; then
+        echo ""
+        echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a "$LOGFILE"
+        # Install dotnet 4.0
+        echo -ne "\nInstalling .NET 4..."
+        run_protontricks --no-bwrap "$APPID" -q dotnet40 >/dev/null 2>&1
+        echo -e " Done."
+        # Download dotnet8
+        echo -e "\nDownloading .NET 8 Runtime" | tee -a "$LOGFILE"
+        wget https://download.visualstudio.microsoft.com/download/pr/77284554-b8df-4697-9a9e-4c70a8b35f29/6763c16069d1ab8fa2bc506ef0767366/dotnet-runtime-8.0.5-win-x64.exe -q -nc --show-progress --progress=bar:force:noscroll -O "$HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe"
+        # Install it
+        echo -ne "\nInstalling .NET 8 Runtime...."
+        run_protontricks --no-bwrap -c 'WINEDEBUG=-all wine "$HOME/Downloads/dotnet-runtime-8.0.5-win-x64.exe" /Q' "$APPID" 2>/dev/null
+        echo -e " Done."
 
-		# Re-set win10
-		set_win10_prefix
+        # Re-set win10
+        set_win10_prefix
 
-		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $new_output" >>$LOGFILE 2>&1
-	fi
+        # Output list of components to check
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        echo "Components Found: $new_output" >>"$LOGFILE" 2>&1
+    fi
 
-	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
-		echo ""
-		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
-		# Install dotnet 4.0
-		echo -ne "\nInstalling .NET 4..."
-		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
-		echo -e " Done."
+    if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"nordicsouls"* ]]; then
+        echo ""
+        echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a "$LOGFILE"
+        # Install dotnet 4.0
+        echo -ne "\nInstalling .NET 4..."
+        run_protontricks --no-bwrap "$APPID" -q dotnet40 >/dev/null 2>&1
+        echo -e " Done."
 
-		# Re-set win10
-		set_win10_prefix
+        # Re-set win10
+        set_win10_prefix
 
-		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $new_output" >>$LOGFILE 2>&1
-	fi
+        # Output list of components to check
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        echo "Components Found: $new_output" >>"$LOGFILE" 2>&1
+    fi
 
-	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lsiv"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"ls4"* ]]; then
-		echo ""
-		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
-		# Install dotnet 4.0
-		echo -ne "\nInstalling .NET 4..."
-		run_protontricks $APPID -q dotnet40 >/dev/null 2>&1
-		echo -e " Done."
+    if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"livingskyrim"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lsiv"* ]] || [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"ls4"* ]]; then
+        echo ""
+        echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a "$LOGFILE"
+        # Install dotnet 4.0
+        echo -ne "\nInstalling .NET 4..."
+        run_protontricks --no-bwrap "$APPID" -q dotnet40 >/dev/null 2>&1
+        echo -e " Done."
 
-		# Re-set win10
-		set_win10_prefix
+        # Re-set win10
+        set_win10_prefix
 
-		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $new_output" >>$LOGFILE 2>&1
-	fi
+        # Output list of components to check
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        echo "Components Found: $new_output" >>"$LOGFILE" 2>&1
+    fi
 
-	if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lostlegacy"* ]]; then
-		echo ""
-		echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a $LOGFILE
-		# Install dotnet 4.0
-		echo -ne "\nInstalling .NET 4..."
-		run_protontricks $APPID -q dotnet48 >/dev/null 2>&1
-		echo -e " Done."
+    if [[ $(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]') == *"lostlegacy"* ]]; then
+        echo ""
+        echo -e "Running steps specific to \e[32m$MODLIST\e[0m". This can take some time, be patient! | tee -a "$LOGFILE"
+        # Install dotnet 4.0
+        echo -ne "\nInstalling .NET 4..."
+        run_protontricks --no-bwrap "$APPID" -q dotnet48 >/dev/null 2>&1
+        echo -e " Done."
 
-		# Re-set win10
-		set_win10_prefix
+        # Re-set win10
+        set_win10_prefix
 
-		# Output list of components to check
-		new_output="$(run_protontricks --no-bwrap $APPID list-installed 2>/dev/null)"
-		echo "Components Found: $new_output" >>$LOGFILE 2>&1
-	fi
+        # Output list of components to check
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        echo "Components Found: $new_output" >>"$LOGFILE" 2>&1
+    fi
 }
 
 ######################################
@@ -1319,45 +1380,45 @@ modlist_specific_steps() {
 
 create_dxvk_file() {
 
-	echo "Use SDCard for DXVK File?: $basegame_sdcard" >>$LOGFILE 2>&1
-	echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." >>$LOGFILE 2>&1
+    echo "Use SDCard for DXVK File?: $basegame_sdcard" >>"$LOGFILE" 2>&1
+    echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." >>"$LOGFILE" 2>&1
 
-	game_path_line=$(grep '^gamePath' "$modlist_ini")
-	echo "Game Path Line: $game_path_line" >>$LOGFILE 2>&1
+    game_path_line=$(grep '^gamePath' "$modlist_ini")
+    echo "Game Path Line: $game_path_line" >>"$LOGFILE" 2>&1
 
-	if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
+    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
 
-		# Get the end of our path
-		if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
-		elif [[ $game_path_line =~ Stock\ Folder ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
-		elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Skyrim Stock/dxvk.conf"
-		elif [[ $game_path_line =~ Game\ Root ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
-		elif [[ $game_path_line =~ STOCK\ GAME ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/STOCK GAME/dxvk.conf"
-		elif [[ $game_path_line =~ Stock\ Game ]]; then
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game/dxvk.conf"
-		fi
+        # Get the end of our path
+        if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
+        elif [[ $game_path_line =~ Stock\ Folder ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
+        elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Skyrim Stock/dxvk.conf"
+        elif [[ $game_path_line =~ Game\ Root ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
+        elif [[ $game_path_line =~ STOCK\ GAME ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/STOCK GAME/dxvk.conf"
+        elif [[ $game_path_line =~ Stock\ Game ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game/dxvk.conf"
+        fi
 
-		if [[ "$modlist_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
-		fi
+        if [[ "$modlist_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
+            modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
+        fi
 
-	elif [[ "$game_path_line" == *steamapps* ]]; then
-		echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
-		modlist_gamedir=$steam_library
-		echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
-		if [[ "$basegame_sdcard" -eq "1" ]]; then
-			echo "Using SDCard" >>$LOGFILE 2>&1
-			modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-			echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/$gamevar/dxvk.conf"
-		fi
-	fi
+    elif [[ "$game_path_line" == *steamapps* ]]; then
+        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>"$LOGFILE" 2>&1
+        modlist_gamedir="$steam_library"
+        echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
+        if [[ "$basegame_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
+            modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/$gamevar/dxvk.conf"
+        fi
+    fi
 
 }
 
@@ -1434,15 +1495,15 @@ fnv_launch_options() {
 
 cleaner_exit() {
 
-	# Clean up wine and winetricks processes
-	cleanup_wine_procs
-	# Merge Log files
-	echo "Merging Log Files.." >>$LOGFILE 2>&1
-	cat $LOGFILE2 | grep -v -e "[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]" >>$LOGFILE
-	echo "Removing Logfile2.." >>$LOGFILE 2>&1
-	rm $LOGFILE2
+    # Clean up wine and winetricks processes
+    cleanup_wine_procs
+    # Merge Log files
+    echo "Merging Log Files.." >>"$LOGFILE" 2>&1
+    cat "$LOGFILE2" | grep -v -e "[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]" >>"$LOGFILE"
+    echo "Removing Logfile2.." >>"$LOGFILE" 2>&1
+    rm "$LOGFILE2"
 
-	exit 1
+    exit 1
 
 }
 
@@ -1454,13 +1515,13 @@ cleaner_exit() {
 # Note Script Version #
 #######################
 
-echo -e "Script Version $script_ver" >>$LOGFILE 2>&1
+echo -e "Script Version $script_ver" >>"$LOGFILE" 2>&1
 
 ######################
 # Note Date and Time #
 ######################
 
-echo -e "Script started at: $(date +'%Y-%m-%d %H:%M:%S')" >>$LOGFILE 2>&1
+echo -e "Script started at: $(date +'%Y-%m-%d %H:%M:%S')" >>"$LOGFILE" 2>&1
 
 #############################
 # Detect if running on deck #
@@ -1490,203 +1551,215 @@ protontricks_alias
 # List Skyrim and Fallout Modlists from Steam (protontricks) #
 ##############################################################
 
-IFS=$'\n' readarray -t output_array < <(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout\|FNV\|Oblivion' | cut -d ' ' -f 3-)
+IFS=$'\n' readarray -t output_array < <(run_protontricks -l | tr -d $'\r' | grep -i 'Non-Steam shortcut' | grep -i 'Skyrim\|Fallout\|FNV\|Oblivion' | cut -d ' ' -f 3-)
+
+#declare -p output_array # Inspect the array
 
 if [[ ${#output_array[@]} -eq 0 ]]; then
-	echo "" | tee -a $LOGFILE
-	echo -e "\e[31mError: No modlists detected for Skyrim, Oblivion or Fallout/FNV!\e[0m"
-	echo -e "\nPlease make sure your entry in Steam is something like 'Skyrim - ModlistName'"
-	echo -e "or 'Fallout - ModlistName' AND that you have pressed play in Steam at least once!" | tee -a $LOGFILE
-	cleaner_exit
+    echo "" | tee -a "$LOGFILE"
+    echo -e "\e[31mError: No modlists detected for Skyrim, Oblivion or Fallout/FNV!\e[0m"
+    echo -e "\nPlease make sure your entry in Steam is something like 'Skyrim - ModlistName'"
+    echo -e "or 'Fallout - ModlistName' AND that you have pressed play in Steam at least once!" | tee -a "$LOGFILE"
+    cleaner_exit
 fi
 
-echo "" | tee -a $LOGFILE
+echo "" | tee -a "$LOGFILE"
 
-echo -e "\e[33mDetected Modlists:\e[0m" | tee -a $LOGFILE
+echo -e "\e[33mDetected Modlists:\e[0m" | tee -a "$LOGFILE"
 
-PS3=$'\e[31mPlease Select: \e[0m' # Set prompt for select
-select choice in "${output_array[@]}"; do
-	if [[ -n "$choice" ]]; then
-		echo -e "\nYou are about to run the automated steps on the Proton Prefix for: $choice" | tee -a $LOGFILE
-		MODLIST=$(echo $choice | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-		break
-	else
-		echo "Invalid selection. Please choose a valid modlist." | tee -a $LOGFILE
-	fi
+# Print numbered list with color
+for i in "${!output_array[@]}"; do
+    echo -e "\e[32m$((i + 1)))\e[0m ${output_array[$i]}"
 done
 
-echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a $LOGFILE
+read -p $'\e[31mPlease Select: \e[0m' choice_num
+
+if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+    choice="${output_array[$((choice_num - 1))]}"
+    echo -e "\nYou are about to run the automated steps on the Proton Prefix for: $choice" | tee -a "$LOGFILE"
+    MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+    echo "MODLIST: $MODLIST" >>"$LOGFILE" 2>&1
+else
+    echo "Invalid selection."
+    exit 1
+fi
+
+echo -e "\e[31m \n** ARE YOU ABSOLUTELY SURE? (y/N)** \e[0m" | tee -a "$LOGFILE"
 
 read -p " " response
 if [[ $response =~ ^[Yy]$ ]]; then
 
-	######################################################
-	# Pre-emptively cleanup any left-over wine processes #
-	######################################################
+    ######################################################
+    # Pre-emptively cleanup any left-over wine processes #
+    ######################################################
 
-	cleanup_wine_procs
+    cleanup_wine_procs
 
-	#############
-	# Set APPID #
-	#############
+    #############
+    # Set APPID #
+    #############
 
-	set_appid
+    set_appid
 
-	################################
-	# Detect Game - Skyrim/Fallout #
-	################################
+    ################################
+    # Detect Game - Skyrim/Fallout #
+    ################################
 
-	detect_game
+    detect_game
 
-	########################
-	# Detect Steam Library #
-	########################
+    ########################
+    # Detect Steam Library #
+    ########################
 
-	detect_steam_library
+    detect_steam_library
 
-	#################################
-	# Detect Modlist Directory Path #
-	#################################
+    #################################
+    # Detect Modlist Directory Path #
+    #################################
 
-	detect_modlist_dir_path
+    detect_modlist_dir_path
 
-	#Check for a space in the path
-	if [[ "$modlist_dir" = *" "* ]]; then
-		modlist_dir_nospace="${modlist_dir// /}"
-		echo -e "\n\e[31mError: Space detected in the path: $modlist_dir\e[0m"
-		echo -e "\n\e[32mSpaces in the directory name do not work well via Proton, please rename the directory to remove the space and then re-run this script!\e[0m"
-		echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
-		cleaner_exit
-	fi
+    #Check for a space in the path
+    #if [[ "$modlist_dir" = *" "* ]]; then
+    #   modlist_dir_nospace="${modlist_dir// /}"
+    #   echo -e "\n\e[31mError: Space detected in the path: $modlist_dir\e[0m"
+    #   echo -e "\n\e[32mSpaces in the directory name do not work well with MO2 via Proton, please rename the directory to remove the space, update the Steam Entry, and then re-run this script!\e[0m"
+    #   echo -e "\n\e[33mFor example, instead of $modlist_dir, call the directory $modlist_dir_nospace.\e[0m"
+    #   cleaner_exit
+    #fi
 
-	# Set modlist_sdcard if required
-	if [[ $modlist_dir == "/run/media"* ]]; then
-		modlist_sdcard=1
-	else
-		modlist_sdcard=0
-	fi
+    # Set modlist_sdcard if required
+    if [[ $modlist_dir == "/run/media"* ]]; then
+        modlist_sdcard=1
+    else
+        modlist_sdcard=0
+    fi
 
-	echo "Modlist Dir $modlist_dir" >>$LOGFILE 2>&1
-	echo "Modlist INI $modlist_ini" >>$LOGFILE 2>&1
+    echo "Modlist Dir $modlist_dir" >>"$LOGFILE" 2>&1
+    echo "Modlist INI $modlist_ini" >>"$LOGFILE" 2>&1
 
-	#####################################################
-	# Set protontricks permissions on Modlist Directory #
-	#####################################################
+    #####################################################
+    # Set protontricks permissions on Modlist Directory #
+    #####################################################
 
-	set_protontricks_perms
+    set_protontricks_perms
 
-	#####################################
-	# Enable Visibility of (.)dot files #
-	#####################################
+    #####################################
+    # Enable Visibility of (.)dot files #
+    #####################################
 
-	enable_dotfiles
+    enable_dotfiles
 
-	######################################
-	# Install Wine Components & VCRedist #
-	######################################
+    ######################################
+    # Install Wine Components & VCRedist #
+    ######################################
 
-	install_wine_components
+    install_wine_components
 
-	####################################
-	# Detect compatdata Directory Path #
-	####################################
+    ####################################
+    # Detect compatdata Directory Path #
+    ####################################
 
-	detect_compatdata_path
+    detect_compatdata_path
 
-	######################
-	# MO2 Version Check  #
-	######################
+    ######################
+    # MO2 Version Check #
+    ######################
 
-	detect_mo2_version
+    detect_mo2_version
 
-	detect_proton_version
+    detect_proton_version
 
-	###############################
-	# Confirmation before running #
-	###############################
+    ###############################
+    # Confirmation before running #
+    ###############################
 
-	confirmation_before_running
+    confirmation_before_running
 
-	#################################
-	# chown/chmod modlist directory #
-	#################################
+    #################################
+    # chown/chmod modlist directory #
+    #################################
 
-	chown_chmod_modlist_dir
+    chown_chmod_modlist_dir
 
-	#######################################################################
-	# Backup ModOrganizer.ini and backup gamePath & create checkmark file #
-	#######################################################################
+    #######################################################################
+    # Backup ModOrganizer.ini and backup gamePath & create checkmark file #
+    #######################################################################
 
-	backup_and_checkmark
+    backup_and_checkmark
 
-	########################################
-	# Blank or set MO2 Downloads Directory #
-	########################################
+    ########################################
+    # Blank or set MO2 Downloads Directory #
+    ########################################
 
-	blank_downloads_dir
+    blank_downloads_dir
 
-	######################################
-	# Replace path to Manage Game in MO2 #
-	######################################
+    ######################################
+    # Replace path to Manage Game in MO2 #
+    ######################################
 
-	replace_gamepath
+    replace_gamepath
 
-	#################################################
-	# Edit Custom binary and workingDirectory paths #
-	#################################################
+    #################################################
+    # Edit Custom binary and workingDirectory paths #
+    #################################################
 
-	edit_binary_working_paths
+    edit_binary_working_paths
 
-	###################
-	# Edit resolution #
-	###################
+    ###################
+    # Edit resolution #
+    ###################
 
-	edit_resolution
+    edit_resolution
 
-	######################################
-	# Create DXVK Graphics Pipeline file #
-	######################################
+    ######################################
+    # Create DXVK Graphics Pipeline file #
+    ######################################
 
-	create_dxvk_file
+    create_dxvk_file
 
-	##########################
-	# Small additional tasks #
-	##########################
+    ##########################
+    # Small additional tasks #
+    ##########################
 
-	small_additional_tasks
+    small_additional_tasks
 
-	###########################
-	# Check Swap Space (Deck) #
-	###########################
+    ###########################
+    # Check Swap Space (Deck) #
+    ###########################
 
-	#check_swap_space
+    #check_swap_space
 
-	##########################
-	# Modlist Specific Steps #
-	##########################
+    ##########################
+    # Modlist Specific Steps #
+    ##########################
 
-	modlist_specific_steps
+    modlist_specific_steps
 
-	############################
-	# FNV Launch Option Notice #
-	############################
+    ############################
+    # FNV Launch Option Notice #
+    ############################
 
-	fnv_launch_options
+    fnv_launch_options
 
-	############
-	# Finished #
-	############
+    ############
+    # Finished #
+    ############
 
-	# Parting message
-	echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a $LOGFILE
+    # Parting message
+    echo -e "\n\e[1mAll automated steps are now complete!\e[0m" | tee -a "$LOGFILE"
 
-	cleaner_exit
-else
-	echo "" | tee -a $LOGFILE
-
-	echo "Exiting..." | tee -a $LOGFILE
-	cleaner_exit
-
-fi
+    cleaner_exit
+    break # Exit the loop
+  elif [[ $response =~ ^[Nn]$ ]]; then
+    echo "" | tee -a "$LOGFILE"
+    #rest of script
+    echo "Exiting..." | tee -a "$LOGFILE"
+    cleaner_exit
+    break # Exit the loop
+  else
+    echo "Invalid input. Please enter y or n." | tee -a "$LOGFILE"
+  fi
+done
 
 exit 0
