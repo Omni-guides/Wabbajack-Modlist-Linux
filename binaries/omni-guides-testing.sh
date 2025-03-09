@@ -397,7 +397,7 @@ detect_modlist_dir_path() {
         if [[ "$entry_count_all" -eq 1 ]]; then
             local path=$(echo "$all_modlist_entries" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
             modlist_dir=$(dirname "$path")
-            modlist_dir="$modlist_dir/"
+            modlist_dir="${modlist_dir//$'\n'/}"
             read -p "Use ModOrganizer directory: $modlist_dir? (y/n): " confirm
             if [[ "$confirm" == "y" ]]; then
                 modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
@@ -407,10 +407,13 @@ detect_modlist_dir_path() {
         else
             local i=1
             while IFS= read -r entry; do
-                local path=$(echo "$entry" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
-                modlist_dir=$(dirname "$path")
-                modlist_dir="$modlist_dir/"
-                echo "$i) $modlist_dir"
+                local path="$entry" # Use the entry directly
+                path="${path//\"/}" # Remove all double quotes
+                path="${path//\'/}" # Remove all single quotes
+                local dir=$(dirname "$path")
+                dir="${dir//$'\n'/}" # Remove trailing newline
+                # Add color to the output
+                echo -e "\e[33m$i) $dir\e[0m"
                 ((i++))
             done <<<"$all_modlist_entries"
 
@@ -424,20 +427,57 @@ detect_modlist_dir_path() {
 
             # Extract the selected entry
             local selected_line=$(echo "$all_modlist_entries" | sed -n "${selected_entry}p")
-            local path=$(echo "$selected_line" | sed -n 's/.*\(.*ModOrganizer\.exe\).*/\1/p')
+            local path="$selected_line" # Use the selected line directly
+            path="${path//\"/}" # Remove all double quotes
+            path="${path//\'/}" # Remove all single quotes
             modlist_dir=$(dirname "$path")
-            modlist_dir="$modlist_dir/"
+            modlist_dir="${modlist_dir//$'\n'/}" # Remove trailing newline
             modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
         fi
 
-else
-    # Single matching entry
-    path="$modlist_entries" # Use the variable directly
-    path="${path//\"/}" # Remove all double quotes
-    path="${path//\'/}" # Remove all single quotes
-    modlist_dir=$(dirname "$path")
-    modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
-fi
+    else
+        # Matching entries found
+        local entry_count=$(echo "$modlist_entries" | wc -l)
+        if [[ "$entry_count" -gt 1 ]]; then
+            echo "Multiple ModOrganizer.exe entries found matching $MODLIST:"
+            local i=1
+            while IFS= read -r entry; do
+                local path="$entry" # Use the entry directly
+                path="${path//\"/}" # Remove all double quotes
+                path="${path//\'/}" # Remove all single quotes
+                local dir=$(dirname "$path")
+                dir="${dir//$'\n'/}" # Remove trailing newline
+                # Add color to the output
+                echo -e "\e[33m$i) $dir\e[0m"
+                ((i++))
+            done <<<"$modlist_entries"
+
+            # Prompt user to select an entry
+            read -p "Enter the number of the desired entry: " selected_entry
+
+            if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((i - 1))" ]]; then
+                echo "Invalid selection."
+                return 1 # Indicate failure
+            fi
+
+            # Extract the selected entry
+            local selected_line=$(echo "$modlist_entries" | sed -n "${selected_entry}p")
+            local path="$selected_line" # Use the selected line directly
+            path="${path//\"/}" # Remove all double quotes
+            path="${path//\'/}" # Remove all single quotes
+            modlist_dir=$(dirname "$path")
+            modlist_dir="${modlist_dir//$'\n'/}" # Remove trailing newline
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        else
+            # Single matching entry
+            path="$modlist_entries" # Use the variable directly
+            path="${path//\"/}" # Remove all double quotes
+            path="${path//\'/}" # Remove all single quotes
+            modlist_dir=$(dirname "$path")
+            modlist_dir="${modlist_dir//$'\n'/}" # Remove trailing newline
+            modlist_ini_temp="$modlist_dir/ModOrganizer.ini"
+        fi
+    fi
 
     # Check if ModOrganizer.ini exists
     if [[ -f "$modlist_ini_temp" ]]; then
@@ -515,9 +555,7 @@ set_win10_prefix() {
 ######################################
 
 install_wine_components() {
-
     echo -e "\nInstalling Wine Components... This can take some time, be patient!" | tee -a "$LOGFILE"
-    #echo "PATH: $PATH" | tee -a "$LOGFILE" #Added line
     local protontricks_components
     local components
     local protontricks_appid="$APPID" #default to previously detected appid
@@ -585,43 +623,29 @@ install_wine_components() {
         return 1
     fi
 
-    retries=3
-    while [[ $retries -gt 0 ]]; do
-        echo "Executing: run_protontricks --no-bwrap \"$protontricks_appid\" -q \"${protontricks_components[@]}\"" >>$LOGFILE 2>&1
-        run_protontricks --no-bwrap "$protontricks_appid" -q "${protontricks_components[@]}" >/dev/null 2>&1 &
-        pid=$!
+    echo "Executing: run_protontricks --no-bwrap \"$protontricks_appid\" -q \"${protontricks_components[@]}\"" | tee -a "$LOGFILE"
+    run_protontricks --no-bwrap "$protontricks_appid" -q "${protontricks_components[@]}" >/dev/null 2>&1 &
+    pid=$!
 
-        while kill -0 "$pid" 2>/dev/null; do
-            echo -en "\rProtontricks running... ${spinner[spinner_index]}"
-            spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
-            sleep 0.2 # Adjust sleep time for smoother animation
-        done
-        wait "$pid"
-        if [[ $? -eq 0 ]]; then
-            break # Success, exit the loop
-        else
-            echo -en "\rProtontricks command failed (attempt $((4-retries)) of 3). Retrying in 10 seconds... ${spinner[spinner_index]}"
-            spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
-            sleep 10
-            retries=$((retries - 1))
-        fi
+    while kill -0 "$pid" 2>/dev/null; do
+        echo -en "\rProtontricks running... ${spinner[spinner_index]}"
+        spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
+        sleep 0.2 # Adjust sleep time for smoother animation
     done
+    wait "$pid"
     echo -en "\r\033[K" # Clear the spinner line
 
-    if [[ $retries -eq 0 ]]; then # All retries failed
-        echo -e "\nError: Component install failed after multiple retries." | tee -a "$LOGFILE"
-        exit 1
+    if [[ $? -ne 0 ]]; then
+        echo -e "\nError: Component install failed." | tee -a "$LOGFILE"
+        return 1
     fi
 
-    echo -e "\nWine Component install completed successfully." | tee -a "$LOGFILE"
+    echo -e "\nWine Component install completed." | tee -a "$LOGFILE"
 
-    # Double check they actually installed
-
-    # Get the output of the protontricks command
+    # Check they installed
     output="$(run_protontricks --no-bwrap "$protontricks_appid" list-installed 2>/dev/null)"
     echo "Components Found: $output" >>"$LOGFILE" 2>&1
 
-    # Check if each component is present in the output
     all_found=true
     for component in "${components[@]}"; do
         if ! grep -q "$component" <<<"$output"; then
@@ -630,36 +654,12 @@ install_wine_components() {
         fi
     done
 
-    # Display a summary message
-    if [[ $all_found == true ]]; then
-        echo "All required components found." >>"$LOGFILE" 2>&1
-    else
-        echo -ne "\nSome required components are missing, retrying install... ${spinner[spinner_index]}"
-        spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
-        retries=3
-        while [[ $retries -gt 0 ]]; do
-            echo "Executing: run_protontricks --no-bwrap \"$protontricks_appid\" -q \"${protontricks_components[@]}\"" | tee -a "$LOGFILE"
-            run_protontricks --no-bwrap "$protontricks_appid" -q "${protontricks_components[@]}" >/dev/null 2>&1 &
-            pid=$!
-            while kill -0 "$pid" 2>/dev/null; do
-                echo -en "\rProtontricks running... ${spinner[spinner_index]}"
-                spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
-                sleep 0.2
-            done
-            wait "$pid"
-            if [[ $? -eq 0 ]]; then
-                break
-            else
-                echo -en "\rProtontricks command failed (attempt $((4-retries)) of 3). Retrying in 10 seconds... ${spinner[spinner_index]}"
-                spinner_index=$(( (spinner_index + 1) % ${#spinner[@]} ))
-                sleep 10
-                retries=$((retries - 1))
-            fi
-        done
-        echo -en "\r\033[KDone.\n"
-        second_output="$(run_protontricks --no-bwrap "$protontricks_appid" list-installed 2>/dev/null)"
-        echo "Components Found: $second_output" >>"$LOGFILE" 2>&1
+    if [[ $all_found == false ]]; then
+        echo -e "\nError: Some required components are missing after install." | tee -a "$LOGFILE"
+        return 1
     fi
+
+    echo "All required components found." >>"$LOGFILE" 2>&1
 }
 
 ######################
@@ -1211,7 +1211,7 @@ small_additional_tasks() {
 
     if [ -e "$file_to_delete" ]; then
         rm "$file_to_delete"
-        echo "File deleted: $file_to_delete" | tee -a "$LOGFILE"
+        echo "File deleted: $file_to_delete" >>$LOGFILE 2>&1
     else
         echo "File does not exist: $file_to_delete" >>"$LOGFILE" 2>&1
     fi
