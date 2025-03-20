@@ -245,7 +245,7 @@ get_wabbajack_path() {
     echo -e "\e[33m \nDetecting Wabbajack Install Directory..\e[0m" | tee -a "$LOGFILE"
 
     # Find all entries with Wabbajack.exe
-    local entries_string=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "Wabbajack.exe")
+    local entries_string=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "/Wabbajack.exe")
 
     if [[ -z "$entries_string" ]]; then
         echo "No Wabbajack.exe entries found in shortcuts.vdf."
