@@ -4,7 +4,7 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.16 - Omni, from 25/01/25                 #
+#              Alpha v0.19 - Omni, from 25/01/25                 #
 #                                                                #
 ##################################################################
 
@@ -24,9 +24,12 @@
 # - v0.14 - Fallback support to curl if wget is not found on the system.
 # - v0.15 - Add a check/creation of protontricks alias entries, for troubleshooting and future use.
 # - v0.16 - Replaced Wabbajack.exe and Steam Library detection to instead use shortcuts.vdf and libraryfolders.vdf to extrapolate, removing ambiguity and user input requirement.
+# - v0.17 - Modified the path related functions to handle spaces in the path name.
+# - v0.18 - Fixed Wabbajack.exe detection that was causing "blank" options being displayed (e.g if the entry in Steam was left as "Wabbajack.exe" then it would wrongly show up as a blank line.)
+# - v0.19 - Changed WebView instller download URL.
 
 # Current Script Version (alpha)
-script_ver=0.16
+script_ver=0.19
 
 # Today's date
 date=$(date +"%d%m%y")
@@ -441,7 +444,7 @@ webview_installer() {
     echo -e "\e[33m\nDownloading WebView Installer...\e[0m"
 
     local installer_path="$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
-    local download_url="https://pixeldrain.com/api/file/dvLfbRkg"
+    local download_url="https://node10.sokloud.com/filebrowser/api/public/dl/yqVTbUT8/rwatch/WebView/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
 
     # Check if installer already exists
     if [ -f "$installer_path" ]; then
