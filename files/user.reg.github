@@ -1,5 +1,5 @@
 WINE REGISTRY Version 2
-;; All keys relative to REGISTRY\\User\\S-1-5-21-3092754528-224674081-1000-1000
+;; All keys relative to REGISTRY\\User\\S-1-5-21-2067193266-3355266928-1000-1000
 
 #arch=win64
 
@@ -231,9 +231,9 @@ WINE REGISTRY Version 2
 [Software\\Microsoft\\Edge\\IEToEdge] 1735195558
 #time=1db5761d1eadd8e
 
-[Software\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}] 1735195558
-#time=1db5761d1ecb23a
-"dr"="1"
+[Software\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}] 1744496624
+#time=1dbabf98d29ec52
+"dr"="0"
 "lastrun"="13379669158294173"
 
 [Software\\Microsoft\\EdgeWebView] 1735195558
@@ -764,8 +764,8 @@ WINE REGISTRY Version 2
 #time=1db575ed36d4bd6
 ".wabbajack"="Wabbajack"
 
-[Software\\Wine] 1735197197
-#time=1db5765a2b97cc4
+[Software\\Wine] 1744496583
+#time=1dbabf974aeb810
 "ShowDotFiles"="Y"
 
 [Software\\Wine\\AppDefaults\\Avengers.exe\\DllOverrides] 1734947971
@@ -929,13 +929,13 @@ WINE REGISTRY Version 2
 "vcruntime140"="native,builtin"
 "vcruntime140_1"="native,builtin"
 
-[Software\\Wine\\Fonts] 1735197197
-#time=1db5765a2b80f42
+[Software\\Wine\\Fonts] 1744496582
+#time=1dbabf9746ce11a
 "Codepages"="1252,850"
 "LogPixels"=dword:00000060
 
-[Software\\Wine\\Fonts\\External Fonts] 1735195752
-#time=1db576245b254a4
+[Software\\Wine\\Fonts\\External Fonts] 1744496582
+#time=1dbabf9746e659e
 "@Droid Sans Fallback (TrueType)"="Z:\\run\\host\\fonts\\google-droid-sans-fonts\\DroidSansFallbackFull.ttf"
 "@Noto Sans CJK HK (TrueType)"="Z:\\run\\host\\fonts\\google-noto-sans-cjk-vf-fonts\\NotoSansCJK-VF.ttc"
 "@Noto Sans CJK JP (TrueType)"="Z:\\run\\host\\fonts\\google-noto-sans-cjk-vf-fonts\\NotoSansCJK-VF.ttc"
@@ -1004,14 +1004,6 @@ WINE REGISTRY Version 2
 "Droid Sans Tamil (TrueType)"="Z:\\run\\host\\fonts\\google-droid-sans-fonts\\DroidSansTamil-Regular.ttf"
 "Droid Sans Tamil Bold (TrueType)"="Z:\\run\\host\\fonts\\google-droid-sans-fonts\\DroidSansTamil-Bold.ttf"
 "Droid Sans Thai (TrueType)"="Z:\\run\\host\\fonts\\google-droid-sans-fonts\\DroidSansThai.ttf"
-"FreeSans (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSans.ttf"
-"FreeSans Bold (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSansBold.ttf"
-"FreeSans Bold Oblique (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSansBoldOblique.ttf"
-"FreeSans Oblique (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSansOblique.ttf"
-"FreeSerif (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSerif.ttf"
-"FreeSerif Bold (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSerifBold.ttf"
-"FreeSerif Bold Italic (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSerifBoldItalic.ttf"
-"FreeSerif Italic (TrueType)"="Z:\\run\\host\\fonts\\gnu-free\\FreeSerifItalic.ttf"
 "Jomolhari (TrueType)"="Z:\\run\\host\\fonts\\jomolhari-fonts\\Jomolhari-alpha3c-0605331.ttf"
 "Liberation Mono (TrueType)"="Z:\\run\\host\\fonts\\liberation-mono-fonts\\LiberationMono-Regular.ttf"
 "Liberation Mono Bold (TrueType)"="Z:\\run\\host\\fonts\\liberation-mono-fonts\\LiberationMono-Bold.ttf"
@@ -1030,7 +1022,6 @@ WINE REGISTRY Version 2
 "Liberation Serif Bold Italic (TrueType)"="Z:\\run\\host\\fonts\\liberation-serif-fonts\\LiberationSerif-BoldItalic.ttf"
 "Liberation Serif Italic (TrueType)"="Z:\\run\\host\\fonts\\liberation-serif-fonts\\LiberationSerif-Italic.ttf"
 "Madan2 (TrueType)"="Z:\\run\\host\\fonts\\madan-fonts\\madan.ttf"
-"Mingzat (TrueType)"="Z:\\run\\host\\fonts\\sil-mingzat-fonts\\Mingzat-Regular.ttf"
 "MScore for scores (TrueType)"="Z:\\run\\host\\fonts\\mscore-fonts\\mscore.ttf"
 "NimbusMonoPS-Bold (TrueType)"="Z:\\run\\host\\fonts\\urw-base35\\NimbusMonoPS-Bold.otf"
 "NimbusMonoPS-BoldItalic (TrueType)"="Z:\\run\\host\\fonts\\urw-base35\\NimbusMonoPS-BoldItalic.otf"
@@ -1289,7 +1280,6 @@ WINE REGISTRY Version 2
 "Noto Serif Thai Regular (TrueType)"="Z:\\run\\host\\fonts\\google-noto-vf\\NotoSerifThai[wght].ttf"
 "Noto Serif Thin (TrueType)"="Z:\\run\\host\\fonts\\google-noto\\NotoSerif-Thin.ttf"
 "Noto Serif Thin Italic (TrueType)"="Z:\\run\\host\\fonts\\google-noto\\NotoSerif-ThinItalic.ttf"
-"Nuosu SIL (TrueType)"="Z:\\run\\host\\fonts\\sil-nuosu-fonts\\NuosuSIL-Regular.ttf"
 "Open Sans (TrueType)"="Z:\\run\\host\\fonts\\open-sans\\OpenSans-Regular.ttf"
 "Open Sans Bold (TrueType)"="Z:\\run\\host\\fonts\\open-sans\\OpenSans-Bold.ttf"
 "Open Sans Bold Italic (TrueType)"="Z:\\run\\host\\fonts\\open-sans\\OpenSans-BoldItalic.ttf"
@@ -1337,7 +1327,6 @@ WINE REGISTRY Version 2
 "STIX Two Text Regular (TrueType)"="Z:\\run\\host\\fonts\\stix-fonts\\STIXTwoText-Regular.otf"
 "STIX Two Text SemiBold (TrueType)"="Z:\\run\\host\\fonts\\stix-fonts\\STIXTwoText-SemiBold.otf"
 "STIX Two Text SemiBold Italic (TrueType)"="Z:\\run\\host\\fonts\\stix-fonts\\STIXTwoText-SemiBoldItalic.otf"
-"Symbola (TrueType)"="Z:\\run\\host\\fonts\\gdouros-symbola\\Symbola.ttf"
 "Symbols Nerd Font (TrueType)"="Z:\\run\\host\\fonts\\nerd-fonts\\SymbolsNerdFont-Regular.ttf"
 "Symbols Nerd Font Mono (TrueType)"="Z:\\run\\host\\fonts\\nerd-fonts\\SymbolsNerdFontMono-Regular.ttf"
 "URWBookman-Demi (TrueType)"="Z:\\run\\host\\fonts\\urw-base35\\URWBookman-Demi.otf"
@@ -1360,6 +1349,10 @@ WINE REGISTRY Version 2
 [Software\\Wine\\WineDbg] 1734947971
 #time=1db55215ca29d88
 "ShowCrashDialog"=dword:00000000
+
+[Software\\Wine\\X11 Driver] 1744496583
+#time=1dbabf974aeb87e
+"Decorated"="N"
 
 [Volatile Environment] 1735194163
 #time=1db575e9299795e
