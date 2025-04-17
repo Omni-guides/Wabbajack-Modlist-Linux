@@ -4,7 +4,7 @@
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.63 - Omni 03/03/2025           #
+#          Beta v0.64 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,16 @@
 
 
 # Current Script Version (beta)
-script_ver=0.63
+script_ver=0.64
+
+# Define modlist-specific configurations
+declare -A modlist_configs=(
+    ["wildlander"]="dotnet472"
+    ["librum|apostasy"]="dotnet40 dotnet8"
+    ["nordicsouls"]="dotnet40"
+    ["livingskyrim|lsiv|ls4"]="dotnet40"
+    ["lostlegacy"]="dotnet48"
+)
 
 # Set up and blank logs (simplified)
 LOGFILE=$HOME/omni-guides-sh.log
@@ -425,7 +434,9 @@ enable_dotfiles() {
     log_status "DEBUG" "APPID=$APPID"
     log_status "INFO" "\nEnabling visibility of (.)dot files..."
 
-    dotfiles_check=$(run_protontricks -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
+    # Completely redirect all output to avoid any wine debug messages
+    dotfiles_check=$(WINEDEBUG=-all run_protontricks -c 'wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID > /dev/null 2>&1; 
+                     WINEDEBUG=-all run_protontricks -c 'wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
     
     log_status "DEBUG" "Current dotfiles setting: $dotfiles_check"
 
@@ -433,16 +444,16 @@ enable_dotfiles() {
         log_status "INFO" "DotFiles already enabled via registry... skipping"
     else
         # Method 2: Set registry key (standard approach)
-        printf '%s\n' "Setting ShowDotFiles registry key..." >>$LOGFILE 2>&1
-        run_protontricks -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID >>$LOGFILE 2>&1
+        log_status "DEBUG" "Setting ShowDotFiles registry key..."
+        WINEDEBUG=-all run_protontricks -c 'wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID > /dev/null 2>&1
         
         # Method 3: Also try direct winecfg approach as backup
-        printf '%s\n' "Also setting via winecfg command..." >>$LOGFILE 2>&1
-        run_protontricks -c 'WINEDEBUG=-all winecfg /v wine' $APPID >>$LOGFILE 2>&1
+        log_status "DEBUG" "Also setting via winecfg command..."
+        WINEDEBUG=-all run_protontricks -c 'winecfg /v wine' $APPID > /dev/null 2>&1
         
         # Method 4: Create user.reg entry if it doesn't exist
-        printf '%s\n' "Ensuring user.reg has correct entry..." >>$LOGFILE 2>&1
-        prefix_path=$(run_protontricks -c 'echo $WINEPREFIX' $APPID 2>/dev/null)
+        log_status "DEBUG" "Ensuring user.reg has correct entry..."
+        prefix_path=$(WINEDEBUG=-all run_protontricks -c 'echo $WINEPREFIX' $APPID 2>/dev/null)
         if [[ -n "$prefix_path" && -d "$prefix_path" ]]; then
             if [[ -f "$prefix_path/user.reg" ]]; then
                 if ! grep -q "ShowDotFiles" "$prefix_path/user.reg" 2>/dev/null; then
@@ -453,8 +464,9 @@ enable_dotfiles() {
         fi
         
         # Verify the setting took effect
-        dotfiles_verify=$(run_protontricks -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
-        printf '%s\n' "Verification check: $dotfiles_verify" >>$LOGFILE 2>&1
+        dotfiles_verify=$(WINEDEBUG=-all run_protontricks -c 'wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID > /dev/null 2>&1;
+                          WINEDEBUG=-all run_protontricks -c 'wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
+        log_status "DEBUG" "Verification check: $dotfiles_verify"
         
         log_status "SUCCESS" "Done!"
     fi
@@ -1115,46 +1127,114 @@ small_additional_tasks() {
 
 }
 
+###############################
+# Set Steam Artwork Function  #
+###############################
+
+set_steam_artwork() {
+    # Only run for Tuxborn modlist
+    if [[ "$MODLIST" == *"Tuxborn"* ]]; then
+        log_status "INFO" "Setting up Steam artwork for Tuxborn..."
+        
+        # Source directory with artwork
+        local source_dir="$modlist_dir/Steam Icons"
+        
+        if [[ ! -d "$source_dir" ]]; then
+            log_status "WARN" "Steam Icons directory not found at $source_dir"
+            return 1
+        fi
+        
+        # Find all Steam userdata directories
+        for userdata_dir in "$HOME/.local/share/Steam/userdata" "$HOME/.steam/steam/userdata"; do
+            if [[ ! -d "$userdata_dir" ]]; then
+                continue
+            fi
+            
+            # Process each user ID directory
+            for user_id_dir in "$userdata_dir"/*; do
+                if [[ ! -d "$user_id_dir" || "$user_id_dir" == *"0"* ]]; then
+                    continue  # Skip non-directories and the anonymous user
+                fi
+                
+                # Create grid directory if it doesn't exist
+                local grid_dir="$user_id_dir/config/grid"
+                mkdir -p "$grid_dir"
+                
+                # Copy the files with the correct naming
+                if [[ -f "$source_dir/grid-hero.png" ]]; then
+                    cp "$source_dir/grid-hero.png" "$grid_dir/${APPID}_hero.png"
+                    log_status "DEBUG" "Copied grid-hero.png to ${APPID}_hero.png"
+                fi
+                
+                if [[ -f "$source_dir/grid-logo.png" ]]; then
+                    cp "$source_dir/grid-logo.png" "$grid_dir/${APPID}_logo.png"
+                    log_status "DEBUG" "Copied grid-logo.png to ${APPID}_logo.png"
+                fi
+                
+                if [[ -f "$source_dir/grid-tall.png" ]]; then
+                    cp "$source_dir/grid-tall.png" "$grid_dir/${APPID}p.png"
+                    log_status "DEBUG" "Copied grid-tall.png to ${APPID}p.png"
+                fi
+                
+                if [[ -f "$source_dir/grid-wide.png" ]]; then
+                    cp "$source_dir/grid-wide.png" "$grid_dir/${APPID}.png"
+                    log_status "DEBUG" "Copied grid-wide.png to ${APPID}.png"
+                fi
+                
+                log_status "SUCCESS" "Tuxborn artwork copied for user ID $(basename "$user_id_dir")"
+            done
+        done
+        
+        log_status "SUCCESS" "Steam artwork setup complete for Tuxborn"
+    fi
+}
+
+
 ##########################
 # Modlist Specific Steps #
 ##########################
 
 modlist_specific_steps() {
     local modlist_lower=$(echo "${MODLIST// /}" | tr '[:upper:]' '[:lower:]')
+    
+    # Call the Steam artwork function for all modlists
+    set_steam_artwork | tee -a "$LOGFILE"
 
-    for pattern in "${!modlist_configs[@]}"; do
-        if [[ "$MODLIST" == *"Wildlander"* ]] && [[ "$pattern" == "wildlander" ]]; then
-            log_status "INFO" "\nRunning steps specific to \e[32m$MODLIST\e[0m. This can take some time, be patient!"
-            
-            # Install dotnet with spinner animation
-            spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-            run_protontricks --no-bwrap "$APPID" -q ${modlist_configs[$pattern]} >/dev/null 2>&1 &
-            
-            pid=$! # Store the PID of the background process
-            
-            while kill -0 "$pid" >/dev/null 2>&1; do
-                for i in "${spinner[@]}"; do
-                    echo -en "\r${i}\c"
-                    sleep 0.1
-                done
+    # Handle Wildlander specially due to its custom spinner animation
+    if [[ "$MODLIST" == *"Wildlander"* ]]; then
+        log_status "INFO" "\nRunning steps specific to \e[32m$MODLIST\e[0m. This can take some time, be patient!"
+        
+        # Install dotnet with spinner animation
+        spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+        run_protontricks --no-bwrap "$APPID" -q dotnet472 >/dev/null 2>&1 &
+        
+        pid=$! # Store the PID of the background process
+        
+        while kill -0 "$pid" >/dev/null 2>&1; do
+            for i in "${spinner[@]}"; do
+                echo -en "\r${i}\c"
+                sleep 0.1
             done
-            
-            wait "$pid" # Wait for the process to finish
-            
-            # Clear the spinner and move to the next line
-            echo -en "\r\033[K" # Clear the spinner line
-            
-            if [[ $? -ne 0 ]]; then
-                log_status "ERROR" "Component install failed with exit code $?"
-            else
-                log_status "SUCCESS" "Wine Component install completed successfully."
-            fi
-            
-            new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
-            log_status "DEBUG" "Components Found: $new_output"
-            continue
+        done
+        
+        wait "$pid" # Wait for the process to finish
+        
+        # Clear the spinner and move to the next line
+        echo -en "\r\033[K" # Clear the spinner line
+        
+        if [[ $? -ne 0 ]]; then
+            log_status "ERROR" "Component install failed with exit code $?"
+        else
+            log_status "SUCCESS" "Wine Component install completed successfully."
         fi
         
+        new_output="$(run_protontricks --no-bwrap "$APPID" list-installed 2>/dev/null)"
+        log_status "DEBUG" "Components Found: $new_output"
+        return 0
+    fi
+
+    # Handle the rest of the modlists with the compact approach
+    for pattern in "${!modlist_configs[@]}"; do
         if [[ "$pattern" != "wildlander" ]] && [[ "$modlist_lower" =~ ${pattern//|/|.*} ]]; then
             log_status "INFO" "\nRunning steps specific to \e[32m$MODLIST\e[0m. This can take some time, be patient!"
             
@@ -1515,7 +1595,12 @@ if [[ $proceed =~ ^[Yy]$ ]]; then
         
         # Final steps (100%)
         printf "\r\033[KProgress: [%-50s] %d%% - Completing installation..." "==================================================" "100"
-        modlist_specific_steps >/dev/null 2>&1
+        
+        # Don't silence modlist_specific_steps output
+        echo "" # Add spacing
+        echo "ABOUT TO CALL MODLIST_SPECIFIC_STEPS FOR: $MODLIST" | tee -a "$LOGFILE"
+        modlist_specific_steps
+        echo "FINISHED CALLING MODLIST_SPECIFIC_STEPS" | tee -a "$LOGFILE"
         
         # Add two newlines after progress bar completes
         printf "\n\n"
