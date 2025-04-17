@@ -71,3 +71,10 @@
 # - v0.57 - Added handling for UUID-based SDCard/additional directory paths
 # - v0.58 - Minor correction for exit handling if APPID isn't detected
 # - v0.59 - Rewrite Modlist Directory and Steam Library detection mechanisms completely, utilising Steam's .vdf files and reducing the ambiguity and user intput required.
+# - v0.60 - Rewrite protontricks version check to be more accurate.
+# - v0.61 - Minor tidy up of protontricks output and output displayed to user.
+# - v0.62 - Added initial support for Fallout New Vegas modlsits (tested with Begin Again so far)
+# - v0.63 - Added handling for spaces in the modlist directory name.
+# - v0.63 - Added initial attempt at handling failed protontricks wine component install, now attempts to retry..
+# - v0.64-testing First upload of heavily refactored script.
+# - v0.64-testing Added Tuxborn-specific functionality for automatic implementation of Steam Graphics.
