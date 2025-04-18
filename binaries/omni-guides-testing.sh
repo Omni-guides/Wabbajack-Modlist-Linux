@@ -1134,7 +1134,7 @@ small_additional_tasks() {
 set_steam_artwork() {
     # Only run for Tuxborn modlist
     if [[ "$MODLIST" == *"Tuxborn"* ]]; then
-        log_status "INFO" "Setting up Steam artwork for Tuxborn..."
+        log_status "DEBUG" "Setting up Steam artwork for Tuxborn..."
         
         # Source directory with artwork
         local source_dir="$modlist_dir/Steam Icons"
@@ -1160,32 +1160,31 @@ set_steam_artwork() {
                 local grid_dir="$user_id_dir/config/grid"
                 mkdir -p "$grid_dir"
                 
-                # Copy the files with the correct naming
+                # Copy grid-tall.png to both APPID.png and APPIDp.png
+                if [[ -f "$source_dir/grid-tall.png" ]]; then
+                    cp "$source_dir/grid-tall.png" "$grid_dir/${APPID}.png"
+                    log_status "DEBUG" "Copied grid-tall.png to ${APPID}.png"
+                    cp "$source_dir/grid-tall.png" "$grid_dir/${APPID}p.png"
+                    log_status "DEBUG" "Copied grid-tall.png to ${APPID}p.png"
+                fi
+                
+                # Copy grid-hero.png to APPID_hero.png
                 if [[ -f "$source_dir/grid-hero.png" ]]; then
                     cp "$source_dir/grid-hero.png" "$grid_dir/${APPID}_hero.png"
                     log_status "DEBUG" "Copied grid-hero.png to ${APPID}_hero.png"
                 fi
                 
+                # Copy grid-logo.png to APPID_logo.png
                 if [[ -f "$source_dir/grid-logo.png" ]]; then
                     cp "$source_dir/grid-logo.png" "$grid_dir/${APPID}_logo.png"
                     log_status "DEBUG" "Copied grid-logo.png to ${APPID}_logo.png"
                 fi
                 
-                if [[ -f "$source_dir/grid-tall.png" ]]; then
-                    cp "$source_dir/grid-tall.png" "$grid_dir/${APPID}p.png"
-                    log_status "DEBUG" "Copied grid-tall.png to ${APPID}p.png"
-                fi
-                
-                if [[ -f "$source_dir/grid-wide.png" ]]; then
-                    cp "$source_dir/grid-wide.png" "$grid_dir/${APPID}.png"
-                    log_status "DEBUG" "Copied grid-wide.png to ${APPID}.png"
-                fi
-                
-                log_status "SUCCESS" "Tuxborn artwork copied for user ID $(basename "$user_id_dir")"
+                log_status "DEBUG" "Tuxborn artwork copied for user ID $(basename "$user_id_dir")"
             done
         done
         
-        log_status "SUCCESS" "Steam artwork setup complete for Tuxborn"
+        log_status "DEBUG" "Steam artwork setup complete for Tuxborn"
     fi
 }
 
@@ -1594,16 +1593,16 @@ if [[ $proceed =~ ^[Yy]$ ]]; then
         create_dxvk_file >/dev/null 2>&1
         
         # Final steps (100%)
-        printf "\r\033[KProgress: [%-50s] %d%% - Completing installation..." "==================================================" "100"
+        printf "\r\033[KProgress: [%-50s] %d%% - Completing installation...\n" "==================================================" "100"
         
-        # Don't silence modlist_specific_steps output
-        echo "" # Add spacing
-        echo "ABOUT TO CALL MODLIST_SPECIFIC_STEPS FOR: $MODLIST" | tee -a "$LOGFILE"
+        # Remove user-facing artwork and debug output
+        # echo "" # Add spacing
+        # echo "ABOUT TO CALL MODLIST_SPECIFIC_STEPS FOR: $MODLIST" | tee -a "$LOGFILE"
         modlist_specific_steps
-        echo "FINISHED CALLING MODLIST_SPECIFIC_STEPS" | tee -a "$LOGFILE"
+        # echo "FINISHED CALLING MODLIST_SPECIFIC_STEPS" | tee -a "$LOGFILE"
         
         # Add two newlines after progress bar completes
-        printf "\n\n"
+        # printf "\n\n"
         
         chown_chmod_modlist_dir
         fnv_launch_options >/dev/null 2>&1
