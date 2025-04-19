@@ -224,9 +224,9 @@ WINE REGISTRY Version 2
 #time=1dbb15ba4ce94a4
 @="open"
 
-[Software\\Classes\\Wabbajack\\shell\\open\\command] 1745088510
-#time=1dbb15ba4ce96c0
-@="\"Z:\\home\\deck\\Games\\Wabbajack\\4.0.1.0\\Wabbajack.exe\" \"%1\""
+[Software\\Classes\\Wabbajack\\shell\\open\\command] 1745101576
+#time=1dbb17a10e267ec
+@="\"Z:\\home\\deck\\Wabbajackify\\4.0.1.0\\Wabbajack.exe\" \"%1\""
 
 [Software\\Microsoft\\Internet Explorer\\Main] 1743617370
 #time=1dba3fa61419b00
@@ -286,6 +286,14 @@ WINE REGISTRY Version 2
 
 [Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced] 1743617370
 #time=1dba3fa61437cc2
+
+[Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedMRU] 1745101893
+#time=1dbb17acdbc413a
+"a"=hex:77,00,69,00,6e,00,65,00,63,00,66,00,67,00,2e,00,65,00,78,00,65,00,00,\
+  00,5a,00,3a,00,5c,00,68,00,6f,00,6d,00,65,00,5c,00,64,00,65,00,63,00,6b,00,\
+  5c,00,57,00,61,00,62,00,62,00,61,00,6a,00,61,00,63,00,6b,00,69,00,66,00,79,\
+  00,00,00
+"MRUList"="a"
 
 [Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts] 1743617370
 #time=1dba3fa61437e02
@@ -709,8 +717,8 @@ WINE REGISTRY Version 2
 #time=1dbb15ba4cea6d8
 ".wabbajack"="Wabbajack"
 
-[Software\\Wine] 1745088738
-#time=1dbb15c2cf98c44
+[Software\\Wine] 1745101874
+#time=1dbb17ac29636bc
 "ShowDotFiles"="Y"
 
 [Software\\Wine\\AppDefaults\\Avengers.exe\\DllOverrides] 1743617370
@@ -752,10 +760,6 @@ WINE REGISTRY Version 2
 [Software\\Wine\\AppDefaults\\Maine-Win64-Shipping.exe\\DllOverrides] 1743617370
 #time=1dba3fa61501e3c
 "SpeechSynthWrapper"="disabled"
-
-[Software\\Wine\\AppDefaults\\msedgewebview2.exe] 1743617370
-#time=1dba3fa61509a2e
-"Version"="win81"
 
 [Software\\Wine\\AppDefaults\\NFS16.exe\\DllOverrides] 1743617370
 #time=1dba3fa61507742
@@ -813,6 +817,10 @@ WINE REGISTRY Version 2
 #time=1dba3fa61504344
 "xinput1_3"="native,builtin"
 
+[Software\\Wine\\AppDefaults\\Wabbajack.exe] 1745101901
+#time=1dbb17ad2774486
+"Version"="win10"
+
 [Software\\Wine\\Debug] 1743617370
 #time=1dba3fa61444648
 "RelayExclude"="ntdll.RtlEnterCriticalSection;ntdll.RtlTryEnterCriticalSection;ntdll.RtlLeaveCriticalSection;kernel32.48;kernel32.49;kernel32.94;kernel32.95;kernel32.96;kernel32.97;kernel32.98;kernel32.TlsGetValue;kernel32.TlsSetValue;kernel32.FlsGetValue;kernel32.FlsSetValue;kernel32.SetLastError"
@@ -858,8 +866,8 @@ WINE REGISTRY Version 2
 "vcruntime140"="native,builtin"
 "vcruntime140_1"="native,builtin"
 
-[Software\\Wine\\Fonts] 1745088738
-#time=1dbb15c2cf8136e
+[Software\\Wine\\Fonts] 1745101874
+#time=1dbb17ac294b698
 "Codepages"="1252,850"
 "LogPixels"=dword:00000060
 
