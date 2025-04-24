@@ -77,22 +77,22 @@ The refactored script should be more modular, robust, and user-friendly, with im
 Original ChangeLog list.
 ===============
 
-# - v0.01 - Initial script structure.
-# - v0.02 - Added functions for most features
-# - v0.03 - Completed initial functions
-# - v0.04 - Added handling of WebP Installer
-# - v0.05 - Switched out installing WebP in favour of dll + .reg files
-# - v0.06 - Tidied up some ordering of commands, plus output style differences.
-# - v0.07 - Replaced troublesome win7/win10 protontricks setting with swapping out .reg files. Also much faster.
-# - v0.08 - Added listing of Wabbajack Steam entries, with selection, if more than one "Wabbajack" named entry found.
-# - v0.09 - Initial support for Flatpak Steam libraries
-# - v0.10 - Better detection of flatpak protontricks (Bazzite has a wrapper that made it look like native protontricks)
-# - v0.11 - Better handling of the Webview Installer
-# - v0.12 - Added further support for Flatpak Steam, including override requirement message.
-# - v0.13 - Fixed incorrect protontricks-launch command for installing Webview using native protontricks.
-# - v0.14 - Fallback support to curl if wget is not found on the system.
-# - v0.15 - Add a check/creation of protontricks alias entries, for troubleshooting and future use.
-# - v0.16 - Replaced Wabbajack.exe and Steam Library detection to instead use shortcuts.vdf and libraryfolders.vdf to extrapolate, removing ambiguity and user input requirement.
-# - v0.17 - Modified the path related functions to handle spaces in the path name.
-# - v0.18 - Fixed Wabbajack.exe detection that was causing "blank" options being displayed (e.g if the entry in Steam was left as "Wabbajack.exe" then it would wrongly show up as a blank line.)
-# - v0.19 - Changed WebView instller download URL.
+- v0.01 - Initial script structure.
+- v0.02 - Added functions for most features
+- v0.03 - Completed initial functions
+- v0.04 - Added handling of WebP Installer
+- v0.05 - Switched out installing WebP in favour of dll + .reg files
+- v0.06 - Tidied up some ordering of commands, plus output style differences.
+- v0.07 - Replaced troublesome win7/win10 protontricks setting with swapping out .reg files. Also much faster.
+- v0.08 - Added listing of Wabbajack Steam entries, with selection, if more than one "Wabbajack" named entry found.
+- v0.09 - Initial support for Flatpak Steam libraries
+- v0.10 - Better detection of flatpak protontricks (Bazzite has a wrapper that made it look like native protontricks)
+- v0.11 - Better handling of the Webview Installer
+- v0.12 - Added further support for Flatpak Steam, including override requirement message.
+- v0.13 - Fixed incorrect protontricks-launch command for installing Webview using native protontricks.
+- v0.14 - Fallback support to curl if wget is not found on the system.
+- v0.15 - Add a check/creation of protontricks alias entries, for troubleshooting and future use.
+- v0.16 - Replaced Wabbajack.exe and Steam Library detection to instead use shortcuts.vdf and libraryfolders.vdf to extrapolate, removing ambiguity and user input requirement.
+- v0.17 - Modified the path related functions to handle spaces in the path name.
+- v0.18 - Fixed Wabbajack.exe detection that was causing "blank" options being displayed (e.g if the entry in Steam was left as "Wabbajack.exe" then it would wrongly show up as a blank line.)
+- v0.19 - Changed WebView instller download URL.
