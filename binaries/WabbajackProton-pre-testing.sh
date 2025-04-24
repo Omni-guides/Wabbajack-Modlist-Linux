@@ -187,7 +187,7 @@ download_file() {
 
 display_banner() {
     echo "╔══════════════════════════════════════════════════════════════════╗"
-    echo "║                  Wabbajack Proton Setup v$SCRIPT_VERSION                   ║"
+    echo "║                  Wabbajack Proton Setup v$SCRIPT_VERSION                    ║"
     echo "║                                                                  ║"
     echo "║        A tool for running Wabbajack on Linux via Proton          ║"
     echo "╚══════════════════════════════════════════════════════════════════╝"
@@ -448,8 +448,8 @@ get_wabbajack_path() {
                 fi
                 verbose_log "Checking shortcuts.vdf: $vdf_file"
                 while IFS= read -r line; do
-                    if [[ "$line" == *"Wabbajack.exe"* ]]; then
-                        local path=$(echo "$line" | sed -E 's/.*"([^"]*Wabbajack\.exe[^"]*)".*$/\1/')
+                    if [[ "$line" == */Wabbajack.exe* ]]; then
+                        local path=$(echo "$line" | sed -E 's/.*"([^"*Wabbajack\\.exe[^"]*)".*$/\1/')
                         if [[ -n "$path" ]]; then
                             if [[ "$path" != *".wabbajack_test"* ]]; then
                                 verbose_log "Found Wabbajack.exe path: $path"
@@ -459,7 +459,7 @@ get_wabbajack_path() {
                             fi
                         fi
                     fi
-                done < <(strings "$vdf_file" | grep -i "Wabbajack.exe")
+                done < <(strings "$vdf_file" | grep -i "/Wabbajack.exe")
             done
         fi
     done
