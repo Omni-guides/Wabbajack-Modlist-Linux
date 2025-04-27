@@ -38,7 +38,7 @@ done
 
 # URLs for resources
 WABBALIST_URL="https://raw.githubusercontent.com/wabbajack-tools/mod-lists/master/README.md"
-WEBVIEW_INSTALLER_URL="https://node10.sokloud.com/filebrowser/api/public/dl/yqVTbUT8/rwatch/WebView/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+WEBVIEW_INSTALLER_URL="https://node06.sokloud.com/filebrowser/api/public/dl/MubvCF2N/rwatch/WebView/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
 SYSTEM_REG_URL="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/system.reg.github"
 USER_REG_URL="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/user.reg.github"
 
