@@ -4,7 +4,7 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#                     v0.20 - Refactored                         #
+#                     v0.20 - Refactored                         #1
 #                                                                #
 ##################################################################
 
@@ -465,8 +465,33 @@ get_wabbajack_path() {
     done
     readarray -t unique_entries < <(printf '%s\n' "${wabbajack_entries[@]}" | sort -u)
     wabbajack_entries=("${unique_entries[@]}")
+    # Sort alphabetically for user-friendly order
+    IFS=$'\n' wabbajack_entries=($(sort <<<"${wabbajack_entries[*]}"))
+    unset IFS
+
+    # Build a mapping from App ID to Wabbajack.exe path
+    declare -A appid_to_path
+    for path in "${wabbajack_entries[@]}"; do
+        # Try to extract the App ID from the path's parent directory name (assumes unique per shortcut)
+        for i in "${!all_app_ids[@]}"; do
+            if [[ "$path" == *"${all_app_names[$i]}"* ]]; then
+                appid_to_path["${all_app_ids[$i]}"]="$path"
+            fi
+        done
+    done
+    # If we have a sorted app_ids array, display the paths in that order
+    ordered_paths=()
+    for id in "${app_ids[@]}"; do
+        if [[ -n "${appid_to_path[$id]}" ]]; then
+            ordered_paths+=("${appid_to_path[$id]}")
+        fi
+    done
+    # Only use ordered_paths if it matches the number of app_ids
+    if [[ ${#ordered_paths[@]} -eq ${#app_ids[@]} ]]; then
+        wabbajack_entries=("${ordered_paths[@]}")
+    fi
     local entry_count=${#wabbajack_entries[@]}
-    verbose_log "Found $entry_count unique Wabbajack.exe entries"
+    verbose_log "Found $entry_count unique Wabbajack.exe entries (ordered by shortcut name)"
     if [[ "$entry_count" -eq 0 ]]; then
         error_exit "No Wabbajack.exe entries found in shortcuts.vdf. Please ensure you've added Wabbajack.exe as a non-Steam game and run it once via Steam."
     elif [[ "$entry_count" -gt 1 ]]; then
@@ -494,6 +519,8 @@ get_wabbajack_path() {
     if [[ -n "$wabbajack_path" ]]; then
         log "Using Wabbajack path: $wabbajack_path"
         APPLICATION_DIRECTORY=$(dirname "$wabbajack_path")
+        # Sanitize: remove any stray quotes and trim whitespace/newlines
+        APPLICATION_DIRECTORY=$(echo "$APPLICATION_DIRECTORY" | tr -d '"' | xargs)
         log "Application Directory: $APPLICATION_DIRECTORY"
         return 0
     else
@@ -542,8 +569,8 @@ set_protontricks_perms() {
         # Only log to file, don't display to user
         log "Setting Protontricks permissions..."
         
-        # Set flatpak permission override
-        flatpak override --user com.github.Matoking.protontricks --filesystem="$APPLICATION_DIRECTORY"
+        # Always set Flatpak override for the application directory, suppressing error output
+        flatpak override --user com.github.Matoking.protontricks --filesystem="$APPLICATION_DIRECTORY" 2>>"$LOGFILE"
         
         if [[ "$STEAMDECK" = 1 ]]; then
             log "Checking for SDCard and setting permissions appropriately..."
@@ -551,7 +578,7 @@ set_protontricks_perms() {
             sdcard_path=$(df -h | grep "/run/media" | awk '{print $NF}')
             log "SD Card path: $sdcard_path"
             if [[ -n "$sdcard_path" ]]; then
-                flatpak override --user --filesystem="$sdcard_path" com.github.Matoking.protontricks
+                flatpak override --user --filesystem="$sdcard_path" com.github.Matoking.protontricks 2>>"$LOGFILE"
                 log "SD Card permission set"
             fi
         fi
@@ -570,12 +597,26 @@ webview_installer() {
     else
         log "WebView Installer already exists, skipping download"
     fi
-    # Always run the installer in the correct prefix using run_protontricks, suppressing all output
+    # Check installer exists before running
+    if [ ! -f "$installer_path" ]; then
+        log "ERROR: WebView installer not found at $installer_path"
+        error_exit "WebView installer missing"
+    fi
+    # Always run the installer in the correct prefix using run_protontricks, capturing output
     set_current_task "Installing WebView runtime (this may take a while)..."
     log "Installing WebView..."
-    if ! run_protontricks -c "wine \"$installer_path\" /silent /install" "$APPID" >/dev/null 2>&1; then
-        error_exit "Failed to install WebView"
+    local webview_tmp_log
+    webview_tmp_log="$(mktemp)"
+    if ! run_protontricks -c "wine \"$installer_path\" /silent /install" "$APPID" > "$webview_tmp_log" 2>&1; then
+        log "ERROR: Failed to install WebView. See $LOGFILE for details."
+        echo "--- WebView Installer Output ---" >> "$LOGFILE"
+        cat "$webview_tmp_log" >> "$LOGFILE"
+        echo "--- End WebView Installer Output ---" >> "$LOGFILE"
+        rm -f "$webview_tmp_log"
+        display "Failed to install WebView. See $LOGFILE for details.\nYou may need to install the WebView2 runtime manually inside the Proton prefix." "$RED"
+        error_exit "Failed to install WebView. See $LOGFILE for details."
     fi
+    rm -f "$webview_tmp_log"
 }
 
 detect_link_steam_library() {
@@ -723,7 +764,7 @@ show_detection_summary() {
     echo "───────────────────────────────────────────────────────────────────"
     echo -e "\e[1mDetection Summary:\e[0m" | tee -a "$LOGFILE"
     echo -e "===================" | tee -a "$LOGFILE"
-    echo -e "Wabbajack Path: \e[32m$APPLICATION_DIRECTORY\e[0m" | tee -a "$LOGFILE"
+    echo -e "Wabbajack Path: \e[32m\"$APPLICATION_DIRECTORY\"\e[0m" | tee -a "$LOGFILE"
     echo -e "Steam App ID: \e[32m$APPID\e[0m" | tee -a "$LOGFILE"
     echo -e "Compatdata Path: \e[32m$COMPAT_DATA_PATH\e[0m" | tee -a "$LOGFILE"
     echo -e "Steam Library: \e[32m$CHOSEN_LIBRARY\e[0m" | tee -a "$LOGFILE"
