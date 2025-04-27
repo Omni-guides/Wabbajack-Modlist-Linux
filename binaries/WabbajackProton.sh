@@ -4,835 +4,836 @@
 #                                                                #
 # Attempt to automate installing Wabbajack on Linux Steam/Proton #
 #                                                                #
-#              Alpha v0.19 - Omni, from 25/01/25                 #
+#                     v0.20 - Refactored                         #
 #                                                                #
 ##################################################################
 
-# - v0.01 - Initial script structure.
-# - v0.02 - Added functions for most features
-# - v0.03 - Completed initial functions
-# - v0.04 - Added handling of WebP Installer
-# - v0.05 - Switched out installing WebP in favour of dll + .reg files
-# - v0.06 - Tidied up some ordering of commands, plus output style differences.
-# - v0.07 - Replaced troublesome win7/win10 protontricks setting with swapping out .reg files. Also much faster.
-# - v0.08 - Added listing of Wabbajack Steam entries, with selection, if more than one "Wabbajack" named entry found.
-# - v0.09 - Initial support for Flatpak Steam libraries
-# - v0.10 - Better detection of flatpak protontricks (Bazzite has a wrapper that made it look like native protontricks)
-# - v0.11 - Better handling of the Webview Installer
-# - v0.12 - Added further support for Flatpak Steam, including override requirement message.
-# - v0.13 - Fixed incorrect protontricks-launch command for installing Webview using native protontricks.
-# - v0.14 - Fallback support to curl if wget is not found on the system.
-# - v0.15 - Add a check/creation of protontricks alias entries, for troubleshooting and future use.
-# - v0.16 - Replaced Wabbajack.exe and Steam Library detection to instead use shortcuts.vdf and libraryfolders.vdf to extrapolate, removing ambiguity and user input requirement.
-# - v0.17 - Modified the path related functions to handle spaces in the path name.
-# - v0.18 - Fixed Wabbajack.exe detection that was causing "blank" options being displayed (e.g if the entry in Steam was left as "Wabbajack.exe" then it would wrongly show up as a blank line.)
-# - v0.19 - Changed WebView instller download URL.
+# Set up logging
+LOGFILE="$HOME/wabbajack-via-proton-sh.log"
+echo "" > "$LOGFILE"
 
-# Current Script Version (alpha)
-script_ver=0.19
+# Script configuration
+SCRIPT_VERSION="0.20"
+STEAM_IS_FLATPAK=0
+VERBOSE=0
+CURRENT_TASK=""
+TOTAL_TASKS=10
+CURRENT_TASK_NUM=0
+IN_MODIFICATION_PHASE=0  # Add this flag
 
-# Today's date
-date=$(date +"%d%m%y")
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            display "Unknown option: $1" "$RED"
+            display "Usage: $0 [-v|--verbose]" "$YELLOW"
+            exit 1
+            ;;
+    esac
+done
 
-# Set up and blank logs
-LOGFILE=$HOME/wabbajack-via-proton-sh.log
-echo "" >$LOGFILE
-#set -x
+# URLs for resources
+WABBALIST_URL="https://raw.githubusercontent.com/wabbajack-tools/mod-lists/master/README.md"
+WEBVIEW_INSTALLER_URL="https://node10.sokloud.com/filebrowser/api/public/dl/yqVTbUT8/rwatch/WebView/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+SYSTEM_REG_URL="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/system.reg.github"
+USER_REG_URL="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/user.reg.github"
 
-######################
-# Fancy banner thing #
-######################
+# Color codes for pretty output
+GREEN="\e[32m"
+YELLOW="\e[33m"
+RED="\e[31m"
+RESET="\e[0m"
 
-if [ -f "/usr/bin/toilet" ]; then
-	toilet -t -f smmono12 -F border:metal "Omni-Guides (alpha)"
-else
-	echo "=================================================================================================="
-	echo "|  #######  ##     ## ##    ## ####          ######   ##     ## #### ########   ########  ###### |"
-	echo "| ##     ## ###   ### ###   ##  ##          ##    ##  ##     ##  ##  ##     ## ##       ##    ## |"
-	echo "| ##     ## #### #### ####  ##  ##          ##        ##     ##  ##  ##     ## ##       ##       |"
-	echo "| ##     ## ## ### ## ## ## ##  ##  ####### ##   #### ##     ##  ##  ##     ## ######    ######  |"
-	echo "| ##     ## ##     ## ##  ####  ##          ##    ##  ##     ##  ##  ##     ## ##             ## |"
-	echo "| ##     ## ##     ## ##   ###  ##          ##    ##  ##     ##  ##  ##     ## ##       ##    ## |"
-	echo "|  #######  ##     ## ##    ## ####          ######    #######  #### ########   ########  ###### |"
-	echo "============================================================================~~--(alpha)--~~======="
-fi
+# Logging function
+log() {
+    local message="$1"
+    local log_level="${2:-INFO}"
+    local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] [$log_level] $message" >> "$LOGFILE"
+    
+    # If verbose mode is enabled, also print to console
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo "[$timestamp] [$log_level] $message"
+    fi
+}
 
-#########
-# Intro #
-#########
+# Display and logging function
+display() {
+    local message="$1"
+    local color="${2:-$RESET}"
+    # Only log to file if it's not a user prompt or selection
+    if [[ ! "$message" =~ "Please select" ]] && [[ ! "$message" =~ "Enter the number" ]]; then
+        log "$message"
+    fi
+    echo -e "${color}${message}${RESET}"
+}
 
-echo ""
-echo -e "This is an experimental script - an attempt to automate as much as possible of the process of getting"
-echo -e "Wabbajack running on Linux via Proton through Steam. Please be aware that stability of the Wabbajack "
-echo -e "application is not guaranteed. Please use at your own risk and accept that in the worst case, you may "
-echo -e "have to remove and re-add the WabbaJack entry in Steam. You can report back to me via GitHub or the "
-echo -e "Official Wabbajack Discord if you discover an issue with this script. Any other feedback, positive"
-echo -e "or negative, is also most welcome."
+# Verbose logging function
+verbose_log() {
+    if [[ $VERBOSE -eq 1 ]]; then
+        log "$1" "VERBOSE"
+    fi
+}
 
-echo -e "\e[32m\nPress any key to continue...\e[0m"
-echo
-read -n 1 -s -r -p ""
+# Section header function
+log_section() {
+    local message="$1"
+    local separator="============================================"
+    log "$separator"
+    log "$message"
+    log "$separator"
+    if [[ $VERBOSE -eq 1 ]]; then
+        echo -e "${YELLOW}$separator${RESET}"
+        echo -e "${YELLOW}$message${RESET}"
+        echo -e "${YELLOW}$separator${RESET}"
+    fi
+}
 
-#############
-# Functions #
-#############
+# Error handling function
+error_exit() {
+    display "$1" "$RED"
+    log "$1" "ERROR"
+    cleanup_wine_procs
+    exit 1
+}
 
-#############################
-# Detect if running on deck #
-#############################
+# Progress bar function
+update_progress() {
+    # Only show progress bar during modification phase
+    if [[ $IN_MODIFICATION_PHASE -eq 0 ]]; then
+        return
+    fi
+    
+    local percent=$1
+    local bar_length=50
+    local filled_length=$((percent * bar_length / 100))
+    local bar=""
+    
+    # Create the bar string with = for filled portions
+    for ((i = 0; i < bar_length; i++)); do
+        if [ $i -lt $filled_length ]; then
+            bar+="="
+        else
+            bar+=" "
+        fi
+    done
+    
+    # Use \r to return to start of line and overwrite previous progress
+    printf "\r[%-${bar_length}s] %d%% - %s" "$bar" "$percent" "$CURRENT_TASK"
+}
+
+# Set current task function
+set_current_task() {
+    CURRENT_TASK="$1"
+    
+    # Only increment and show progress during modification phase
+    if [[ $IN_MODIFICATION_PHASE -eq 1 ]]; then
+        # Calculate percentage based on modification phase tasks
+        local total_mod_tasks=11  # Updated to account for split configure_prefix tasks
+        local percent=0
+        
+        # Only show 100% when we're actually complete
+        if [[ "$CURRENT_TASK" == "Complete" ]]; then
+            percent=100
+        else
+            # Calculate percentage based on current task number
+            percent=$((CURRENT_TASK_NUM * 100 / total_mod_tasks))
+            # Ensure we don't hit 100% before completion
+            if [[ $percent -ge 100 ]]; then
+                percent=99
+            fi
+        fi
+        
+        # Clear the current line before updating progress
+        printf "\r%-100s\r" ""
+        update_progress "$percent"
+        
+        # Increment task counter after displaying progress
+        CURRENT_TASK_NUM=$((CURRENT_TASK_NUM + 1))
+    fi
+}
+
+# Download function that uses either wget or curl
+download_file() {
+    local url="$1"
+    local output_path="$2"
+    local description="${3:-file}"
+    
+    # Only log to file, don't display to user
+    log "Downloading $description..."
+    
+    if command -v wget &>/dev/null; then
+        if wget "$url" -O "$output_path" >>"$LOGFILE" 2>&1; then
+            log "Downloaded $description successfully using wget"
+            return 0
+        else
+            error_exit "Failed to download $description with wget"
+        fi
+    elif command -v curl &>/dev/null; then
+        if curl -sLo "$output_path" "$url" >>"$LOGFILE" 2>&1; then
+            log "Downloaded $description successfully using curl"
+            return 0
+        else
+            error_exit "Failed to download $description with curl"
+        fi
+    else
+        error_exit "Neither wget nor curl is available. Cannot download $description"
+    fi
+}
+
+display_banner() {
+    echo "╔══════════════════════════════════════════════════════════════════╗"
+    echo "║                  Wabbajack Proton Setup v$SCRIPT_VERSION                    ║"
+    echo "║                                                                  ║"
+    echo "║        A tool for running Wabbajack on Linux via Proton          ║"
+    echo "╚══════════════════════════════════════════════════════════════════╝"
+    
+    echo ""
+    display "This script automates setting up Wabbajack to run on Linux via Steam's Proton compatibility layer." "$YELLOW"
+    echo "───────────────────────────────────────────────────────────────────"
+    display "Please be aware that this is experimental software and is *NOT* supported by the Wabbajack team." "$YELLOW"
+    display "If you encounter issues, please report them on GitHub or the #unofficial-linux-support channel on Discord." "$YELLOW"
+    echo "───────────────────────────────────────────────────────────────────"
+    display "⚠ IMPORTANT: Use this script at your own risk." "$RED"
+    echo ""
+    echo -e "\e[33mPress any key to continue...\e[0m"
+    read -n 1 -s -r -p ""
+    echo ""
+}
 
 detect_steamdeck() {
-	# Steamdeck or nah?
-
-	if [ -f "/etc/os-release" ] && grep -q "steamdeck" "/etc/os-release"; then
-		steamdeck=1
-		echo "Running on Steam Deck" >>$LOGFILE 2>&1
-	else
-		steamdeck=0
-		echo "NOT A steamdeck" >>$LOGFILE 2>&1
-	fi
-
+    if [ -f "/etc/os-release" ] && grep -q "steamdeck" "/etc/os-release"; then
+        STEAMDECK=1
+        log "Running on Steam Deck"
+    else
+        STEAMDECK=0
+        log "NOT running on Steam Deck"
+    fi
 }
-
-###########################################
-# Detect Protontricks (flatpak or native) #
-###########################################
 
 detect_protontricks() {
-	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
+    # Only log to file, don't display to user
+    log "Detecting protontricks installation..."
 
-	# Check if "which protontricks" outputs a valid path
-	if command -v protontricks >/dev/null 2>&1; then
-		protontricks_path=$(command -v protontricks)
-
-		# Check if the detected binary is actually a Flatpak wrapper
-		if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
-			echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
-			which_protontricks=native
-			return 0 # Exit function since we confirmed native protontricks
-		fi
-	else
-		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
-		if flatpak list | grep -iq protontricks; then
-			echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
-			read -p " " answer
-			if [[ $answer =~ ^[Yy]$ ]]; then
-				if [[ $steamdeck -eq 1 ]]; then
-					flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
-					which_protontricks=flatpak
-				else
-					read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
-					if [[ $choice =~ 1 ]]; then
-						flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
-						which_protontricks=flatpak
-					else
-						echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
-						echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
-					fi
-				fi
-			fi
-		fi
-	fi
+    if command -v protontricks >/dev/null 2>&1; then
+        PROTONTRICKS_PATH=$(command -v protontricks)
+        # Check if the detected binary is actually a Flatpak wrapper
+        if [[ -f "$PROTONTRICKS_PATH" ]] && grep -q "flatpak run" "$PROTONTRICKS_PATH"; then
+            log "Detected Protontricks is a Flatpak wrapper at $PROTONTRICKS_PATH"
+            WHICH_PROTONTRICKS="flatpak"
+            return 0
+        else
+            log "Native Protontricks found at $PROTONTRICKS_PATH"
+            WHICH_PROTONTRICKS="native"
+            return 0
+        fi
+    elif flatpak list | grep -iq protontricks; then
+        log "Flatpak Protontricks is installed"
+        WHICH_PROTONTRICKS="flatpak"
+        return 0
+    else
+        log "Protontricks not found. Do you wish to install it? (y/n): "
+        display "Protontricks not found. Do you wish to install it? (y/n): " "$RED"
+        read -p " " answer
+        if [[ $answer =~ ^[Yy]$ ]]; then
+            if [[ $STEAMDECK -eq 1 ]]; then
+                if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                    WHICH_PROTONTRICKS="flatpak"
+                    return 0
+                else
+                    display "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" "$RED"
+                    exit 1
+                fi
+            else
+                read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
+                if [[ $choice =~ 1 ]]; then
+                    if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                        WHICH_PROTONTRICKS="flatpak"
+                        return 0
+                    else
+                        display "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" "$RED"
+                        exit 1
+                    fi
+                else
+                    display "Sorry, there are too many distros to automate this!"
+                    display "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)"
+                    display "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" "$RED"
+                    exit 1
+                fi
+            fi
+        else
+            display "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" "$RED"
+            exit 1
+        fi
+    fi
 }
 
-#############################
-# Create protontricks alias #
-#############################
-
-protontricks_alias() {
-	if [[ "$which_protontricks" = "flatpak" ]]; then
-		local protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
-		local launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
-
-		if [[ -z "$protontricks_alias_exists" ]]; then
-			echo -e "\nAdding protontricks alias to ~/.bashrc"
-			echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >>~/.bashrc
-			source ~/.bashrc
-		else
-			echo "protontricks alias already exists in ~/.bashrc" >>"$LOGFILE" 2>&1
-		fi
-
-		if [[ -z "$launch_alias_exists" ]]; then
-			echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
-			echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >>~/.bashrc
-			source ~/.bashrc
-		else
-			echo "protontricks-launch alias already exists in ~/.bashrc" >>"$LOGFILE" 2>&1
-		fi
-	else
-		echo "Protontricks is not installed via flatpak, skipping alias creation." >>"$LOGFILE" 2>&1
-	fi
-}
-
-#############################
-# Run protontricks commands #
-#############################
-
-run_protontricks() {
-	# Determine the protontricks binary path
-	if [ "$which_protontricks" = "flatpak" ]; then
-		protontricks_bin="flatpak run com.github.Matoking.protontricks"
-	else
-		protontricks_bin="protontricks"
-	fi
-
-	# Construct and execute the command using eval to preserve quotes
-	$protontricks_bin "$@"
-}
-
-###############################
-# Detect Protontricks Version #
-###############################
-
-protontricks_version() {
-
-	# Get the current version of protontricks
-	protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
-
-	# Remove any non-numeric characters from the version number
-	protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
-
-	echo "Protontricks Version Cleaned = $protontricks_version_cleaned" >>$LOGFILE 2>&1
-
-	# Compare version strings directly using simple string comparison
-	if [[ "$protontricks_version_cleaned" < "1.12" ]]; then
-		echo "Your protontricks version is too old! Update to version 1.12 or newer and rerun this script. If 'flatpak run com.github.Matoking.protontricks -V' returns 'unknown', then please update via flatpak." | tee -a $LOGFILE
-		cleaner_exit
-	fi
-}
-
-#############################
-# Create protontricks alias #
-#############################
-
-protontricks_alias() {
-    if [[ "$which_protontricks" = "flatpak" ]]; then
+setup_protontricks_alias() {
+    set_current_task "Setting up Protontricks aliases"
+    if [[ "$WHICH_PROTONTRICKS" = "flatpak" ]]; then
         local protontricks_alias_exists=$(grep "^alias protontricks=" ~/.bashrc)
         local launch_alias_exists=$(grep "^alias protontricks-launch" ~/.bashrc)
 
         if [[ -z "$protontricks_alias_exists" ]]; then
-            echo -e "\nAdding protontricks alias to ~/.bashrc"
+            display "Adding protontricks alias to ~/.bashrc" "$YELLOW"
             echo "alias protontricks='flatpak run com.github.Matoking.protontricks'" >> ~/.bashrc
             source ~/.bashrc
         else
-            echo "protontricks alias already exists in ~/.bashrc" >> "$LOGFILE" 2>&1
+            log "protontricks alias already exists in ~/.bashrc"
         fi
 
         if [[ -z "$launch_alias_exists" ]]; then
-            echo -e "\nAdding protontricks-launch alias to ~/.bashrc"
+            display "Adding protontricks-launch alias to ~/.bashrc" "$YELLOW"
             echo "alias protontricks-launch='flatpak run --command=protontricks-launch com.github.Matoking.protontricks'" >> ~/.bashrc
             source ~/.bashrc
         else
-            echo "protontricks-launch alias already exists in ~/.bashrc" >> "$LOGFILE" 2>&1
+            log "protontricks-launch alias already exists in ~/.bashrc"
         fi
     else
-        echo "Protontricks is not installed via flatpak, skipping alias creation." >> "$LOGFILE" 2>&1
+        log "Protontricks is not installed via flatpak, skipping alias creation"
     fi
 }
 
-###########################
-# Get Wabbajack Directory #
-###########################
+run_protontricks() {
+    # Determine the protontricks binary path
+    verbose_log "Running protontricks with arguments: $*"
+    
+    if [ "$WHICH_PROTONTRICKS" = "flatpak" ]; then
+        verbose_log "Using Flatpak protontricks"
+        # Redirect Wine output to /dev/null but keep protontricks output
+        if [[ "$*" == *"-c"* ]]; then
+            # For Wine commands, suppress output but check exit code
+            if flatpak run com.github.Matoking.protontricks "$@" >/dev/null 2>&1; then
+                return 0
+            else
+                return 1
+            fi
+        else
+            # For non-Wine commands, show output but redirect stderr to /dev/null
+            flatpak run com.github.Matoking.protontricks "$@" 2>/dev/null
+        fi
+    else
+        verbose_log "Using native protontricks"
+        # Redirect Wine output to /dev/null but keep protontricks output
+        if [[ "$*" == *"-c"* ]]; then
+            # For Wine commands, suppress output but check exit code
+            if protontricks "$@" >/dev/null 2>&1; then
+                return 0
+            else
+                return 1
+            fi
+        else
+            # For non-Wine commands, show output but redirect stderr to /dev/null
+            protontricks "$@" 2>/dev/null
+        fi
+    fi
+}
+
+check_protontricks_version() {
+    set_current_task "Checking Protontricks version"
+    # Get the current version of protontricks
+    local protontricks_version=$(run_protontricks -V | cut -d ' ' -f 2 | sed 's/[()]//g' | sed 's/\.[0-9]$//')
+    local protontricks_version_cleaned=$(echo "$protontricks_version" | sed 's/[^0-9.]//g')
+    
+    log "Protontricks Version: $protontricks_version_cleaned"
+    
+    # Compare version strings
+    if [[ "$protontricks_version_cleaned" < "1.12" ]]; then
+        error_exit "Your protontricks version is too old! Update to version 1.12 or newer and rerun this script."
+    fi
+}
 
 get_wabbajack_path() {
+    set_current_task "Detecting Wabbajack path"
     local wabbajack_path=""
     local wabbajack_entries=()
-    local selected_entry=""
+    local app_ids=()
+    local app_names=()
+    local all_app_ids=()
+    local all_app_names=()
+    local selection=""
+    local use_all_shortcuts=0
 
-    echo -e "\e[33m \nDetecting Wabbajack Install Directory..\e[0m" | tee -a "$LOGFILE"
+    log "Detecting Wabbajack Install Directory..."
+    verbose_log "Attempting to find Wabbajack entries using protontricks -l"
 
-    # Find all entries with Wabbajack.exe
-    local entries_string=$(strings ~/.steam/steam/userdata/*/config/shortcuts.vdf | grep "/Wabbajack.exe")
+    # First, try to find Wabbajack entries using protontricks
+    local protontricks_entries=$(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i wabbajack)
+    verbose_log "Protontricks output: $protontricks_entries"
 
-    if [[ -z "$entries_string" ]]; then
-        echo "No Wabbajack.exe entries found in shortcuts.vdf."
-        echo "Please ensure Steam is installed and you have added Wabbajack.exe as a non-Steam game." | tee -a "$LOGFILE"
-        echo "Please run Wabbajack.exe once via Steam to register it." | tee -a "$LOGFILE"
-        return 1 # Indicate failure
+    if [[ -n "$protontricks_entries" ]]; then
+        log "Found Wabbajack entries via protontricks (name match)"
+        while IFS= read -r line; do
+            local app_id=$(echo "$line" | awk '{print $NF}' | sed 's:^.\(.*\).$:\1:')
+            local app_name=$(echo "$line" | sed 's/^Non-Steam shortcut: //i' | sed 's: ([0-9]*)$::')
+            if [[ -n "$app_id" ]]; then
+                app_ids+=("$app_id")
+                app_names+=("$app_name")
+                log "Found App ID: $app_id, Name: $app_name"
+            fi
+        done <<< "$protontricks_entries"
+
+        echo ""
+        display "Wabbajack-related Steam entries found. Please select which one you wish to configure:" "$RED"
+        for i in "${!app_ids[@]}"; do
+            echo "$((i + 1)). ${app_names[i]} (App ID: ${app_ids[i]})"
+        done
+        local extra_option=$(( ${#app_ids[@]} + 1 ))
+        echo "$extra_option. List all Steam shortcuts"
+        echo "Please select the entry you want to use (1-$extra_option):"
+        read -r selection
+        if [[ "$selection" == "$extra_option" ]]; then
+            use_all_shortcuts=1
+        elif [[ "$selection" =~ ^[0-9]+$ ]] && ((selection >= 1 && selection <= ${#app_ids[@]})); then
+            APPID="${app_ids[$((selection - 1))]}"
+            log "Selected App ID: $APPID, Name: ${app_names[$((selection - 1))]}"
+        else
+            use_all_shortcuts=1
+        fi
+    else
+        use_all_shortcuts=1
     fi
 
-    # Store each entry in an array to handle spaces
-    while IFS= read -r entry; do
-        local path=$(echo "$entry" | grep -oE '"[^"]+"' | head -n 1 | tr -d '"')
-        wabbajack_entries+=("$path")
-    done <<<"$entries_string"
+    # If requested, list all Non-Steam shortcuts
+    if [[ $use_all_shortcuts -eq 1 ]]; then
+        local all_entries=$(run_protontricks -l | grep -i 'Non-Steam shortcut')
+        if [[ -z "$all_entries" ]]; then
+            error_exit "No Non-Steam shortcuts found via protontricks. Please ensure you've added your entry as a non-Steam game and run it once via Steam."
+        fi
+        while IFS= read -r line; do
+            local app_id=$(echo "$line" | awk '{print $NF}' | sed 's:^.\(.*\).$:\1:')
+            local app_name=$(echo "$line" | sed 's/^Non-Steam shortcut: //i' | sed 's: ([0-9]*)$::')
+            if [[ -n "$app_id" ]]; then
+                all_app_ids+=("$app_id")
+                all_app_names+=("$app_name")
+                log "Found App ID: $app_id, Name: $app_name (all shortcuts)"
+            fi
+        done <<< "$all_entries"
+        echo ""
+        display "All Steam shortcuts detected. Please select which one you wish to configure:" "$RED"
+        for i in "${!all_app_ids[@]}"; do
+            echo "$((i + 1)). ${all_app_names[i]} (App ID: ${all_app_ids[i]})"
+        done
+        echo "Please select the entry you want to use (1-${#all_app_ids[@]}):"
+        read -r selection
+        if ! [[ "$selection" =~ ^[0-9]+$ ]] || ((selection < 1 || selection > ${#all_app_ids[@]})); then
+            error_exit "Invalid selection"
+        fi
+        APPID="${all_app_ids[$((selection - 1))]}"
+        log "Selected App ID: $APPID, Name: ${all_app_names[$((selection - 1))]}"
+        echo ""
+        echo "If you don't see your Wabbajack entry in the list, please make sure you have added it to Steam, set the Proton version, and run it once (then closed Wabbajack)."
+    fi
 
+    # Now that we have the App ID, try to find the executable path in shortcuts.vdf
+    verbose_log "Attempting to find executable path for App ID: $APPID"
+    local steam_userdata_paths=(
+        "$HOME/.steam/steam/userdata"
+        "$HOME/.local/share/Steam/userdata"
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/userdata"
+    )
+    local wabbajack_entries=()
+    for path in "${steam_userdata_paths[@]}"; do
+        if [[ -d "$path" ]]; then
+            verbose_log "Checking directory: $path"
+            local vdf_files=$(find "$path" -name "shortcuts.vdf" 2>/dev/null)
+            for vdf_file in $vdf_files; do
+                if [[ "$vdf_file" == *"12345678"* ]]; then
+                    verbose_log "Skipping test directory shortcuts.vdf: $vdf_file"
+                    continue
+                fi
+                verbose_log "Checking shortcuts.vdf: $vdf_file"
+                while IFS= read -r line; do
+                    if [[ "$line" == */Wabbajack.exe* ]]; then
+                        local path=$(echo "$line" | sed -E 's/.*"([^"*Wabbajack\\.exe[^"]*)".*$/\1/')
+                        if [[ -n "$path" ]]; then
+                            if [[ "$path" != *".wabbajack_test"* ]]; then
+                                verbose_log "Found Wabbajack.exe path: $path"
+                                wabbajack_entries+=("$path")
+                            else
+                                verbose_log "Skipping test directory entry: $path"
+                            fi
+                        fi
+                    fi
+                done < <(strings "$vdf_file" | grep -i "/Wabbajack.exe")
+            done
+        fi
+    done
+    readarray -t unique_entries < <(printf '%s\n' "${wabbajack_entries[@]}" | sort -u)
+    wabbajack_entries=("${unique_entries[@]}")
     local entry_count=${#wabbajack_entries[@]}
-    if [[ "$entry_count" -gt 1 ]]; then
-        echo -e "\e[31m \nMultiple Wabbajack.exe paths found, please select which one you wish to configure: \e[0m" | tee -a "$LOGFILE"
+    verbose_log "Found $entry_count unique Wabbajack.exe entries"
+    if [[ "$entry_count" -eq 0 ]]; then
+        error_exit "No Wabbajack.exe entries found in shortcuts.vdf. Please ensure you've added Wabbajack.exe as a non-Steam game and run it once via Steam."
+    elif [[ "$entry_count" -gt 1 ]]; then
+        echo ""
+        display "Multiple Wabbajack.exe paths found, please select which one you wish to configure:" "$RED"
         local i=1
         for path in "${wabbajack_entries[@]}"; do
-            echo "$i) $path" | tee -a "$LOGFILE"
+            echo "$i) $path"
             ((i++))
         done
-
-        # Prompt user to select an entry
-        read -p "Enter the number of the desired entry: " selected_entry
-
-        if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$((entry_count))" ]]; then
-            echo "Invalid selection." | tee -a "$LOGFILE"
-            return 1 # Indicate failure
-        fi
-
-        # Extract the selected entry
+        local selected_entry=""
+        while [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$entry_count" ]]; do
+            read -p "Enter the number of the desired entry (1-$entry_count): " selected_entry
+            if [[ ! "$selected_entry" =~ ^[0-9]+$ || "$selected_entry" -lt 1 || "$selected_entry" -gt "$entry_count" ]]; then
+                display "Invalid selection. Please enter a number between 1 and $entry_count" "$RED"
+            fi
+        done
         wabbajack_path="${wabbajack_entries[$((selected_entry - 1))]}"
+        log "Selected Wabbajack path: $wabbajack_path"
+        echo ""
     else
-        # Single matching entry
         wabbajack_path="${wabbajack_entries[0]}"
+        log "Single Wabbajack path found: $wabbajack_path"
     fi
-
     if [[ -n "$wabbajack_path" ]]; then
-        echo "Wabbajack path: $wabbajack_path" >>"$LOGFILE" 2>&1
-        application_directory=$(dirname "$wabbajack_path")
-        echo "Application Directory: $application_directory" >>"$LOGFILE" 2>&1
-        return 0 # Indicate success
+        log "Using Wabbajack path: $wabbajack_path"
+        APPLICATION_DIRECTORY=$(dirname "$wabbajack_path")
+        log "Application Directory: $APPLICATION_DIRECTORY"
+        return 0
     else
-        echo "Failed to determine Wabbajack path." | tee -a "$LOGFILE"
-        return 1 # Indicate failure
+        error_exit "Failed to determine Wabbajack path"
     fi
-
-    echo "Wabbajack Path: $wabbajack_path"
-    echo "Application Directory: $application_directory"
 }
-
-##################################################
-# Detect Wabbajack entry in steam and get App ID #
-##################################################
-
-set_appid() {
-	wabbajack_entries=$(run_protontricks -l | grep -i 'Non-Steam shortcut' | grep -i wabbajack)
-
-	if [[ -z "$wabbajack_entries" ]]; then
-		echo "No Wabbajack entries found. Please ensure your entry in steam contains 'Wabbajack' in some way.." | tee -a $LOGFILE
-		exit 1
-	fi
-
-	IFS=$'\n' read -d '' -r -a entries_array <<<"$wabbajack_entries"
-
-	if [[ ${#entries_array[@]} -gt 1 ]]; then
-		echo -e "\e[31m \nMultiple Wabbajack entries found in Steam, please select which one you wish to configure: \e[0m"
-
-		for i in "${!entries_array[@]}"; do
-			stripped_entry=$(echo "${entries_array[i]}" | sed 's/^Non-Steam shortcut: //i')
-			echo "$((i + 1)). $stripped_entry"
-		done
-
-		echo "Please select the entry you want to use (1-${#entries_array[@]}):"
-		read -r selection
-
-		if ! [[ "$selection" =~ ^[0-9]+$ ]] || ((selection < 1 || selection > ${#entries_array[@]})); then
-			echo "Invalid selection." | tee -a $LOGFILE
-			exit 1
-		fi
-
-		selected_entry="${entries_array[$((selection - 1))]}"
-	else
-		selected_entry="${entries_array[0]}"
-	fi
-
-	APPID=$(echo "$selected_entry" | awk {'print $NF'} | sed 's:^.\(.*\).$:\1:')
-
-	echo "Wabbajack App ID:" $APPID >>$LOGFILE 2>&1
-
-	# If $APPID is empty, produce an error
-	if [[ -z "$APPID" ]]; then
-		echo "APPID empty, something went wrong.." | tee -a $LOGFILE
-		exit 1
-	fi
-}
-
-####################################
-# Detect compatdata Directory Path #
-####################################
 
 detect_compatdata_path() {
-
-	# Check common Steam library locations first
-	for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata" "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata"; do
-		if [[ -d "$path/$APPID" ]]; then
-			compat_data_path="$path/$APPID"
-			echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
-			break
-		fi
-	done
-
-	# If not found in common locations, use find command
-	if [[ -z "$compat_data_path" ]]; then
-		find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
-			if [[ -d "$compatdata_dir/$APPID" ]]; then
-				compat_data_path="$compatdata_dir/$appid"
-				echo -e "compatdata Path detected: $compat_data_path" >>$LOGFILE 2>&1
-				break
-			fi
-		done
-	fi
-
-	if [[ -z "$compat_data_path" ]]; then
-		echo "Directory named '$APPID' not found in any compatdata directories."
-		echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
-	else
-		echo "Found compatdata directory with '$APPID': $compat_data_path" >>$LOGFILE 2>&1
-	fi
+    set_current_task "Detecting compatdata path"
+    # Check common Steam library locations first
+    local steam_paths=(
+        "$HOME/.local/share/Steam/steamapps/compatdata"
+        "$HOME/.steam/steam/steamapps/compatdata"
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/compatdata"
+    )
+    
+    for path in "${steam_paths[@]}"; do
+        if [[ -d "$path/$APPID" ]]; then
+            COMPAT_DATA_PATH="$path/$APPID"
+            log "compatdata Path detected: $COMPAT_DATA_PATH"
+            return 0
+        fi
+    done
+    
+    # If not found in common locations, use find command with specific paths
+    local found=0
+    for base_path in "${steam_paths[@]}"; do
+        if [[ -d "$base_path" ]]; then
+            if [[ -d "$base_path/$APPID" ]]; then
+                COMPAT_DATA_PATH="$base_path/$APPID"
+                log "compatdata Path detected: $COMPAT_DATA_PATH"
+                found=1
+                break
+            fi
+        fi
+    done
+    
+    if [[ $found -eq 0 ]]; then
+        error_exit "Directory named '$APPID' not found in any compatdata directories. Please ensure you have started the Steam entry for Wabbajack at least once."
+    fi
 }
-
-#####################################################
-# Set protontricks permissions on Wabbajack Directory #
-#####################################################
 
 set_protontricks_perms() {
-
-    if [ "$which_protontricks" = "flatpak" ]; then
-        echo -e "\e[33m \nSetting Protontricks permissions... \e[0m" | tee -a "$LOGFILE"
-
-        # Set flatpak permission override, quoting the path
-        flatpak override --user com.github.Matoking.protontricks --filesystem="$application_directory"
-
-        if [[ "$steamdeck" = 1 ]]; then
-            echo -e "\e[33m \nChecking for SDCard and setting permissions appropriately..\e[0m" | tee -a "$LOGFILE"
+    set_current_task "Setting Protontricks permissions"
+    if [ "$WHICH_PROTONTRICKS" = "flatpak" ]; then
+        # Only log to file, don't display to user
+        log "Setting Protontricks permissions..."
+        
+        # Set flatpak permission override
+        flatpak override --user com.github.Matoking.protontricks --filesystem="$APPLICATION_DIRECTORY"
+        
+        if [[ "$STEAMDECK" = 1 ]]; then
+            log "Checking for SDCard and setting permissions appropriately..."
             # Set protontricks SDCard permissions early to suppress warning
             sdcard_path=$(df -h | grep "/run/media" | awk '{print $NF}')
-            echo "$sdcard_path" >>"$LOGFILE" 2>&1
-            # Quote the SD card path
-            flatpak override --user --filesystem="$sdcard_path" com.github.Matoking.protontricks
-            echo -e " Done." >>"$LOGFILE" 2>&1
+            log "SD Card path: $sdcard_path"
+            if [[ -n "$sdcard_path" ]]; then
+                flatpak override --user --filesystem="$sdcard_path" com.github.Matoking.protontricks
+                log "SD Card permission set"
+            fi
         fi
     else
-        echo -e "Using Native protontricks, skip setting permissions" >>"$LOGFILE" 2>&1
+        log "Using Native protontricks, skip setting permissions"
     fi
-
 }
-
-#####################################
-# Enable Visibility of (.)dot files #
-#####################################
-
-enable_dotfiles() {
-
-	echo $APPID >>$LOGFILE 2>&1
-	echo -ne "\e[33m \nEnabling visibility of (.)dot files... \e[0m" | tee -a $LOGFILE
-
-	# Check if already settings
-	dotfiles_check=$(run_protontricks -c 'WINEDEBUG=-all wine reg query "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles' $APPID 2>/dev/null | grep ShowDotFiles | awk '{gsub(/\r/,""); print $NF}')
-
-	printf '%s\n' "$dotfiles_check" >>$LOGFILE 2>&1
-
-	if [[ "$dotfiles_check" = "Y" ]]; then
-		printf '%s\n' "DotFiles already enabled... skipping" | tee -a $LOGFILE
-	else
-
-		if run_protontricks -c 'WINEDEBUG=-all wine reg add "HKEY_CURRENT_USER\Software\Wine" /v ShowDotFiles /d Y /f' $APPID 2>/dev/null; then
-			echo "Done!" >>$LOGFILE 2>&1
-		else
-			echo -e "\e[31mError: Failed to enable dot files visibility.\e[0m" | tee -a $LOGFILE
-			exit 1
-		fi
-	fi
-
-}
-
-##############################
-# Download WebView Installer #
-##############################
 
 webview_installer() {
-    echo -e "\e[33m\nDownloading WebView Installer...\e[0m"
-
-    local installer_path="$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
-    local download_url="https://node10.sokloud.com/filebrowser/api/public/dl/yqVTbUT8/rwatch/WebView/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
-
-    # Check if installer already exists
-    if [ -f "$installer_path" ]; then
-        echo "WebView Installer already exists, skipping download."
-        return 0
-    fi
-
-    # Check for wget and use it if available
-    if command -v wget &>/dev/null; then
-        if wget "$download_url" -O "$installer_path" >>"$LOGFILE" 2>&1; then
-            echo "Download completed successfully."
-            return 0
-        else
-            echo -e "\e[31mError: Failed to download WebView Installer with wget.\e[0m"
-            return 1
-        fi
-    # Check for curl and use it if wget is not available
-    elif command -v curl &>/dev/null; then
-        if curl -sLo "$installer_path" "$download_url" >>"$LOGFILE" 2>&1; then
-            echo "Download completed successfully."
-            return 0
-        else
-            echo -e "\e[31mError: Failed to download WebView Installer with curl.\e[0m"
-            return 1
-        fi
+    set_current_task "Downloading WebView installer"
+    log "Setting up WebView..."
+    local installer_path="$APPLICATION_DIRECTORY/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe"
+    # Download if not present
+    if [ ! -f "$installer_path" ]; then
+        download_file "$WEBVIEW_INSTALLER_URL" "$installer_path" "WebView Installer"
     else
-        echo -e "\e[31mError: Neither wget nor curl is available. Cannot download WebView Installer.\e[0m"
-        return 1
+        log "WebView Installer already exists, skipping download"
+    fi
+    # Always run the installer in the correct prefix using run_protontricks, suppressing all output
+    set_current_task "Installing WebView runtime (this may take a while)..."
+    log "Installing WebView..."
+    if ! run_protontricks -c "wine \"$installer_path\" /silent /install" "$APPID" >/dev/null 2>&1; then
+        error_exit "Failed to install WebView"
     fi
 }
-
-####################
-# Configure Prefix #
-####################
-
-configure_prefix() {
-    echo -e "\e[33m\nChanging the default renderer used..\e[0m" | tee -a "$LOGFILE"
-    if run_protontricks "$APPID" settings renderer=vulkan >>"$LOGFILE" 2>&1; then
-        echo "Renderer changed to Vulkan." >>"$LOGFILE" 2>&1
-    else
-        echo -e "\e[31mError: Failed to change renderer.\e[0m" | tee -a "$LOGFILE"
-        exit 1
-    fi
-
-    # Copy in place win10 based system.reg
-    echo -e "\e[33m\nChange the default prefix version to win10..\e[0m" | tee -a "$LOGFILE"
-    local system_reg_win10_url="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/system.reg.win10"
-    local system_reg_win10_path="$compat_data_path/pfx/system.reg"
-
-    if command -v wget &>/dev/null; then
-        wget "$system_reg_win10_url" -O "$system_reg_win10_path" >>"$LOGFILE" 2>&1
-    elif command -v curl &>/dev/null; then
-        curl -sLo "$system_reg_win10_path" "$system_reg_win10_url" >>"$LOGFILE" 2>&1
-    else
-        echo -e "\e[31mError: Neither wget nor curl is available. Cannot download system.reg.win10.\e[0m" | tee -a "$LOGFILE"
-        exit 1
-    fi
-    echo "Prefix version changed to win10." >>"$LOGFILE" 2>&1
-
-    # Install WebView
-    echo -e "\e[33m\nInstalling Webview, this can take a while, please be patient..\e[0m" | tee -a "$LOGFILE"
-    if [ "$which_protontricks" = "flatpak" ]; then
-        /usr/bin/flatpak run --command=protontricks-launch com.github.Matoking.protontricks --appid "$APPID" "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" /silent /install >>"$LOGFILE" 2>&1
-    else
-        protontricks-launch --appid "$APPID" "$application_directory/MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe" /silent /install >>"$LOGFILE" 2>&1
-    fi
-
-    # Copy in place WebP .dll
-    echo -e "\e[33m\nConfiguring WebP..\e[0m" | tee -a "$LOGFILE"
-    local webp_32_url="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/WebpWICCodec.dll-32"
-    local webp_64_url="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/WebpWICCodec.dll-64"
-    local webp_32_path="$compat_data_path/pfx/drive_c/Program Files (x86)/WebP Codec/WebpWICCodec.dll"
-    local webp_64_path="$compat_data_path/pfx/drive_c/Program Files/WebP Codec/WebpWICCodec.dll"
-
-    if mkdir -p "$compat_data_path/pfx/drive_c/Program Files (x86)/WebP Codec" && mkdir -p "$compat_data_path/pfx/drive_c/Program Files/WebP Codec"; then
-        if command -v wget &>/dev/null; then
-            wget "$webp_32_url" -O "$webp_32_path" >>"$LOGFILE" 2>&1 && wget "$webp_64_url" -O "$webp_64_path" >>"$LOGFILE" 2>&1
-        elif command -v curl &>/dev/null; then
-            curl -sLo "$webp_32_path" "$webp_32_url" >>"$LOGFILE" 2>&1 && curl -sLo "$webp_64_path" "$webp_64_url" >>"$LOGFILE" 2>&1
-        else
-            echo -e "\e[31mError: Neither wget nor curl is available. Cannot download WebP dlls.\e[0m" | tee -a "$LOGFILE"
-            exit 1
-        fi
-        echo "WebP configured successfully." | tee -a "$LOGFILE"
-    else
-        echo -e "\e[31mError: Failed to configure WebP.\e[0m" | tee -a "$LOGFILE"
-        exit 1
-    fi
-
-    # Backup system.reg and user.reg
-    cp "$compat_data_path/pfx/system.reg" "$compat_data_path/pfx/system.reg.orig"
-    cp "$compat_data_path/pfx/user.reg" "$compat_data_path/pfx/user.reg.orig"
-
-    # Copy in system.reg and user.reg
-    echo -e "\e[33m\nConfiguring Registry..\e[0m" | tee -a "$LOGFILE"
-    local system_reg_url="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/system.reg.github"
-    local user_reg_url="https://github.com/Omni-guides/Wabbajack-Modlist-Linux/raw/refs/heads/main/files/user.reg.github"
-    local system_reg_path="$compat_data_path/pfx/system.reg"
-    local user_reg_path="$compat_data_path/pfx/user.reg"
-
-    if command -v wget &>/dev/null; then
-        wget "$system_reg_url" -O "$system_reg_path" >>"$LOGFILE" 2>&1 && wget "$user_reg_url" -O "$user_reg_path" >>"$LOGFILE" 2>&1
-    elif command -v curl &>/dev/null; then
-        curl -sLo "$system_reg_path" "$system_reg_url" >>"$LOGFILE" 2>&1 && curl -sLo "$user_reg_path" "$user_reg_url" >>"$LOGFILE" 2>&1
-    else
-        echo -e "\e[31mError: Neither wget nor curl is available. Cannot download registry files.\e[0m" | tee -a "$LOGFILE"
-        exit 1
-    fi
-    echo "Registry configured successfully." | tee -a "$LOGFILE"
-}
-
-#################################
-# Detect and Link Steam Library #
-#################################
 
 detect_link_steam_library() {
-	local steam_library_paths=()
-	local chosen_library=""
-	local libraryfolders_vdf=""
-
-	echo -e "\e[33m\nDiscovering Steam libraries..\e[0m"
-
-	# Find libraryfolders.vdf and extract library paths
-	if [[ -f "$HOME/.steam/steam/steamapps/libraryfolders.vdf" ]]; then
-		libraryfolders_vdf="$HOME/.steam/steam/steamapps/libraryfolders.vdf"
-	elif [[ -f "$HOME/.local/share/Steam/steamapps/libraryfolders.vdf" ]]; then
-		libraryfolders_vdf="$HOME/.local/share/Steam/steamapps/libraryfolders.vdf"
-	elif [[ -f "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf" ]]; then
-		libraryfolders_vdf="$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf"
-	else
-		echo -e "\e[31m\nSteam libraryfolders.vdf not found. Please check the installation.\e[0m" | tee -a "$LOGFILE"
-		read -e -p "Enter the path to your main Steam directory: " steam_library_path
-		while true; do
-			if [[ ! -d "$steam_library_path" ]]; then
-				echo -e "\e[31m\nInvalid path.\e[0m Please enter a valid directory." | tee -a "$LOGFILE"
-			elif [[ ! -f "$steam_library_path/steamapps/libraryfolders.vdf" ]]; then
-				echo -e "\e[31m\nThe specified path does not appear to be a Steam directory. Please check the path and try again. Do not enter the path for a secondary Steam Library, only the path for your actual Steam install.\e[0m" | tee -a "$LOGFILE"
-			else
-				read -p "Confirm using '$steam_library_path' as the Steam directory path? (y/n): " -r choice
-				if [[ "$choice" =~ ^[Yy]$ ]]; then
-					libraryfolders_vdf="$steam_library_path/steamapps/libraryfolders.vdf"
-					break
-				fi
-			fi
-			read -e -p "Enter the path to your Steam library: " steam_library_path
-		done
-	fi
-
-	if [[ -n "$libraryfolders_vdf" ]]; then
-		# Parse libraryfolders.vdf
-		while IFS= read -r line; do
-			if [[ "$line" =~ \"path\" ]]; then
-				local path=$(echo "$line" | sed 's/.*"\(.*\)".*/\1/')
-				steam_library_paths+=("$path")
-			fi
-		done < <(grep "\"path\"" "$libraryfolders_vdf")
-
-		if [[ ${#steam_library_paths[@]} -gt 0 ]]; then
-			# Use the first library path found as the chosen library
-			chosen_library="${steam_library_paths[0]}"
-			echo "Steam library found at: $chosen_library" >>"$LOGFILE" 2>&1
-			configure_steam_libraries || {
-				echo -e "\e[31m\nFailed to configure Steam libraries. Exiting.\e[0m" | tee -a "$LOGFILE"
-				exit 1
-			}
-		else
-			echo -e "\e[31m\nNo Steam library paths found in libraryfolders.vdf.\e[0m" | tee -a "$LOGFILE"
-			exit 1
-		fi
-	else
-		echo -e "\e[31m\nSteam library not found. Please check the installation.\e[0m" | tee -a "$LOGFILE"
-		exit 1
-	fi
+    local steam_library_paths=()
+    local libraryfolders_vdf=""
+    
+    # Only log to file, don't display to user
+    log "Discovering Steam libraries..."
+    
+    # Find libraryfolders.vdf and extract library paths
+    local vdf_paths=(
+        "$HOME/.steam/steam/steamapps/libraryfolders.vdf"
+        "$HOME/.local/share/Steam/steamapps/libraryfolders.vdf"
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/libraryfolders.vdf"
+    )
+    
+    for vdf_path in "${vdf_paths[@]}"; do
+        if [[ -f "$vdf_path" ]]; then
+            if [[ ! -r "$vdf_path" ]]; then
+                log "Found libraryfolders.vdf at $vdf_path but it's not readable"
+                continue
+            fi
+            libraryfolders_vdf="$vdf_path"
+            log "Found readable libraryfolders.vdf at $vdf_path"
+            break
+        fi
+    done
+    
+    if [[ -z "$libraryfolders_vdf" ]]; then
+        display "Steam libraryfolders.vdf not found. Manual input required." "$RED"
+        read -e -p "Enter the path to your main Steam directory: " steam_library_path
+        
+        while true; do
+            if [[ ! -d "$steam_library_path" ]]; then
+                display "Invalid path. Please enter a valid directory." "$RED"
+            elif [[ ! -f "$steam_library_path/steamapps/libraryfolders.vdf" ]]; then
+                display "The specified path does not appear to be a Steam directory. Do not enter a secondary Steam Library path, only the main Steam install path." "$RED"
+            elif [[ ! -r "$steam_library_path/steamapps/libraryfolders.vdf" ]]; then
+                display "The libraryfolders.vdf file exists but is not readable. Please check permissions." "$RED"
+            else
+                read -p "Confirm using '$steam_library_path' as the Steam directory path? (y/n): " -r choice
+                if [[ "$choice" =~ ^[Yy]$ ]]; then
+                    libraryfolders_vdf="$steam_library_path/steamapps/libraryfolders.vdf"
+                    CHOSEN_LIBRARY="$steam_library_path"
+                    break
+                fi
+            fi
+            read -e -p "Enter the path to your Steam library: " steam_library_path
+        done
+    fi
+    
+    if [[ -n "$libraryfolders_vdf" ]]; then
+        # Parse libraryfolders.vdf
+        while IFS= read -r line; do
+            if [[ "$line" =~ \"path\" ]]; then
+                local path=$(echo "$line" | sed 's/.*"\(.*\)".*/\1/')
+                if [[ -d "$path" && -r "$path" ]]; then
+                    steam_library_paths+=("$path")
+                    log "Found valid Steam library at: $path"
+                else
+                    log "Found Steam library path but it's not accessible: $path"
+                fi
+            fi
+        done < <(grep "\"path\"" "$libraryfolders_vdf")
+        
+        if [[ ${#steam_library_paths[@]} -gt 0 ]]; then
+            # Use the first library path found as the chosen library
+            CHOSEN_LIBRARY="${steam_library_paths[0]}"
+            log "Selected Steam library: $CHOSEN_LIBRARY"
+        else
+            error_exit "No accessible Steam library paths found in libraryfolders.vdf"
+        fi
+    else
+        error_exit "Steam library not found"
+    fi
 }
 
 configure_steam_libraries() {
-	echo -e "\e[33m\nConfiguring Steam libraries..\e[0m"
-
-	# Make directories
-	steam_config_directory="$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/config"
-	echo -e "Creating directory $steam_config_directory" >>$LOGFILE 2>&1
-	mkdir -p "$steam_config_directory" || {
-		echo -e "\e[31m\nFailed to create directory $steam_config_directory. Exiting.\e[0m" | tee -a $LOGFILE
-		exit 1
-	}
-
-	# Copy or symlink libraryfolders.vdf to config directory
-	if [[ "$chosen_library" == "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam" ]]; then
-		steam_is_flatpak=1
-		# For Flatpak Steam, adjust the paths accordingly
-		echo -e "Symlinking libraryfolders.vdf to config directory for Flatpak" >>$LOGFILE 2>&1
-		ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" >>$LOGFILE 2>&1 || {
-			echo -e "\e[31m\nFailed to symlink libraryfolders.vdf (Flatpak Steam).\e[0m" >>$LOGFILE 2>&1 | tee -a $LOGFILE
-		}
-	else
-		echo -e "Symlinking libraryfolders.vdf to config directory" >>$LOGFILE 2>&1
-		ln -s "$chosen_library/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" >>$LOGFILE 2>&1 || {
-			echo -e "\e[31m\nFailed to symlink libraryfolders.vdf.\e[0m" >>$LOGFILE 2>&1 | tee -a $LOGFILE
-		}
-	fi
-
-	mv "$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf" \
-		"$chosen_library/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf.bak" >>$LOGFILE 2>&1 || {
-		echo -e "\e[31m\nFailed to backup libraryfolders.vdf.\e[0m" >>$LOGFILE 2>&1
-	}
+    set_current_task "Configuring Steam libraries"
+    # Only log to file, don't display to user
+    log "Configuring Steam libraries..."
+    
+    # Make directories
+    local steam_config_directory="$CHOSEN_LIBRARY/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/config"
+    log "Creating directory $steam_config_directory"
+    
+    mkdir -p "$steam_config_directory" || error_exit "Failed to create directory $steam_config_directory"
+    
+    # Copy or symlink libraryfolders.vdf to config directory
+    if [[ "$CHOSEN_LIBRARY" == "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam" ]]; then
+        STEAM_IS_FLATPAK=1
+        # For Flatpak Steam, adjust the paths accordingly
+        log "Symlinking libraryfolders.vdf to config directory for Flatpak Steam"
+        ln -sf "$CHOSEN_LIBRARY/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" || 
+            log "Failed to symlink libraryfolders.vdf (Flatpak Steam)"
+    else
+        log "Symlinking libraryfolders.vdf to config directory"
+        ln -sf "$CHOSEN_LIBRARY/config/libraryfolders.vdf" "$steam_config_directory/libraryfolders.vdf" || 
+            log "Failed to symlink libraryfolders.vdf"
+    fi
+    
+    # Backup existing libraryfolders.vdf if it exists
+    local pfx_libraryfolders="$CHOSEN_LIBRARY/steamapps/compatdata/$APPID/pfx/drive_c/Program Files (x86)/Steam/steamapps/libraryfolders.vdf"
+    if [[ -f "$pfx_libraryfolders" ]]; then
+        mv "$pfx_libraryfolders" "${pfx_libraryfolders}.bak" || log "Failed to backup libraryfolders.vdf"
+    fi
 }
-
-##########################################
-# Create dotnet_bundle_extract directory #
-##########################################
 
 create_dotnet_cache_dir() {
+    set_current_task "Setting up .NET cache directory"
+    # Only log to file, don't display to user
+    log "Setting up .NET cache directory..."
+    
     local user_name=$(whoami)
-    local cache_dir="$application_directory/home/$user_name/.cache/dotnet_bundle_extract"
-
+    local cache_dir="$APPLICATION_DIRECTORY/home/$user_name/.cache/dotnet_bundle_extract"
+    
     # Check if the directory already exists
     if [ -d "$cache_dir" ]; then
-        echo "Directory already exists: $cache_dir, skipping..." >>"$LOGFILE" 2>&1
+        log "Directory already exists: $cache_dir, skipping..."
         return 0
     fi
-
+    
     # Create the directory
-    mkdir -p "$cache_dir"
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to create directory: $cache_dir" >&2
-        exit 1
-    fi
-
-    echo "Directory successfully created: $cache_dir" >>"$LOGFILE" 2>&1
+    mkdir -p "$cache_dir" || error_exit "Failed to create directory: $cache_dir"
+    log "Directory successfully created: $cache_dir"
 }
-
-##########################
-# Cleanup Wine Processes #
-##########################
 
 cleanup_wine_procs() {
-
-	# Find and kill processes containing "WabbajackProton.exe" or "renderer"
-	processes=$(pgrep -f "WabbajackProton.exe|renderer=vulkan|win7|win10|ShowDotFiles|MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe")
-	if [[ -n "$processes" ]]; then
-		echo "$processes" | xargs -r kill -9
-		echo "Processes killed successfully." >>$LOGFILE 2>&1
-	else
-		echo "No matching wine processes found." >>$LOGFILE 2>&1
-	fi
-
+    # Only log to file, don't display to user
+    log "Cleaning up any hanging Wine processes..."
+    
+    # Find and kill processes
+    local processes=$(pgrep -f "WabbajackProton.exe|renderer=vulkan|win7|win10|ShowDotFiles|MicrosoftEdgeWebView2RuntimeInstallerX64-WabbajackProton.exe")
+    if [[ -n "$processes" ]]; then
+        echo "$processes" | xargs -r kill -9
+        log "Processes killed successfully"
+    else
+        log "No matching wine processes found"
+    fi
 }
 
-#####################
-# Exit more cleanly #
-#####################
-
-cleaner_exit() {
-
-	if [[ "$steamdeck" != "1" ]]; then
-		if [ -f /usr/binwineserver ]; then
-			wineserver -k
-			exit 1
-		else
-			exit 1
-		fi
-	else
-		exit 1
-	fi
-
+# Show detection summary and ask for confirmation
+show_detection_summary() {
+    echo ""
+    echo "───────────────────────────────────────────────────────────────────"
+    echo -e "\e[1mDetection Summary:\e[0m" | tee -a "$LOGFILE"
+    echo -e "===================" | tee -a "$LOGFILE"
+    echo -e "Wabbajack Path: \e[32m$APPLICATION_DIRECTORY\e[0m" | tee -a "$LOGFILE"
+    echo -e "Steam App ID: \e[32m$APPID\e[0m" | tee -a "$LOGFILE"
+    echo -e "Compatdata Path: \e[32m$COMPAT_DATA_PATH\e[0m" | tee -a "$LOGFILE"
+    echo -e "Steam Library: \e[32m$CHOSEN_LIBRARY\e[0m" | tee -a "$LOGFILE"
+    echo -e "Protontricks: \e[32m$WHICH_PROTONTRICKS\e[0m" | tee -a "$LOGFILE"
+    
+    # Show Steam Deck status if detected
+    if [[ $STEAMDECK -eq 1 ]]; then
+        echo -e "Running on: \e[32mSteam Deck\e[0m" | tee -a "$LOGFILE"
+    fi
+    
+    # Show SD Card status if detected
+    if [[ "$CHOSEN_LIBRARY" == "/run/media"* ]] || [[ "$APPLICATION_DIRECTORY" == "/run/media"* ]]; then
+        echo -e "SD Card: \e[32mDetected\e[0m" | tee -a "$LOGFILE"
+    fi
+    echo "───────────────────────────────────────────────────────────────────"
+    
+    # Show confirmation with retry loop
+    while true; do
+        read -rp $'\e[32mDo you want to proceed with the installation? (y/N)\e[0m ' proceed
+        
+        if [[ $proceed =~ ^[Yy]$ ]]; then
+            break
+        elif [[ $proceed =~ ^[Nn]$ ]] || [[ -z $proceed ]]; then
+            log "Installation cancelled by user"
+            display "Installation cancelled." "$YELLOW"
+            cleanup_wine_procs
+            exit 0
+        fi
+        
+        display "Please enter 'y' for yes or 'n' for no." "$YELLOW"
+    done
+    
+    # Add padding after user confirmation
+    echo ""
 }
 
-####################
-# END OF FUNCTIONS #
-####################
+# --- Discovery Phase ---
+discovery_phase() {
+    # All detection, user input, and variable gathering
+    display_banner
+    log_section "Initial Setup"
+    cleanup_wine_procs
+    CURRENT_TASK_NUM=0
+    IN_MODIFICATION_PHASE=0
+    log_section "Environment Detection"
+    detect_steamdeck
+    detect_protontricks
+    setup_protontricks_alias
+    check_protontricks_version
+    log_section "Path Detection"
+    get_wabbajack_path
+    detect_compatdata_path
+    detect_link_steam_library
+    show_detection_summary
+}
 
-#######################
-# Note Script Version #
-#######################
+# --- Configuration Phase ---
+configuration_phase() {
+    # All actions that change the system, using only variables set above
+    IN_MODIFICATION_PHASE=1
+    CURRENT_TASK_NUM=0
+    log_section "Environment Configuration"
+    set_protontricks_perms
+    set_current_task "Applying initial system.reg (phase 1)"
+    download_file "https://raw.githubusercontent.com/Omni-guides/Wabbajack-Modlist-Linux/main/files/system.reg.wj.win7" "$COMPAT_DATA_PATH/pfx/system.reg" "Phase 1 system.reg"
+    webview_installer
+    set_current_task "Applying final system.reg and user.reg"
+    download_file "https://raw.githubusercontent.com/Omni-guides/Wabbajack-Modlist-Linux/main/files/system.reg.wj" "$COMPAT_DATA_PATH/pfx/system.reg" "Final system.reg"
+    download_file "https://raw.githubusercontent.com/Omni-guides/Wabbajack-Modlist-Linux/main/files/user.reg.wj" "$COMPAT_DATA_PATH/pfx/user.reg" "Final user.reg"
+    configure_steam_libraries
+    create_dotnet_cache_dir
+    log_section "Final Cleanup"
+    cleanup_wine_procs
+    set_current_task "Complete"
+    echo -e "\n"
+    echo "───────────────────────────────────────────────────────────────────"
+    log_section "Setup Complete"
+    display "✓ Installation completed successfully!" "$GREEN"
+    echo -e "\n📝 Next Steps:"
+    echo "  • Launch Wabbajack through Steam"
+    echo "  • When Wabbajack opens, verify you can log in to Nexus from the Settings option"
+    echo "  • Begin downloading and installing your modlist"
+    echo -e "\n💡 If you encounter any issues:"
+    echo "  • Check the log file at: $LOGFILE"
+    echo "  • Join the #unofficial-linux-support channel on the Wabbajack Discord"
+    echo "  • Ensure you've followed all modlist-specific requirements"
+    echo "───────────────────────────────────────────────────────────────────"
+    echo -e "\n"
+    if [[ $STEAM_IS_FLATPAK -eq 1 ]]; then
+        display "Flatpak Steam is in use. You may need to add a permissions override so that Wabbajack can access the directories." "$YELLOW"
+        display "For example, if you wanted to install a modlist to /home/user/Games/Skyrim/Modlistname, you would need to run:" "$YELLOW"
+        display "flatpak override --user com.valvesoftware.Steam --filesystem=\"/home/user/Games\"" "$YELLOW"
+    fi
+    echo -e "\n${YELLOW}⚠️  IMPORTANT: For best compatibility, add the following line to the Launch Options of your Wabbajack Steam entry:${RESET}"
+    echo -e "\n${GREEN}PROTON_USE_WINED3D=1 %command%${RESET}\n"
+    echo -e "This can help resolve certain graphics issues with Wabbajack running under Proton."
+    exit 0
+}
 
-echo -e "Script Version $script_ver" >>$LOGFILE 2>&1
+# --- Main Execution ---
+main() {
+    log_section "Script version $SCRIPT_VERSION started at: $(date +'%Y-%m-%d %H:%M:%S')"
+    if [[ $VERBOSE -eq 1 ]]; then
+        display "Verbose mode enabled" "$YELLOW"
+    fi
+    # Discovery Phase
+    discovery_phase
+    # Configuration Phase
+    configuration_phase
+}
 
-######################
-# Note Date and Time #
-######################
-
-echo -e "Script started at: $(date +'%Y-%m-%d %H:%M:%S')" >>$LOGFILE 2>&1
-
-#########################################
-# pre-emptively clean up wine processes #
-#########################################
-
-cleanup_wine_procs
-
-#############################
-# Detect if running on deck #
-#############################
-
-detect_steamdeck
-
-###########################################
-# Detect Protontricks (flatpak or native) #
-###########################################
-
-detect_protontricks
-
-#############################
-# Create protontricks alias #
-#############################
-
-protontricks_alias
-
-###############################
-# Detect Protontricks Version #
-###############################
-
-protontricks_version
-
-##########################################
-# Create protontricks alias in ~/.bashrc #
-##########################################
-
-protontricks_alias
-
-###########################
-# Get Wabbajack Directory #
-###########################
-
-get_wabbajack_path
-
-###########################
-# Set APPID and run steps #
-###########################
-
-set_appid
-
-####################################
-# Detect compatdata Directory Path #
-####################################
-
-detect_compatdata_path
-
-#####################################################
-# Set protontricks permissions on Modlist Directory #
-#####################################################
-
-set_protontricks_perms
-
-#####################################
-# Enable Visibility of (.)dot files #
-#####################################
-
-enable_dotfiles
-
-##########################################
-# Download and install WebView Installer #
-##########################################
-
-webview_installer
-
-####################
-# Configure Prefix #
-####################
-
-configure_prefix
-
-#################################
-# Detect and Link Steam Library #
-#################################
-
-detect_link_steam_library
-
-##########################################
-# Create dotnet_bundle_extract directory #
-##########################################
-
-create_dotnet_cache_dir
-
-##########################
-# Cleanup Wine Processes #
-##########################
-
-cleanup_wine_procs
-
-########
-# Exit #
-########
-
-echo -e "\e[32m\nSet up complete.\e[0m"
-
-if [[ $steam_is_flatpak -eq 1 ]]; then
-	echo -e "\e[33m\nFlatpak Steam is in use, you may need to add a permissions override so that Wabbajack can access the directories.\e[0m"
-	echo -e "\e[33m\nFor example, if you wanted to install the modlist to /home/user/Games/Skyrim/Modlistname, then you would need to run something like:\e[0m"
-	echo -e "\e[33m\nflatpak override --user com.valvesoftware.Steam --filesystem="/home/user/Games"\e[0m"
-fi
-cleaner_exit
+# Run the main function
+main 
