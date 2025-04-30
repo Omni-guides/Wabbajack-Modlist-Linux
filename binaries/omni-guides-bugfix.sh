@@ -133,64 +133,62 @@ detect_steamdeck() {
 ###########################################
 
 detect_protontricks() {
-	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
+    echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
-	# Check if protontricks exists
-	if command -v protontricks >/dev/null 2>&1; then
-		protontricks_path=$(command -v protontricks)
+    # Check if native protontricks exists
+    if command -v protontricks >/dev/null 2>&1; then
+        protontricks_path=$(command -v protontricks)
+        # Check if the detected binary is actually a Flatpak wrapper
+        if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
+            echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
+            which_protontricks=flatpak
+        else
+            echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
+            which_protontricks=native
+            return 0 # Exit function since we confirmed native protontricks
+        fi
+    fi
 
-		# Check if the detected binary is actually a Flatpak wrapper
-		if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
-			echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
-			which_protontricks=native
-			return 0 # Exit function since we confirmed native protontricks
-		fi
-	else
-		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
-		if flatpak list | grep -iq protontricks; then
-			echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
-			read -p " " answer
-			if [[ $answer =~ ^[Yy]$ ]]; then
-				if [[ $steamdeck -eq 1 ]]; then
-					if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
-						which_protontricks=flatpak
-					else
-						echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
-						exit 1
-					fi
-				else
-					read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
-					if [[ $choice =~ 1 ]]; then
-						if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
-							which_protontricks=flatpak
-						else
-							echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
-							exit 1
-						fi
-					else
-						echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
-						echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
-						echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
-						exit 1
-					fi
-				fi
-			else
-				echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
-				exit 1
-			fi
-		fi
-		# After any install attempt, re-check for protontricks
-		if ! command -v protontricks >/dev/null 2>&1; then
-			echo -e "\e[31mProtontricks is still not installed after attempted installation. Exiting.\e[0m" | tee -a $LOGFILE
-			exit 1
-		fi
-	fi
+    # If not found, check for Flatpak protontricks
+    if flatpak list | grep -iq protontricks; then
+        echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
+        which_protontricks=flatpak
+        return 0
+    fi
+
+    # If neither found, offer to install Flatpak
+    echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
+    read -p " " answer
+    if [[ $answer =~ ^[Yy]$ ]]; then
+        if [[ $steamdeck -eq 1 ]]; then
+            if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                which_protontricks=flatpak
+                return 0
+            else
+                echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+                exit 1
+            fi
+        else
+            read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
+            if [[ $choice =~ 1 ]]; then
+                if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                    which_protontricks=flatpak
+                    return 0
+                else
+                    echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+                    exit 1
+                fi
+            else
+                echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
+                echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
+                echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+                exit 1
+            fi
+        fi
+    else
+        echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+        exit 1
+    fi
 }
 
 #############################
