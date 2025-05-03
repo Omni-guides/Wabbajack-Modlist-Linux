@@ -79,5 +79,5 @@
 # - v0.64 - First upload of heavily refactored script.
 # - v0.64 - Added Tuxborn-specific functionality for automatic implementation of Steam Graphics.
 # - v0.65 - Switched from  '#!/bin/bash' to '#!/usr/bin/env bash' for wider compatibility.
-# - v0.65 - Added a "Strip non-numerical characters" to numeris user choices to fix rare case of additional blank characters being added (e.g.via SteamDeck virtual Keyboard
+# - v0.65 - Added a "Strip non-numerical characters" to numeric user choices to fix rare case of additional blank characters being added (e.g.via SteamDeck virtual Keyboard
 
