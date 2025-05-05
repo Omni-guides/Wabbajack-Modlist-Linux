@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 ###################################################
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.64 - Omni 03/18/2025           #
+#          Beta v0.65 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,7 @@
 
 
 # Current Script Version (beta)
-script_ver=0.64
+script_ver=0.65
 
 # Define modlist-specific configurations
 declare -A modlist_configs=(
@@ -133,46 +133,62 @@ detect_steamdeck() {
 ###########################################
 
 detect_protontricks() {
-	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
+    echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
-	# Check if protontricks exists
-	if command -v protontricks >/dev/null 2>&1; then
-		protontricks_path=$(command -v protontricks)
+    # Check if native protontricks exists
+    if command -v protontricks >/dev/null 2>&1; then
+        protontricks_path=$(command -v protontricks)
+        # Check if the detected binary is actually a Flatpak wrapper
+        if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
+            echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
+            which_protontricks=flatpak
+        else
+            echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
+            which_protontricks=native
+            return 0 # Exit function since we confirmed native protontricks
+        fi
+    fi
 
-		# Check if the detected binary is actually a Flatpak wrapper
-		if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
-			echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
-			which_protontricks=native
-			return 0 # Exit function since we confirmed native protontricks
-		fi
-	else
-		echo -e "Non-Flatpak Protontricks not found. Checking flatpak..." >>$LOGFILE 2>&1
-		if flatpak list | grep -iq protontricks; then
-			echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
-			which_protontricks=flatpak
-		else
-			echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
-			read -p " " answer
-			if [[ $answer =~ ^[Yy]$ ]]; then
-				if [[ $steamdeck -eq 1 ]]; then
-					flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
-					which_protontricks=flatpak
-				else
-					read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
-					if [[ $choice =~ 1 ]]; then
-						flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks
-						which_protontricks=flatpak
-					else
-						echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
-						echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
-					fi
-				fi
-			fi
-		fi
-	fi
+    # If not found, check for Flatpak protontricks
+    if flatpak list | grep -iq protontricks; then
+        echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
+        which_protontricks=flatpak
+        return 0
+    fi
+
+    # If neither found, offer to install Flatpak
+    echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
+    read -p " " answer
+    if [[ $answer =~ ^[Yy]$ ]]; then
+        if [[ $steamdeck -eq 1 ]]; then
+            if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                which_protontricks=flatpak
+                return 0
+            else
+                echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+                exit 1
+            fi
+        else
+            read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
+            if [[ $choice =~ 1 ]]; then
+                if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+                    which_protontricks=flatpak
+                    return 0
+                else
+                    echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+                    exit 1
+                fi
+            else
+                echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
+                echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
+                echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+                exit 1
+            fi
+        fi
+    else
+        echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+        exit 1
+    fi
 }
 
 #############################
@@ -764,8 +780,8 @@ replace_gamepath() {
             log_status "DEBUG" "Modlist Gamedir: $modlist_gamedir"
         fi
 
-        if [[ "$modlist_sdcard" -eq "1" ]]; then
-            log_status "DEBUG" "Using SDCard"
+        if [[ "$modlist_sdcard" -eq "1" && "$steamdeck" -eq "1" ]]; then
+            log_status "DEBUG" "Using SDCard on Steam Deck"
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
             sdcard_new_path="$modlist_gamedir_sdcard"
 
@@ -775,10 +791,10 @@ replace_gamepath() {
                 log_status "DEBUG" "SD Card Path after stripping: $sdcard_new_path"
             fi
 
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
 
@@ -787,14 +803,14 @@ replace_gamepath() {
         modlist_gamedir="$steam_library/$gamevar"
         log_status "DEBUG" "Modlist Gamedir: $modlist_gamedir"
         
-        if [[ "$basegame_sdcard" -eq "1" ]]; then
-            log_status "DEBUG" "Using SDCard"
+        if [[ "$basegame_sdcard" -eq "1" && "$steamdeck" -eq "1" ]]; then
+            log_status "DEBUG" "Using SDCard on Steam Deck"
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
             sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
     else
@@ -823,8 +839,8 @@ update_executables() {
     echo "SKSE Loc: $skse_loc" >>$LOGFILE 2>&1
 
     # Drive letter
-    if [[ "$modlist_sdcard" -eq 1 ]]; then
-        echo "Using SDCard" >>$LOGFILE 2>&1
+    if [[ "$modlist_sdcard" -eq 1 && "$steamdeck" -eq 1 ]]; then
+        echo "Using SDCard on Steam Deck" >>$LOGFILE 2>&1
         drive_letter=" = D:"
     else
         drive_letter=" = Z:"
@@ -847,8 +863,8 @@ update_executables() {
         echo -e "mods path Found" >>$LOGFILE 2>&1
 
         # Path Middle / modlist_dr
-        if [[ "$modlist_sdcard" -eq 1 ]]; then
-            echo "Using SDCard" >>$LOGFILE 2>&1
+        if [[ "$modlist_sdcard" -eq 1 && "$steamdeck" -eq 1 ]]; then
+            echo "Using SDCard on Steam Deck" >>$LOGFILE 2>&1
             drive_letter=" = D:"
             echo "$modlist_dir" >>$LOGFILE 2>&1
             path_middle="${modlist_dir#*mmcblk0p1}"
@@ -872,8 +888,8 @@ update_executables() {
         echo -e "Stock/Game Root Found" >>$LOGFILE 2>&1
 
         # Path Middle / modlist_dr
-        if [[ "$modlist_sdcard" -eq 1 ]]; then
-            echo "Using SDCard" >>$LOGFILE 2>&1
+        if [[ "$modlist_sdcard" -eq 1 && "$steamdeck" -eq 1 ]]; then
+            echo "Using SDCard on Steam Deck" >>$LOGFILE 2>&1
             drive_letter=" = D:"
             echo "Modlist Dir: $modlist_dir" >>$LOGFILE 2>&1
             path_middle="${modlist_dir#*mmcblk0p1}"
@@ -934,8 +950,8 @@ update_executables() {
         echo -e "steamapps Found" >>$LOGFILE 2>&1
 
         # Path Middle / modlist_dr
-        if [[ "$basegame_sdcard" -eq "1" ]]; then
-            echo "Using SDCard" >>$LOGFILE 2>&1
+        if [[ "$basegame_sdcard" -eq "1" && "$steamdeck" -eq "1" ]]; then
+            echo "Using SDCard on Steam Deck" >>$LOGFILE 2>&1
             path_middle="${steam_library#*mmcblk0p1}"
             drive_letter=" = D:"
         else
@@ -1266,75 +1282,46 @@ modlist_specific_steps() {
 ######################################
 
 create_dxvk_file() {
-
     echo "Use SDCard for DXVK File?: $basegame_sdcard" >>"$LOGFILE" 2>&1
     echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." >>"$LOGFILE" 2>&1
 
     game_path_line=$(grep '^gamePath' "$modlist_ini")
     echo "Game Path Line: $game_path_line" >>"$LOGFILE" 2>&1
 
-    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* ]]; then
-        # Add quotes around path variables:
-        modlist_gamedir="$modlist_dir/Stock Game"
-        echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
-
+    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
         # Get the end of our path
         if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
-            modlist_gamedir="$modlist_dir/Stock Game Folder"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
         elif [[ $game_path_line =~ Stock\ Folder ]]; then
-            modlist_gamedir="$modlist_dir/Stock Folder"
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
         elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
-            modlist_gamedir="$modlist_dir/Skyrim Stock"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Skyrim Stock/dxvk.conf"
         elif [[ $game_path_line =~ Game\ Root ]]; then
-            modlist_gamedir="$modlist_dir/Game Root"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
         elif [[ $game_path_line =~ STOCK\ GAME ]]; then
-            modlist_gamedir="$modlist_dir/STOCK GAME"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/STOCK GAME/dxvk.conf"
         elif [[ $game_path_line =~ Stock\ Game ]]; then
-            modlist_gamedir="$modlist_dir/Stock Game"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-        elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
-            modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game/dxvk.conf"
+        elif [[ $game_path_line =~ root\\Skyrim\ Special\ Edition ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/root/Skyrim Special Edition/dxvk.conf"
         fi
 
         if [[ "$modlist_sdcard" -eq "1" ]]; then
-            log_status "DEBUG" "Using SDCard"
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-            sdcard_new_path="$modlist_gamedir_sdcard"
-
-            # Strip /run/media/deck/UUID if present
-            if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
-                sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
-                log_status "DEBUG" "SD Card Path after stripping: $sdcard_new_path"
-            fi
-
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
-        else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
         fi
 
     elif [[ "$game_path_line" == *steamapps* ]]; then
-        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
-        modlist_gamedir="$steam_library/$gamevar"
-        echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>"$LOGFILE" 2>&1
+        modlist_gamedir="$steam_library"
+        echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
         if [[ "$basegame_sdcard" -eq "1" ]]; then
-            echo "Using SDCard" >>$LOGFILE 2>&1
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-            sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
-        else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/$gamevar/dxvk.conf"
         fi
     fi
-
 }
 
 #############################
@@ -1468,6 +1455,7 @@ done
 # Read user selection with proper prompt
 echo "───────────────────────────────────────────────────────────────────"
 read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
+choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
 
 # Add a newline after the selection for cleaner output
 echo ""
@@ -1621,6 +1609,19 @@ if [[ $proceed =~ ^[Yy]$ ]]; then
         fi
         echo -e "\n💡 Detailed log available at: $LOGFILE\n"
     } | tee -a "$LOGFILE"
+
+    # Show SD Card status if detected
+    if [[ "$steamdeck" -eq 1 ]]; then
+        # On Steam Deck, SD card is /run/media/deck/<UUID> or /run/media/mmcblk0p1
+        if [[ "$modlist_dir" =~ ^/run/media/deck/[^/]+(/.*)?$ ]] || [[ "$modlist_dir" == "/run/media/mmcblk0p1"* ]]; then
+            echo -e "SD Card: \e[32mDetected\e[0m" | tee -a "$LOGFILE"
+        fi
+    else
+        # On non-Deck, just show the path if it's /run/media, but don't call it SD card
+        if [[ "$modlist_dir" == "/run/media"* ]]; then
+            echo -e "Removable Media: \e[33mDetected at $modlist_dir\e[0m" | tee -a "$LOGFILE"
+        fi
+    fi
 else
     log_status "INFO" "Installation cancelled."
     cleaner_exit
