@@ -640,7 +640,7 @@ detect_compatdata_path() {
 #########################
 
 detect_proton_version() {
-    log_status "INFO" "Detecting Proton version..."
+    log_status "DEBUG" "Detecting Proton version..."
     
     # Validate the compatdata path exists
     if [[ ! -d "$compat_data_path" ]]; then 
