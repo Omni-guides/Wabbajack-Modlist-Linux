@@ -594,6 +594,21 @@ install_wine_components() {
     return 0
 }
 
+############################################
+# Detect default compatdata Directory Path #
+############################################
+default_steam_compatdata_dir() {
+    # Prefer ~/.local/share/Steam if it exists
+    if [[ -d "$HOME/.local/share/Steam/steamapps/compatdata" ]]; then
+        echo "$HOME/.local/share/Steam/steamapps/compatdata"
+    elif [[ -d "$HOME/.steam/steam/steamapps/compatdata" ]]; then
+        echo "$HOME/.steam/steam/steamapps/compatdata"
+    else
+        # Do not create the directory; just return empty string
+        echo ""
+    fi
+}
+
 ####################################
 # Detect compatdata Directory Path #
 ####################################
@@ -626,7 +641,7 @@ detect_compatdata_path() {
 #########################
 
 detect_proton_version() {
-    log_status "INFO" "Detecting Proton version..."
+    log_status "DEBUG" "Detecting Proton version..."
     
     # Validate the compatdata path exists
     if [[ ! -d "$compat_data_path" ]]; then 
@@ -1632,16 +1647,3 @@ else
     log_status "INFO" "Installation cancelled."
     cleaner_exit
 fi
-
-# Add a helper function at the top (after variable declarations):
-default_steam_compatdata_dir() {
-    # Prefer ~/.local/share/Steam if it exists
-    if [[ -d "$HOME/.local/share/Steam/steamapps/compatdata" ]]; then
-        echo "$HOME/.local/share/Steam/steamapps/compatdata"
-    elif [[ -d "$HOME/.steam/steam/steamapps/compatdata" ]]; then
-        echo "$HOME/.steam/steam/steamapps/compatdata"
-    else
-        # Do not create the directory; just return empty string
-        echo ""
-    fi
-}
