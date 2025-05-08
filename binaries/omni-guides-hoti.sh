@@ -4,7 +4,7 @@
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.64 - Omni 03/18/2025           #
+#          Beta v0.67 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,7 @@
 
 
 # Current Script Version (beta)
-script_ver=0.64
+script_ver=0.67
 
 # Define modlist-specific configurations
 declare -A modlist_configs=(
@@ -609,6 +609,23 @@ default_steam_compatdata_dir() {
     fi
 }
 
+# Helper to get all Steam library folders from libraryfolders.vdf
+get_all_steam_libraries() {
+    local vdf_file="$HOME/.steam/steam/config/libraryfolders.vdf"
+    local libraries=("$HOME/.local/share/Steam" "$HOME/.steam/steam")
+    if [[ -f "$vdf_file" ]]; then
+        while IFS='' read -r line; do
+            if [[ "$line" =~ "path" ]]; then
+                local path=$(echo "$line" | sed 's/.*"path"\s*"\(.*\)"/\1/')
+                if [[ -n "$path" ]]; then
+                    libraries+=("$path")
+                fi
+            fi
+        done <"$vdf_file"
+    fi
+    echo "${libraries[@]}"
+}
+
 ####################################
 # Detect compatdata Directory Path #
 ####################################
@@ -617,23 +634,40 @@ detect_compatdata_path() {
     local appid_to_check="$APPID"
     if [[ "$gamevar" == "Fallout New Vegas" ]]; then
         appid_to_check="22380"
-    fi
-    local compatdata_base
-    compatdata_base="$(default_steam_compatdata_dir)"
-    if [[ -z "$compatdata_base" ]]; then
-        echo "Could not find a valid Steam compatdata directory. Please ensure Steam is installed and you have launched the game at least once." | tee -a "$LOGFILE"
+        local vdf_file="$HOME/.local/share/Steam/config/libraryfolders.vdf"
+        local libraries=("$HOME/.local/share/Steam")
+        # Parse all additional libraries from the VDF
+        if [[ -f "$vdf_file" ]]; then
+            while IFS= read -r line; do
+                if [[ "$line" =~ "path" ]]; then
+                    # Extract the path value using sed
+                    local path=$(echo "$line" | sed -E 's/.*"path"[ \t]*"([^"]+)".*/\1/')
+                    if [[ "$path" == /* ]]; then
+                        libraries+=("$path")
+                    else
+                        libraries+=("$HOME/$path")
+                    fi
+                fi
+            done < "$vdf_file"
+        fi
         compat_data_path=""
-        return 1
+        for lib in "${libraries[@]}"; do
+            local compat_path="$lib/steamapps/compatdata/$appid_to_check"
+            log_status "DEBUG" "Checking for compatdata at: $compat_path"
+            if [[ -d "$compat_path" ]]; then
+                compat_data_path="$compat_path"
+                log_status "DEBUG" "Found FNV compatdata: $compat_data_path"
+                break
+            fi
+        done
+        if [[ -z "$compat_data_path" ]]; then
+            log_status "ERROR" "Could not find compatdata directory for Fallout New Vegas (22380) in any Steam library."
+            log_status "ERROR" "Please ensure you have launched the vanilla Fallout New Vegas game at least once via Steam."
+            return 1
+        fi
+        return 0
     fi
-    if [[ -d "$compatdata_base/$appid_to_check" ]]; then
-        compat_data_path="$compatdata_base/$appid_to_check"
-        echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
-    else
-        echo "Directory named '$appid_to_check' not found in default compatdata directory: $compatdata_base" | tee -a "$LOGFILE"
-        echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.." | tee -a "$LOGFILE"
-        compat_data_path=""
-        return 1
-    fi
+    # ... (existing logic for other games)
 }
 
 #########################
@@ -792,10 +826,10 @@ replace_gamepath() {
                 log_status "DEBUG" "SD Card Path after stripping: $sdcard_new_path"
             fi
 
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
 
@@ -808,10 +842,10 @@ replace_gamepath() {
             log_status "DEBUG" "Using SDCard on Steam Deck"
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
             sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
     else
@@ -1359,16 +1393,9 @@ protontricks_alias() {
 ############################
 
 fnv_launch_options() {
+    log_status "DEBUG" "fnv_launch_options: gamevar='$gamevar', compat_data_path='$compat_data_path'"
     if [[ "$gamevar" == "Fallout New Vegas" ]]; then
-        local appid_to_check="22380"
-        local compatdata_base
-        compatdata_base="$(default_steam_compatdata_dir)"
-        if [[ -z "$compatdata_base" ]]; then
-            log_status "ERROR" "\nCould not find a valid Steam compatdata directory. Please ensure Steam is installed and you have launched Fallout New Vegas at least once."
-            return 1
-        fi
-        local compat_data_path="$compatdata_base/$appid_to_check"
-        if [[ -d "$compat_data_path" ]]; then
+        if [[ -n "$compat_data_path" && -d "$compat_data_path" ]]; then
             log_status "WARN" "\nFor $MODLIST, please add the following line to the Launch Options in Steam for your '$MODLIST' entry:"
             log_status "SUCCESS" "\nSTEAM_COMPAT_DATA_PATH=\"$compat_data_path\" %command%"
             log_status "WARN" "\nThis is essential for the modlist to load correctly."
@@ -1453,40 +1480,43 @@ done
 
 # Read user selection with proper prompt
 echo "───────────────────────────────────────────────────────────────────"
-read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
+while true; do
+    read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
 
-# Add a debug flag at the top for easy toggling
-DEBUG_MODLIST_SELECTION=0  # Set to 1 to enable extra debug output
+    # Add a debug flag at the top for easy toggling
+    DEBUG_MODLIST_SELECTION=0  # Set to 1 to enable extra debug output
 
-# After reading user input for choice_num:
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Raw user input: '$choice_num'" | tee -a "$LOGFILE"
-fi
-choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Trimmed user input: '$choice_num'" | tee -a "$LOGFILE"
-fi
-
-# Before the selection validation if-statement:
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Validating: '$choice_num' =~ ^[0-9]+$ && $choice_num -ge 1 && $choice_num -le ${#output_array[@]}" | tee -a "$LOGFILE"
-fi
-
-# Validate selection properly
-if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+    # After reading user input for choice_num:
     if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-        echo "[DEBUG] Selection valid. Index: $((choice_num - 1)), Value: '${output_array[$((choice_num - 1))]}'" | tee -a "$LOGFILE"
+        echo "[DEBUG] Raw user input: '$choice_num'" | tee -a "$LOGFILE"
     fi
-    choice="${output_array[$((choice_num - 1))]}"
-    MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-    log_status "DEBUG" "MODLIST: $MODLIST"
-else
+    choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
     if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-        echo "[DEBUG] Invalid selection. choice_num: '$choice_num', output_array length: ${#output_array[@]}" | tee -a "$LOGFILE"
+        echo "[DEBUG] Trimmed user input: '$choice_num'" | tee -a "$LOGFILE"
     fi
-    log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
-    exit 1
-fi
+
+    # Before the selection validation if-statement:
+    if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+        echo "[DEBUG] Validating: '$choice_num' =~ ^[0-9]+$ && $choice_num -ge 1 && $choice_num -le ${#output_array[@]}" | tee -a "$LOGFILE"
+    fi
+
+    # Validate selection properly
+    if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Selection valid. Index: $((choice_num - 1)), Value: '${output_array[$((choice_num - 1))]}'" | tee -a "$LOGFILE"
+        fi
+        choice="${output_array[$((choice_num - 1))]}"
+        MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+        log_status "DEBUG" "MODLIST: $MODLIST"
+        break # Exit the loop if selection is valid
+    else
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Invalid selection. choice_num: '$choice_num', output_array length: ${#output_array[@]}" | tee -a "$LOGFILE"
+        fi
+        log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
+        # Removed exit 1, so the loop continues
+    fi
+done
 
 # Add a newline after the selection for cleaner output
 echo ""
@@ -1507,6 +1537,7 @@ fi
 # Detect compatdata path and Proton version
 detect_compatdata_path
 detect_proton_version
+fnv_launch_options
 
 # Get resolution preference
 if [ "$steamdeck" -eq 1 ]; then
@@ -1647,3 +1678,8 @@ else
     log_status "INFO" "Installation cancelled."
     cleaner_exit
 fi
+
+# After the block that prints the completion message and next steps:
+# (Find the line: echo -e "\n💡 Detailed log available at: $LOGFILE\n")
+# Add this immediately after:
+fnv_launch_options
