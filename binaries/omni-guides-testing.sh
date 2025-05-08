@@ -4,7 +4,7 @@
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.67 - Omni 03/18/2025           #
+#          Beta v0.68 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,7 @@
 
 
 # Current Script Version (beta)
-script_ver=0.67
+script_ver=0.68
 
 # Define modlist-specific configurations
 declare -A modlist_configs=(
@@ -1496,40 +1496,43 @@ done
 
 # Read user selection with proper prompt
 echo "───────────────────────────────────────────────────────────────────"
-read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
+while true; do
+    read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
 
-# Add a debug flag at the top for easy toggling
-DEBUG_MODLIST_SELECTION=0  # Set to 1 to enable extra debug output
+    # Add a debug flag at the top for easy toggling
+    DEBUG_MODLIST_SELECTION=0  # Set to 1 to enable extra debug output
 
-# After reading user input for choice_num:
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Raw user input: '$choice_num'" | tee -a "$LOGFILE"
-fi
-choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Trimmed user input: '$choice_num'" | tee -a "$LOGFILE"
-fi
-
-# Before the selection validation if-statement:
-if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-    echo "[DEBUG] Validating: '$choice_num' =~ ^[0-9]+$ && $choice_num -ge 1 && $choice_num -le ${#output_array[@]}" | tee -a "$LOGFILE"
-fi
-
-# Validate selection properly
-if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+    # After reading user input for choice_num:
     if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-        echo "[DEBUG] Selection valid. Index: $((choice_num - 1)), Value: '${output_array[$((choice_num - 1))]}'" | tee -a "$LOGFILE"
+        echo "[DEBUG] Raw user input: '$choice_num'" | tee -a "$LOGFILE"
     fi
-    choice="${output_array[$((choice_num - 1))]}"
-    MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-    log_status "DEBUG" "MODLIST: $MODLIST"
-else
+    choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
     if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
-        echo "[DEBUG] Invalid selection. choice_num: '$choice_num', output_array length: ${#output_array[@]}" | tee -a "$LOGFILE"
+        echo "[DEBUG] Trimmed user input: '$choice_num'" | tee -a "$LOGFILE"
     fi
-    log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
-    exit 1
-fi
+
+    # Before the selection validation if-statement:
+    if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+        echo "[DEBUG] Validating: '$choice_num' =~ ^[0-9]+$ && $choice_num -ge 1 && $choice_num -le ${#output_array[@]}" | tee -a "$LOGFILE"
+    fi
+
+    # Validate selection properly
+    if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Selection valid. Index: $((choice_num - 1)), Value: '${output_array[$((choice_num - 1))]}'" | tee -a "$LOGFILE"
+        fi
+        choice="${output_array[$((choice_num - 1))]}"
+        MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+        log_status "DEBUG" "MODLIST: $MODLIST"
+        break # Exit the loop if selection is valid
+    else
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Invalid selection. choice_num: '$choice_num', output_array length: ${#output_array[@]}" | tee -a "$LOGFILE"
+        fi
+        log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
+        # Removed exit 1, so the loop continues
+    fi
+done
 
 # Add a newline after the selection for cleaner output
 echo ""
