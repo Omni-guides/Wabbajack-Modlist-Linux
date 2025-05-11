@@ -4,7 +4,7 @@
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.64 - Omni 03/18/2025           #
+#          Beta v0.69 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,7 @@
 
 
 # Current Script Version (beta)
-script_ver=0.64
+script_ver=0.69
 
 # Define modlist-specific configurations
 declare -A modlist_configs=(
@@ -133,62 +133,62 @@ detect_steamdeck() {
 ###########################################
 
 detect_protontricks() {
-    echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
+	echo -ne "\nDetecting if protontricks is installed..." >>$LOGFILE 2>&1
 
     # Check if native protontricks exists
-    if command -v protontricks >/dev/null 2>&1; then
-        protontricks_path=$(command -v protontricks)
-        # Check if the detected binary is actually a Flatpak wrapper
-        if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
-            echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
-            which_protontricks=flatpak
-        else
-            echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
-            which_protontricks=native
-            return 0 # Exit function since we confirmed native protontricks
-        fi
+	if command -v protontricks >/dev/null 2>&1; then
+		protontricks_path=$(command -v protontricks)
+		# Check if the detected binary is actually a Flatpak wrapper
+		if [[ -f "$protontricks_path" ]] && grep -q "flatpak run" "$protontricks_path"; then
+			echo -e "Detected Protontricks is actually a Flatpak wrapper at $protontricks_path." >>$LOGFILE 2>&1
+			which_protontricks=flatpak
+		else
+			echo -e "Native Protontricks found at $protontricks_path." | tee -a $LOGFILE
+			which_protontricks=native
+			return 0 # Exit function since we confirmed native protontricks
+		fi
     fi
 
     # If not found, check for Flatpak protontricks
-    if flatpak list | grep -iq protontricks; then
-        echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
-        which_protontricks=flatpak
+		if flatpak list | grep -iq protontricks; then
+			echo -e "Flatpak Protontricks is already installed." >>$LOGFILE 2>&1
+			which_protontricks=flatpak
         return 0
     fi
 
     # If neither found, offer to install Flatpak
-    echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
-    read -p " " answer
-    if [[ $answer =~ ^[Yy]$ ]]; then
-        if [[ $steamdeck -eq 1 ]]; then
-            if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
-                which_protontricks=flatpak
+			echo -e "\e[31m\n** Protontricks not found. Do you wish to install it? (y/n): **\e[0m"
+			read -p " " answer
+			if [[ $answer =~ ^[Yy]$ ]]; then
+				if [[ $steamdeck -eq 1 ]]; then
+					if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+						which_protontricks=flatpak
                 return 0
-            else
-                echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
-                exit 1
-            fi
-        else
-            read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
-            if [[ $choice =~ 1 ]]; then
-                if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
-                    which_protontricks=flatpak
+					else
+						echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+						exit 1
+					fi
+				else
+					read -p "Choose installation method: 1) Flatpak (preferred) 2) Native: " choice
+					if [[ $choice =~ 1 ]]; then
+						if flatpak install -u -y --noninteractive flathub com.github.Matoking.protontricks; then
+							which_protontricks=flatpak
                     return 0
-                else
-                    echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
-                    exit 1
-                fi
-            else
-                echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
-                echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
-                echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
-                exit 1
-            fi
-        fi
-    else
-        echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
-        exit 1
-    fi
+						else
+							echo -e "\n\e[31mFailed to install Protontricks via Flatpak. Please install it manually and rerun this script.\e[0m" | tee -a $LOGFILE
+							exit 1
+						fi
+					else
+						echo -e "\nSorry, there are too many distros to automate this!" | tee -a $LOGFILE
+						echo -e "Please check how to install Protontricks using your OS package manager (yum, dnf, apt, pacman, etc.)" | tee -a $LOGFILE
+						echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+						exit 1
+					fi
+				fi
+			else
+				echo -e "\e[31mProtontricks is required for this script to function. Exiting.\e[0m" | tee -a $LOGFILE
+				exit 1
+	fi
 }
 
 #############################
@@ -594,24 +594,85 @@ install_wine_components() {
     return 0
 }
 
+############################################
+# Detect default compatdata Directory Path #
+############################################
+default_steam_compatdata_dir() {
+    # Prefer ~/.local/share/Steam if it exists
+    if [[ -d "$HOME/.local/share/Steam/steamapps/compatdata" ]]; then
+        echo "$HOME/.local/share/Steam/steamapps/compatdata"
+    elif [[ -d "$HOME/.steam/steam/steamapps/compatdata" ]]; then
+        echo "$HOME/.steam/steam/steamapps/compatdata"
+    else
+        # Do not create the directory; just return empty string
+        echo ""
+    fi
+}
+
+# Helper to get all Steam library folders from libraryfolders.vdf
+get_all_steam_libraries() {
+    local vdf_file="$HOME/.steam/steam/config/libraryfolders.vdf"
+    local libraries=("$HOME/.local/share/Steam" "$HOME/.steam/steam")
+    if [[ -f "$vdf_file" ]]; then
+        while IFS='' read -r line; do
+            if [[ "$line" =~ "path" ]]; then
+                local path=$(echo "$line" | sed 's/.*"path"\s*"\(.*\)"/\1/')
+                if [[ -n "$path" ]]; then
+                    libraries+=("$path")
+                fi
+            fi
+        done <"$vdf_file"
+    fi
+    echo "${libraries[@]}"
+}
+
 ####################################
 # Detect compatdata Directory Path #
 ####################################
 
 detect_compatdata_path() {
-
-    #local compat_data_path=""
-    local appid_to_check="$APPID" #default to previously detected appid
-
+    local appid_to_check="$APPID"
     if [[ "$gamevar" == "Fallout New Vegas" ]]; then
         appid_to_check="22380"
+        local vdf_file="$HOME/.local/share/Steam/config/libraryfolders.vdf"
+        local libraries=("$HOME/.local/share/Steam")
+        # Parse all additional libraries from the VDF
+        if [[ -f "$vdf_file" ]]; then
+            while IFS= read -r line; do
+                if [[ "$line" =~ "path" ]]; then
+                    # Extract the path value using sed
+                    local path=$(echo "$line" | sed -E 's/.*"path"[ \t]*"([^"]+)".*/\1/')
+                    if [[ "$path" == /* ]]; then
+                        libraries+=("$path")
+                    else
+                        libraries+=("$HOME/$path")
+                    fi
+                fi
+            done < "$vdf_file"
+        fi
+        compat_data_path=""
+        for lib in "${libraries[@]}"; do
+            local compat_path="$lib/steamapps/compatdata/$appid_to_check"
+            log_status "DEBUG" "Checking for compatdata at: $compat_path"
+            if [[ -d "$compat_path" ]]; then
+                compat_data_path="$compat_path"
+                log_status "DEBUG" "Found FNV compatdata: $compat_data_path"
+                break
+            fi
+        done
+        if [[ -z "$compat_data_path" ]]; then
+            log_status "ERROR" "Could not find compatdata directory for Fallout New Vegas (22380) in any Steam library."
+            log_status "ERROR" "Please ensure you have launched the vanilla Fallout New Vegas game at least once via Steam."
+            return 1
+        fi
+        return 0
     fi
-
+    # ... (existing logic for other games)
     # Check common Steam library locations first
     for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
         if [[ -d "$path/$appid_to_check" ]]; then
             compat_data_path="$path/$appid_to_check"
-            echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
+            log_status "DEBUG" "compatdata Path detected: $compat_data_path"
             break
         fi
     done
@@ -621,17 +682,17 @@ detect_compatdata_path() {
         find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
             if [[ -d "$compatdata_dir/$appid_to_check" ]]; then
                 compat_data_path="$compatdata_dir/$appid_to_check"
-                echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
+                log_status "DEBUG" "compatdata Path detected: $compat_data_path"
                 break
             fi
         done
     fi
 
     if [[ -z "$compat_data_path" ]]; then
-        echo "Directory named '$appid_to_check' not found in any compatdata directories."
-        echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
+        log_status "ERROR" "Directory named '$appid_to_check' not found in any compatdata directories."
+        log_status "ERROR" "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
     else
-        echo "Found compatdata directory with '$appid_to_check': $compat_data_path" >>"$LOGFILE" 2>&1
+        log_status "DEBUG" "Found compatdata directory with '$appid_to_check': $compat_data_path"
     fi
 }
 
@@ -791,10 +852,10 @@ replace_gamepath() {
                 log_status "DEBUG" "SD Card Path after stripping: $sdcard_new_path"
             fi
 
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
 
@@ -807,10 +868,10 @@ replace_gamepath() {
             log_status "DEBUG" "Using SDCard on Steam Deck"
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
             sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
+            new_string="@ByteArray(D:${sdcard_new_path//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
+            new_string="@ByteArray(Z:${modlist_gamedir//\//\\\\})"
             log_status "DEBUG" "New String: $new_string"
         fi
     else
@@ -1282,75 +1343,46 @@ modlist_specific_steps() {
 ######################################
 
 create_dxvk_file() {
-
     echo "Use SDCard for DXVK File?: $basegame_sdcard" >>"$LOGFILE" 2>&1
     echo -e "\nCreating dxvk.conf file - Checking if Modlist uses Game Root, Stock Game or Vanilla Game Directory.." >>"$LOGFILE" 2>&1
 
     game_path_line=$(grep '^gamePath' "$modlist_ini")
     echo "Game Path Line: $game_path_line" >>"$LOGFILE" 2>&1
 
-    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* ]]; then
-        # Add quotes around path variables:
-        modlist_gamedir="$modlist_dir/Stock Game"
-        echo -ne "\nFound Game Root/Stock Game or equivalent directory, editing Game Path.. " >>$LOGFILE 2>&1
-
+    if [[ "$game_path_line" == *Stock\ Game* || "$game_path_line" == *STOCK\ GAME* || "$game_path_line" == *Stock\ Game\ Folder* || "$game_path_line" == *Stock\ Folder* || "$game_path_line" == *Skyrim\ Stock* || "$game_path_line" == *Game\ Root* ]]; then
         # Get the end of our path
         if [[ $game_path_line =~ Stock\ Game\ Folder ]]; then
-            modlist_gamedir="$modlist_dir/Stock Game Folder"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game Folder/dxvk.conf"
         elif [[ $game_path_line =~ Stock\ Folder ]]; then
-            modlist_gamedir="$modlist_dir/Stock Folder"
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Folder/dxvk.conf"
         elif [[ $game_path_line =~ Skyrim\ Stock ]]; then
-            modlist_gamedir="$modlist_dir/Skyrim Stock"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Skyrim Stock/dxvk.conf"
         elif [[ $game_path_line =~ Game\ Root ]]; then
-            modlist_gamedir="$modlist_dir/Game Root"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Game Root/dxvk.conf"
         elif [[ $game_path_line =~ STOCK\ GAME ]]; then
-            modlist_gamedir="$modlist_dir/STOCK GAME"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/STOCK GAME/dxvk.conf"
         elif [[ $game_path_line =~ Stock\ Game ]]; then
-            modlist_gamedir="$modlist_dir/Stock Game"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-        elif [[ $game_path_line =~ root\\\\Skyrim\ Special\ Edition ]]; then
-            modlist_gamedir="$modlist_dir/root/Skyrim Special Edition"
-            echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/Stock Game/dxvk.conf"
+        elif [[ $game_path_line =~ root\\Skyrim\ Special\ Edition ]]; then
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/root/Skyrim Special Edition/dxvk.conf"
         fi
 
-        if [[ "$modlist_sdcard" -eq "1" && "$steamdeck" -eq "1" ]]; then
-            log_status "DEBUG" "Using SDCard on Steam Deck"
+        if [[ "$modlist_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-            sdcard_new_path="$modlist_gamedir_sdcard"
-
-            # Strip /run/media/deck/UUID if present
-            if [[ "$sdcard_new_path" == /run/media/deck/* ]]; then
-                sdcard_new_path="/${sdcard_new_path#*/run/media/deck/*/*}"
-                log_status "DEBUG" "SD Card Path after stripping: $sdcard_new_path"
-            fi
-
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
-        else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
         fi
 
     elif [[ "$game_path_line" == *steamapps* ]]; then
-        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>$LOGFILE 2>&1
-        modlist_gamedir="$steam_library/$gamevar"
-        echo "Modlist Gamedir: $modlist_gamedir" >>$LOGFILE 2>&1
-        if [[ "$basegame_sdcard" -eq "1" && "$steamdeck" -eq "1" ]]; then
-            log_status "DEBUG" "Using SDCard on Steam Deck"
+        echo -ne "Vanilla Game Directory required, editing Game Path.. " >>"$LOGFILE" 2>&1
+        modlist_gamedir="$steam_library"
+        echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_gamedir/dxvk.conf"
+        if [[ "$basegame_sdcard" -eq "1" ]]; then
+            echo "Using SDCard" >>"$LOGFILE" 2>&1
             modlist_gamedir_sdcard="${modlist_gamedir#*mmcblk0p1}"
-            sdcard_new_path="$modlist_gamedir_sdcard/$gamevar"
-            new_string="@ByteArray(D:${sdcard_new_path//\//\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
-        else
-            new_string="@ByteArray(Z:${modlist_gamedir//\//\\})"
-            echo "New String: $new_string" >>$LOGFILE 2>&1
+            echo "dxvk.enableGraphicsPipelineLibrary = False" >"$modlist_dir/$gamevar/dxvk.conf"
         fi
     fi
-
 }
 
 #############################
@@ -1387,18 +1419,9 @@ protontricks_alias() {
 ############################
 
 fnv_launch_options() {
+    log_status "DEBUG" "fnv_launch_options: gamevar='$gamevar', compat_data_path='$compat_data_path'"
     if [[ "$gamevar" == "Fallout New Vegas" ]]; then
-        local compat_data_path=""
-        local appid_to_check="22380"
-
-        for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
-            if [[ -d "$path/$appid_to_check" ]]; then
-                compat_data_path="$path/$appid_to_check"
-                break
-            fi
-        done
-
-        if [[ -n "$compat_data_path" ]]; then
+        if [[ -n "$compat_data_path" && -d "$compat_data_path" ]]; then
             log_status "WARN" "\nFor $MODLIST, please add the following line to the Launch Options in Steam for your '$MODLIST' entry:"
             log_status "SUCCESS" "\nSTEAM_COMPAT_DATA_PATH=\"$compat_data_path\" %command%"
             log_status "WARN" "\nThis is essential for the modlist to load correctly."
@@ -1483,21 +1506,46 @@ done
 
 # Read user selection with proper prompt
 echo "───────────────────────────────────────────────────────────────────"
-read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
-choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
+while true; do
+    read -p $'\e[33mSelect a modlist (1-'"${#output_array[@]}"$'): \e[0m' choice_num
+
+    # Add a debug flag at the top for easy toggling
+    DEBUG_MODLIST_SELECTION=0  # Set to 1 to enable extra debug output
+
+    # After reading user input for choice_num:
+    if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+        echo "[DEBUG] Raw user input: '$choice_num'" | tee -a "$LOGFILE"
+    fi
+    choice_num=$(echo "$choice_num" | xargs)  # Trim whitespace
+    if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+        echo "[DEBUG] Trimmed user input: '$choice_num'" | tee -a "$LOGFILE"
+    fi
+
+    # Before the selection validation if-statement:
+    if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+        echo "[DEBUG] Validating: '$choice_num' =~ ^[0-9]+$ && $choice_num -ge 1 && $choice_num -le ${#output_array[@]}" | tee -a "$LOGFILE"
+    fi
+
+    # Validate selection properly
+    if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Selection valid. Index: $((choice_num - 1)), Value: '${output_array[$((choice_num - 1))]}'" | tee -a "$LOGFILE"
+        fi
+        choice="${output_array[$((choice_num - 1))]}"
+        MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
+        log_status "DEBUG" "MODLIST: $MODLIST"
+        break # Exit the loop if selection is valid
+    else
+        if [[ $DEBUG_MODLIST_SELECTION -eq 1 ]]; then
+            echo "[DEBUG] Invalid selection. choice_num: '$choice_num', output_array length: ${#output_array[@]}" | tee -a "$LOGFILE"
+        fi
+        log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
+        # Removed exit 1, so the loop continues
+    fi
+done
 
 # Add a newline after the selection for cleaner output
 echo ""
-
-# Validate selection properly
-if [[ "$choice_num" =~ ^[0-9]+$ ]] && [[ "$choice_num" -ge 1 ]] && [[ "$choice_num" -le "${#output_array[@]}" ]]; then
-    choice="${output_array[$((choice_num - 1))]}"
-    MODLIST=$(echo "$choice" | cut -d ' ' -f 3- | rev | cut -d ' ' -f 2- | rev)
-    log_status "DEBUG" "MODLIST: $MODLIST"
-else
-    log_status "ERROR" "Invalid selection. Please enter a number between 1 and ${#output_array[@]}."
-    exit 1
-fi
 
 # Initial detection phase
 cleanup_wine_procs
@@ -1515,6 +1563,7 @@ fi
 # Detect compatdata path and Proton version
 detect_compatdata_path
 detect_proton_version
+fnv_launch_options
 
 # Get resolution preference
 if [ "$steamdeck" -eq 1 ]; then
@@ -1655,3 +1704,8 @@ else
     log_status "INFO" "Installation cancelled."
     cleaner_exit
 fi
+
+# After the block that prints the completion message and next steps:
+# (Find the line: echo -e "\n💡 Detailed log available at: $LOGFILE\n")
+# Add this immediately after:
+fnv_launch_options

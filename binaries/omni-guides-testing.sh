@@ -4,7 +4,7 @@
 #                                                 #
 # A tool for running Wabbajack modlists on Linux  #
 #                                                 #
-#          Beta v0.68 - Omni 03/18/2025           #
+#          Beta v0.69 - Omni 03/18/2025           #
 #                                                 #
 ###################################################
 
@@ -12,7 +12,7 @@
 
 
 # Current Script Version (beta)
-script_ver=0.68
+script_ver=0.69
 
 # Define modlist-specific configurations
 declare -A modlist_configs=(
@@ -640,8 +640,8 @@ detect_compatdata_path() {
         if [[ -f "$vdf_file" ]]; then
             while IFS= read -r line; do
                 if [[ "$line" =~ "path" ]]; then
-                    local path=$(echo "$line" | sed 's/.*"path"[ \t]*"\\{0,1\}\(.*\)\\{0,1\}"/\1/')
-                    # If path is not absolute, prepend $HOME/
+                    # Extract the path value using sed
+                    local path=$(echo "$line" | sed -E 's/.*"path"[ \t]*"([^"]+)".*/\1/')
                     if [[ "$path" == /* ]]; then
                         libraries+=("$path")
                     else
@@ -665,24 +665,34 @@ detect_compatdata_path() {
             log_status "ERROR" "Please ensure you have launched the vanilla Fallout New Vegas game at least once via Steam."
             return 1
         fi
+        return 0
+    fi
+    # ... (existing logic for other games)
+    # Check common Steam library locations first
+    for path in "$HOME/.local/share/Steam/steamapps/compatdata" "$HOME/.steam/steam/steamapps/compatdata"; do
+        if [[ -d "$path/$appid_to_check" ]]; then
+            compat_data_path="$path/$appid_to_check"
+            log_status "DEBUG" "compatdata Path detected: $compat_data_path"
+            break
+        fi
+    done
+
+    # If not found in common locations, use find command
+    if [[ -z "$compat_data_path" ]]; then
+        find / -type d -name "compatdata" 2>/dev/null | while read -r compatdata_dir; do
+            if [[ -d "$compatdata_dir/$appid_to_check" ]]; then
+                compat_data_path="$compatdata_dir/$appid_to_check"
+                log_status "DEBUG" "compatdata Path detected: $compat_data_path"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$compat_data_path" ]]; then
+        log_status "ERROR" "Directory named '$appid_to_check' not found in any compatdata directories."
+        log_status "ERROR" "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.."
     else
-        # For other games, use current logic
-        local compatdata_base
-        compatdata_base="$(default_steam_compatdata_dir)"
-        if [[ -z "$compatdata_base" ]]; then
-            echo "Could not find a valid Steam compatdata directory. Please ensure Steam is installed and you have launched the game at least once." | tee -a "$LOGFILE"
-            compat_data_path=""
-            return 1
-        fi
-        if [[ -d "$compatdata_base/$appid_to_check" ]]; then
-            compat_data_path="$compatdata_base/$appid_to_check"
-            echo -e "compatdata Path detected: $compat_data_path" >>"$LOGFILE" 2>&1
-        else
-            echo "Directory named '$appid_to_check' not found in default compatdata directory: $compatdata_base" | tee -a "$LOGFILE"
-            echo -e "Please ensure you have started the Steam entry for the modlist at least once, even if it fails.." | tee -a "$LOGFILE"
-            compat_data_path=""
-            return 1
-        fi
+        log_status "DEBUG" "Found compatdata directory with '$appid_to_check': $compat_data_path"
     fi
 }
 
@@ -1694,3 +1704,8 @@ else
     log_status "INFO" "Installation cancelled."
     cleaner_exit
 fi
+
+# After the block that prints the completion message and next steps:
+# (Find the line: echo -e "\n💡 Detailed log available at: $LOGFILE\n")
+# Add this immediately after:
+fnv_launch_options
