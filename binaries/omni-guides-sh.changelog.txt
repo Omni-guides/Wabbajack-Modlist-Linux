@@ -1,5 +1,6 @@
 # ~-= omni-guides.sh Changelog =-~
 # =====================================
+# - v0.69 - Fixed regression with game detection logic. Promoting testing script variant to stable. (11-May-25)
 # - v0.68 - Fixed re-prompt when user enters nothing in the modlist choice. User will be asked to re-try, rather than the script exiting. (08-May-25)
 # - v0.67 - Fixed regression that broke the correct forming of the gamePath line in ModOrganizer.ini (08-May-25)
 # - v0.66 - Fixed bug where dxvk.conf file wasn't correctly created. (05-May-25)
