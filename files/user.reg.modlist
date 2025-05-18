@@ -1405,13 +1405,11 @@ WINE REGISTRY Version 2
 "USERNAME"="steamuser"
 "USERPROFILE"="C:\\users\\steamuser"
 
-[Software\\Classes\\nxm] 1745352594
+[Software\\Classes\\nxm] 1747577075
+#time=1dbc7fdc9813bea
+@="URL:NXM Protocol"
 "URL Protocol"=""
-""="URL:NXM Protocol"
 
-[Software\\Classes\\nxm\\shell] 1745352594
-
-[Software\\Classes\\nxm\\shell\\open] 1745352594
-
-[Software\\Classes\\nxm\\shell\\open\\command] 1745352594
-""="Z:\\\\dummy\\\\nxmhandler.exe \"%1\""
+[Software\\Classes\\nxm\\shell\\open\\command] 1747577075
+#time=1dbc7fdc9813f5a
+@="\"Z:\\dummy\\nxmhandler.exe\" \"%1\""
