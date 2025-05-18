@@ -1404,3 +1404,14 @@ WINE REGISTRY Version 2
 "USERDOMAIN"="LEGION"
 "USERNAME"="steamuser"
 "USERPROFILE"="C:\\users\\steamuser"
+
+[Software\\Classes\\nxm] 1745352594
+"URL Protocol"=""
+""="URL:NXM Protocol"
+
+[Software\\Classes\\nxm\\shell] 1745352594
+
+[Software\\Classes\\nxm\\shell\\open] 1745352594
+
+[Software\\Classes\\nxm\\shell\\open\\command] 1745352594
+""="Z:\\\\dummy\\\\nxmhandler.exe \"%1\""
